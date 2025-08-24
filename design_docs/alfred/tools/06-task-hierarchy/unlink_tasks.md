@@ -1,0 +1,383 @@
+# Tool: unlink_tasks
+
+## Purpose
+Remove a blocking/blocked relationship between two tasks in Linear (or unlink issues in Jira) to eliminate task dependencies.
+
+## Business Value
+- **Who uses this**: Developers managing task dependencies and workflows in Linear/Jira
+- **What problem it solves**: Removes incorrect or obsolete dependency relationships using Linear's native relationship management (or Jira's issue links)
+- **Why it's better than manual approach**: Automates task unlinking through API, validates relationships exist, and maintains consistency across the project management platform
+
+## Functionality Specification
+
+### Input Requirements
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `task_id` | string | Yes | - | Linear issue ID or Jira issue key of the blocked task |
+| `unblock_task_id` | string | Yes | - | Linear issue ID or Jira issue key of the blocking task to remove |
+| `link_type` | string | No | "blocks" | Type of relationship to remove: "blocks", "relates", "duplicates" |
+| `workspace_id` | string | No | From config | Linear workspace ID or Jira project key |
+
+#### Validation Rules
+1. Both task IDs must be provided
+2. Both tasks must exist in Linear/Jira
+3. The specified relationship must exist between the tasks
+4. User must have permission to modify task relationships
+5. Cannot remove system-generated relationships
+
+### Processing Logic
+
+#### Step-by-Step Algorithm
+
+```
+1. VALIDATE_INPUTS
+   - Check both task IDs are provided
+   - Validate link type is supported
+   - Load workspace configuration
+   
+2. AUTHENTICATE_API
+   - Initialize Linear/Jira client with API key
+   - Verify authentication is valid
+   
+3. FIND_EXISTING_LINK
+   For Linear:
+   - Query issue relations for the task
+   - Find specific relation to remove
+   For Jira:
+   - Get issue links for the task
+   - Find specific link by type and target
+   
+4. VERIFY_LINK_EXISTS
+   - Check if the specified relationship exists
+   - If not found, return info message
+   - Get relation/link ID for deletion
+   
+5. REMOVE_LINK
+   For Linear:
+   - Use issueRelation.delete mutation
+   - Pass relation ID to remove
+   For Jira:
+   - Use delete issue link API
+   - Pass link ID to remove
+   
+6. RETURN_SUCCESS
+   - Return confirmation with task IDs
+   - Include link type removed
+   - Provide updated task status
+```
+
+### Output Specification
+
+#### Success Response (Linear)
+```javascript
+{
+  success: true,
+  data: {
+    message: "Successfully unlinked tasks: TASK-123 is no longer blocked by TASK-456",
+    unblockedTask: {
+      id: "TASK-123",
+      title: "Implement authentication",
+      url: "https://linear.app/team/issue/TASK-123"
+    },
+    unblockingTask: {
+      id: "TASK-456",
+      title: "Setup database schema",
+      url: "https://linear.app/team/issue/TASK-456"
+    },
+    linkType: "blocks"
+  }
+}
+```
+
+#### Success Response (Jira)
+```javascript
+{
+  success: true,
+  data: {
+    message: "Successfully unlinked issues: PROJ-123 is no longer blocked by PROJ-456",
+    unblockedIssue: {
+      key: "PROJ-123",
+      summary: "Implement authentication",
+      url: "https://company.atlassian.net/browse/PROJ-123"
+    },
+    unblockingIssue: {
+      key: "PROJ-456",
+      summary: "Setup database schema",
+      url: "https://company.atlassian.net/browse/PROJ-456"
+    },
+    linkType: "Blocks"
+  }
+}
+```
+
+#### Info Response (No Link Found)
+```javascript
+{
+  success: true,
+  data: {
+    message: "Task 5 does not depend on 3, no changes made",
+    taskId: 5,
+    dependencyId: 3
+  }
+}
+```
+
+#### Error Response
+```javascript
+{
+  success: false,
+  error: {
+    code: "CORE_FUNCTION_ERROR",
+    message: "Task 99 not found."
+  }
+}
+```
+
+#### Error Codes
+- `MISSING_ARGUMENT`: Required parameters not provided
+- `INPUT_VALIDATION_ERROR`: Task ID or dependency ID missing
+- `CORE_FUNCTION_ERROR`: Error during dependency removal
+- Task not found errors
+- Parent task not found errors
+- Subtask not found errors
+
+### Side Effects
+1. **Modifies task's dependencies array** in tasks.json
+2. Does not create empty dependencies array (leaves unchanged)
+3. Does not validate remaining dependencies
+4. Does not regenerate task files
+5. Changes affect task execution order
+
+## Data Flow
+
+```mermaid
+graph TD
+    A[Input Parameters] --> B[Parse IDs]
+    B --> C{ID Format?}
+    C -->|Main Task| D[Integer ID]
+    C -->|Subtask| E[Dot Notation]
+    D --> F[Load Tasks JSON]
+    E --> F
+    F --> G[Find Target Task]
+    G --> H{Is Subtask?}
+    H -->|Yes| I[Find Parent & Subtask]
+    H -->|No| J[Find Main Task]
+    I --> K{Task Found?}
+    J --> K
+    K -->|No| L[Return Error]
+    K -->|Yes| M{Has Dependencies?}
+    M -->|No| N[Return No Change]
+    M -->|Yes| O[Search Dependencies]
+    O --> P{Dependency Found?}
+    P -->|No| Q[Return No Change]
+    P -->|Yes| R[Remove Dependency]
+    R --> S[Write JSON]
+    S --> T[Return Success]
+```
+
+## Implementation Details
+
+### Data Storage
+- **Input/Output**: `.taskmaster/tasks/tasks.json` - Task data by tag
+- Dependencies stored as arrays in task objects
+- Integer IDs for main task dependencies
+- String IDs for subtask dependencies (dot notation)
+
+### ID Formatting
+```javascript
+// Format task IDs correctly
+const formattedTaskId = 
+  typeof taskId === 'string' && taskId.includes('.')
+    ? taskId
+    : parseInt(taskId, 10);
+
+const formattedDependencyId = formatTaskId(dependencyId);
+```
+
+### Subtask Handling
+```javascript
+// Handle dot notation for subtasks
+if (typeof formattedTaskId === 'string' && formattedTaskId.includes('.')) {
+  const [parentId, subtaskId] = formattedTaskId
+    .split('.')
+    .map((id) => parseInt(id, 10));
+  const parentTask = data.tasks.find((t) => t.id === parentId);
+  targetTask = parentTask.subtasks.find((s) => s.id === subtaskId);
+  isSubtask = true;
+}
+```
+
+### Dependency Search
+```javascript
+// Find dependency by comparing string representations
+const dependencyIndex = targetTask.dependencies.findIndex((dep) => {
+  // Convert both to strings for comparison
+  let depStr = String(dep);
+  
+  // Special handling for numeric IDs in subtask context
+  if (typeof dep === 'number' && dep < 100 && isSubtask) {
+    const [parentId] = formattedTaskId.split('.');
+    depStr = `${parentId}.${dep}`;
+  }
+  
+  return depStr === normalizedDependencyId;
+});
+```
+
+### Array Modification
+```javascript
+// Remove the dependency if found
+if (dependencyIndex !== -1) {
+  targetTask.dependencies.splice(dependencyIndex, 1);
+}
+```
+
+## AI Integration Points
+This tool **does not use AI**. It performs pure data operations:
+- Direct array manipulation for dependencies
+- Simple validation checks
+- No content generation or analysis
+- No external API calls
+
+## Dependencies
+- **File System Access**: Read/write access to JSON files
+- **Dependency Manager**: Core dependency management functions
+- **Utils**: Task existence checks, JSON operations, formatting
+- **Silent Mode**: Console output suppression for MCP
+
+## Test Scenarios
+
+### 1. Remove Main Task Dependency
+```javascript
+// Test: Remove dependency from task
+Setup: Task 5 depends on [3, 4]
+Input: {
+  id: "5",
+  dependsOn: "3",
+  projectRoot: "/project"
+}
+Expected: Task 5.dependencies = [4]
+```
+
+### 2. Remove Subtask Dependency
+```javascript
+// Test: Remove dependency from subtask
+Setup: Subtask 5.2 depends on ["3.1", "4.1"]
+Input: {
+  id: "5.2",
+  dependsOn: "3.1",
+  projectRoot: "/project"
+}
+Expected: Subtask 5.2.dependencies = ["4.1"]
+```
+
+### 3. Remove Mixed Dependency
+```javascript
+// Test: Remove main task from subtask deps
+Setup: Subtask 5.2 depends on [3, "4.1"]
+Input: {
+  id: "5.2",
+  dependsOn: "3",
+  projectRoot: "/project"
+}
+Expected: Subtask 5.2.dependencies = ["4.1"]
+```
+
+### 4. Non-Existent Dependency
+```javascript
+// Test: Remove dependency that doesn't exist
+Setup: Task 5 depends on [3, 4]
+Input: {
+  id: "5",
+  dependsOn: "7",
+  projectRoot: "/project"
+}
+Expected: No changes, info message returned
+```
+
+### 5. Task Without Dependencies
+```javascript
+// Test: Remove from task with no dependencies
+Setup: Task 5 has no dependencies property
+Input: {
+  id: "5",
+  dependsOn: "3",
+  projectRoot: "/project"
+}
+Expected: No changes, info message returned
+```
+
+### 6. Invalid Task
+```javascript
+// Test: Task doesn't exist
+Input: {
+  id: "99",
+  dependsOn: "3",
+  projectRoot: "/project"
+}
+Expected: Error - task not found
+```
+
+### 7. Remove Last Dependency
+```javascript
+// Test: Remove only remaining dependency
+Setup: Task 5 depends on [3]
+Input: {
+  id: "5",
+  dependsOn: "3",
+  projectRoot: "/project"
+}
+Expected: Task 5.dependencies = []
+```
+
+### 8. Relative Subtask Reference
+```javascript
+// Test: Remove relative subtask dependency
+Setup: Subtask 5.2 depends on [1, 2] (relative to parent)
+Input: {
+  id: "5.2",
+  dependsOn: "5.1",
+  projectRoot: "/project"
+}
+Expected: Removes dependency if 1 refers to 5.1
+```
+
+## Implementation Notes
+- **Complexity**: Low (simple array operations)
+- **Estimated Effort**: 2-3 hours for complete implementation
+- **Critical Success Factors**:
+  1. Proper ID parsing and normalization
+  2. Task existence validation
+  3. Dependency array search logic
+  4. Handling different ID formats
+  5. Graceful handling of missing dependencies
+
+## Performance Considerations
+- Single file read/write operation
+- Linear search for task finding
+- Linear search for dependency finding
+- Array splice operation for removal
+- No external API calls
+
+## Security Considerations
+- Validate all task IDs
+- Path traversal protection
+- Tag isolation maintained
+- No data corruption on missing dependencies
+- Graceful error handling
+
+## Code References
+- Current implementation: `scripts/modules/dependency-manager.js` (removeDependency function, lines 245-367)
+- MCP tool: `mcp-server/src/tools/remove-dependency.js`
+- Direct function: `mcp-server/src/core/direct-functions/remove-dependency.js`
+- Key functions:
+  - `removeDependency()`: Main dependency removal logic
+  - `taskExists()`: Validates task/subtask existence
+  - `formatTaskId()`: Formats IDs correctly
+  - `readJSON()`/`writeJSON()`: Tag-aware file operations
+- Design patterns: Simple command pattern
+
+---
+
+*This documentation captures the actual current implementation of the remove_dependency tool as a pure data operation without AI integration.*

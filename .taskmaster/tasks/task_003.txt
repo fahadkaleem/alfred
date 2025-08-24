@@ -1,0 +1,176 @@
+# Task ID: 3
+# Title: Implement Anthropic AI service integration
+# Status: pending
+# Dependencies: 1
+# Priority: high
+# Description: Create the AI service layer with Anthropic Claude integration as specified in design_docs/alfred/ai-integration.md
+# Details:
+## Implementation Details
+Reference: design_docs/alfred/ai-integration.md
+
+Create AI service structure:
+- src/alfred/ai_services/__init__.py
+- src/alfred/ai_services/anthropic_client.py - Claude integration
+- src/alfred/ai_services/prompts.py - Prompt templates
+
+Requirements:
+1. Anthropic SDK integration
+2. Prompt template system
+3. Token usage tracking
+4. Response streaming support
+5. Error handling for rate limits
+
+## Key Prompts to Implement:
+- create_tasks_from_spec(spec_content, num_tasks)
+- decompose_task(task, num_subtasks)
+- assess_complexity(task)
+- enhance_task(task, context)
+- research(query, context)
+
+# Test Strategy:
+## Test Instructions
+1. Mock Anthropic API responses
+2. Test prompt generation with various inputs
+3. Verify token counting accuracy
+4. Test rate limit handling
+5. Validate streaming responses
+6. Test error scenarios (API down, invalid key)
+
+## Success Criteria
+- [ ] All prompt templates working
+- [ ] Token usage tracked correctly
+- [ ] Rate limits handled gracefully
+- [ ] Streaming responses functional
+- [ ] Errors return helpful messages
+
+# Subtasks:
+## 1. Scaffold AI service package and configuration [pending]
+### Dependencies: None
+### Description: Create the AI service module structure, export interfaces, and wire up configuration for Anthropic API usage.
+### Details:
+1) Create files and folders:
+- src/alfred/ai_services/__init__.py
+- src/alfred/ai_services/anthropic_client.py (placeholder class and types)
+- src/alfred/ai_services/prompts.py (placeholder functions)
+2) Add dependency: anthropic>=0.34.0 to pyproject.toml and install.
+3) In src/alfred/ai_services/__init__.py, export key classes/functions:
+- from .anthropic_client import AnthropicAIClient, AnthropicAIService, AIResponse, TokenUsage, AIServiceError, RateLimitedError
+- from .prompts import (
+    render_create_tasks_from_spec,
+    render_decompose_task,
+    render_assess_complexity,
+    render_enhance_task,
+    render_research,
+  )
+4) Define shared types in anthropic_client.py for later use:
+- @dataclass TokenUsage { input_tokens: int; output_tokens: int; total_tokens: int }
+- @dataclass AIResponse { text: str; usage: TokenUsage; model: str; stop_reason: Optional[str]; raw: Any }
+- class AIServiceError(Exception) and class RateLimitedError(AIServiceError)
+5) Configuration loading (minimal, independent of Task 7):
+- Read Anthropic API key from env: ANTROPHIC_API_KEY or ANTHROPIC_API_KEY (support both, prefer ANTHROPIC_API_KEY)
+- Optional envs: ANTHROPIC_MODEL (default from design_docs), ANTHROPIC_BASE_URL
+- Provide helper get_anthropic_config() that validates presence of API key and returns dict {api_key, model, base_url}
+6) Define module-level defaults: DEFAULT_MODEL (e.g., "claude-3-5-sonnet-20240620" or per design_docs), DEFAULT_MAX_TOKENS, DEFAULT_TEMPERATURE, TIMEOUT_SEC.
+
+## 2. Implement prompt template system with key prompt renderers [pending]
+### Dependencies: 3.1
+### Description: Create a lightweight prompt templating system and implement the five key prompt builders that return message arrays compatible with Anthropic Messages API.
+### Details:
+1) In src/alfred/ai_services/prompts.py implement:
+- Utility sanitize_text(value: str) to normalize whitespace and fence code blocks with triple backticks where appropriate.
+- A render_prompt(template: str, **kwargs) using Python str.format with safe placeholder replacement; raise ValueError on missing keys.
+- A helper to wrap content into Messages API format: messages_from_text(system: Optional[str], user: str) -> list[dict].
+2) Implement key prompt renderers returning dict with fields {system: str|None, user: str, messages: list[dict]}:
+- render_create_tasks_from_spec(spec_content: str, num_tasks: int)
+  System: "You are Alfred, an expert software PM generating actionable engineering tasks. Respond in JSON."
+  User: include instructions to generate exactly num_tasks tasks with fields: title, description, labels, estimate, dependencies. Include guidance from complexity report recommendations (e.g., call out to produce complexity and risk per task).
+- render_decompose_task(task: str, num_subtasks: int)
+  System: "Decompose tasks into precise, implementable subtasks with dependencies. Respond in JSON."
+- render_assess_complexity(task: str)
+  System: "Assess technical complexity, risk, required skills, and estimated tokens. Respond in JSON with fields complexity(1-5), risk(1-5), rationale, est_tokens." Include instruction to be conservative.
+- render_enhance_task(task: str, context: str)
+  System: "Enhance task with acceptance criteria and edge cases. Respond in JSON."
+- render_research(query: str, context: str)
+  System: "Research assistant: propose sources, hypotheses, and next steps. Respond in JSON."
+3) Each renderer must:
+- Sanitize inputs (limit length if huge; the service will chunk later).
+- Return messages=[{"role":"system","content":system}, {"role":"user","content":user}] or omit system if None.
+- Include explicit JSON schema-like instructions to minimize hallucinations.
+4) Add simple prompt validation: ensure non-empty inputs; raise ValueError on invalid num_* <= 0.
+
+## 3. Build Anthropic client wrapper with SDK integration, token counting, and streaming [pending]
+### Dependencies: 3.1, 3.2
+### Description: Implement AnthropicAIClient to abstract Anthropic SDK calls, support non-streaming and streaming responses, and capture token usage.
+### Details:
+1) In src/alfred/ai_services/anthropic_client.py implement class AnthropicAIClient:
+- __init__(api_key: Optional[str]=None, model: Optional[str]=None, base_url: Optional[str]=None, timeout: int=60):
+  Creates anthropic.Anthropic(api_key=...), optionally with base_url if provided; set defaults from get_anthropic_config().
+- call(messages: list[dict], model: Optional[str]=None, max_tokens: int=DEFAULT_MAX_TOKENS, temperature: float=DEFAULT_TEMPERATURE, stream: bool=False, extra: Optional[dict]=None) -> AIResponse | Generator[dict, None, None]
+  Non-streaming: client.messages.create(...). Extract text by joining content blocks; build TokenUsage from response.usage.{input_tokens, output_tokens}. Return AIResponse.
+  Streaming: use context manager client.messages.stream(...). Yield structured events: {"type":"message_start","model":...,"usage":None}, then for chunk in stream.text_stream yield {"type":"text","delta":chunk}. After completion, final_message = stream.get_final_message(); yield {"type":"message_end","usage": {input, output, total}, "stop_reason": final_message.stop_reason}. Consumers can aggregate text from text events.
+- count_tokens(messages: list[dict]) -> int: if SDK provides client.messages.count_tokens, use it; else fallback to heuristic len(" ".join([m["content"] for m in messages]))//4.
+- Private helpers: _extract_text(message) to join content blocks; _to_usage(usage_obj) -> TokenUsage.
+2) Error mapping:
+- Catch anthropic.RateLimitError -> raise RateLimitedError with details including retry-after if present.
+- Catch anthropic.APIStatusError / anthropic.APIError -> raise AIServiceError with status and message.
+- On streaming, ensure exceptions inside generator propagate as RateLimitedError/AIServiceError.
+3) Logging hooks (optional): accept on_event callback in call(..., extra={"on_event": callable}) to receive events in streaming and final AIResponse in non-streaming.
+4) Respect timeout by configuring underlying HTTP client via Anthropics SDK options if available; otherwise, document that default SDK timeout applies.
+
+## 4. Implement high-level AI service methods for key prompts with chunking and usage aggregation [pending]
+### Dependencies: 3.2, 3.3
+### Description: Create AnthropicAIService that uses prompt renderers and the client to implement create_tasks_from_spec, decompose_task, assess_complexity, enhance_task, and research, including large-input handling and optional streaming.
+### Details:
+1) In anthropic_client.py add class AnthropicAIService:
+- __init__(client: Optional[AnthropicAIClient]=None). If None, instantiate a default client.
+- Public methods (each signature aligns with requirements and supports stream: bool=False, return_json: bool=True):
+  a) create_tasks_from_spec(spec_content: str, num_tasks: int, stream: bool=False) -> dict | Generator[dict, None, None]
+     - If spec_content is large (token estimate via client.count_tokens on rendered messages exceeds threshold, e.g., 60% of model context), chunk into segments with overlap; for each chunk, call assess_complexity first to adjust density and chunk size per complexity recommendations; generate partial tasks and merge/dedupe; finally trim/expand to exactly num_tasks, preserving coverage.
+  b) decompose_task(task: str, num_subtasks: int, stream: bool=False) -> dict | Generator[dict, None, None]
+  c) assess_complexity(task: str) -> dict
+  d) enhance_task(task: str, context: str, stream: bool=False) -> dict | Generator[dict, None, None]
+  e) research(query: str, context: str, stream: bool=False) -> dict | Generator[dict, None, None]
+- Each method uses corresponding renderer from prompts.py to build messages, then calls client.call(..., stream=...). For streaming, yield client events directly, but also accumulate text to parse final JSON when a 'message_end' event is seen and then yield a final {"type":"result","data": parsed_json}. For non-streaming, parse JSON from AIResponse.text. On JSON parsing failure, wrap text in {"raw_text": text} and include a warning field.
+- Token usage tracking: Aggregate TokenUsage across chunked calls; return alongside result in a wrapper dict: {"result": ..., "usage": {input, output, total}, "model": model} for non-streaming; for streaming, include usage in the final 'result' event.
+2) JSON safety:
+- Implement _parse_json_safely(text) to strip code fences and attempt json.loads with fallback.
+- Enforce schemas lightly (e.g., ensure arrays/objects exist) and normalize output shapes.
+3) Parameters and defaults:
+- Allow overriding model, temperature, and max_tokens via optional kwargs.
+4) Document return shapes in docstrings so downstream tools (Task 5/6) can consume consistently.
+
+## 5. Add robust retry/backoff for rate limits and transient errors plus error-path tests [pending]
+### Dependencies: 3.3, 3.4
+### Description: Implement exponential backoff with jitter for RateLimitError and transient API errors, integrate with both non-streaming and streaming flows, and validate via tests.
+### Details:
+1) In AnthropicAIClient.call add retry logic:
+- Wrap the request in a retry loop with max_retries=5 (configurable), base_delay=0.5s, multiplier=2, max_delay=8s, and full jitter. 
+- On RateLimitedError: if 'retry-after' header available in exception or response, sleep that duration; else use backoff. 
+- On AIServiceError with HTTP status >= 500: retry with backoff. 
+- Do not retry on auth (401/403) or validation (400) errors.
+- For streaming, implement retries only before opening the stream. If a stream fails mid-flight, raise the error and let caller decide (documented behavior).
+2) Centralize error creation functions to include context (model, endpoint, message sizes) in exception messages to aid debugging.
+3) Telemetry hooks: allow optional on_retry callback in extra to observe retries and reasons.
+4) Update AnthropicAIService methods to surface structured errors with clear messages and to propagate RateLimitedError distinctly so callers can handle.
+5) Documentation: inline docstrings referencing design_docs/alfred/ai-integration.md for behavior expectations.
+
+## 6. Set up Anthropic SDK and client wrapper [pending]
+### Dependencies: None
+### Description: Initialize Anthropic SDK with configuration and create client wrapper class
+### Details:
+Reference: design_docs/alfred/ai-integration.md
+
+Implementation steps:
+- Install anthropic SDK: pip install anthropic>=0.20.0
+- Create src/alfred/ai_services/__init__.py
+- Create src/alfred/ai_services/anthropic_client.py
+- Implement AnthropicClient class:
+  - Initialize with API key from config
+  - Set default model: claude-3-5-sonnet-20241022
+  - Configure timeouts (30s default)
+  - Add retry logic with tenacity
+- Create methods:
+  - async def complete(prompt, max_tokens, temperature)
+  - async def stream_complete(prompt, max_tokens)
+- Add token counting utility using anthropic.count_tokens()
+

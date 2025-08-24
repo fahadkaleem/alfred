@@ -1,0 +1,25 @@
+# Task ID: 17
+# Title: Implement workflow utility tools
+# Status: pending
+# Dependencies: 1, 2, 6
+# Priority: medium
+# Description: Create utility MCP tools for workflow management including dependency validation and file generation as defined in design_docs/alfred/PRD.md
+# Details:
+
+
+# Test Strategy:
+
+
+# Subtasks:
+## 1. Implement validate_dependencies tool [pending]
+### Dependencies: None
+### Description: Create the validate_dependencies MCP tool to check for dependency issues.\n\n**Design Reference:** design_docs/alfred/PRD.md lines 179-183, tools/06-task-hierarchy/check_task_links.md\n**Acceptance Criteria:**\n- Tool validates all task dependencies in workspace/epic\n- Detects circular dependencies using graph traversal\n- Identifies dependencies on non-existent tasks\n- Checks for dependency conflicts\n- Returns detailed validation report\n- Does NOT make any changes (read-only)\n\n**Test Instructions:**\n1. Mock Linear tasks with various dependencies\n2. Create test scenario with circular dependency A→B→C→A\n3. Call validate_dependencies\n4. Verify circular dependency detected with path shown\n5. Test detection of dependencies on deleted tasks\n6. Test with clean dependency graph (no issues)\n7. Verify detailed report structure\n8. Test performance with 100+ tasks
+### Details:
+
+
+## 2. Implement fix_dependencies tool [pending]
+### Dependencies: 17.1
+### Description: Create the fix_dependencies MCP tool to automatically repair dependency issues.\n\n**Design Reference:** design_docs/alfred/PRD.md lines 179-183, tools/06-task-hierarchy/repair_task_links.md\n**Acceptance Criteria:**\n- Tool automatically fixes issues found by validate_dependencies\n- Breaks circular dependencies by removing newest link in cycle\n- Removes dependencies on non-existent tasks\n- Provides dry-run mode to preview changes\n- Supports undo/rollback on failure\n- Returns detailed report of fixes applied\n\n**Test Instructions:**\n1. Mock Linear tasks with circular dependency\n2. Call fix_dependencies with dry_run=true\n3. Verify proposed fixes without actual changes\n4. Call fix_dependencies with dry_run=false\n5. Verify circular dependency broken at correct point\n6. Test removal of orphaned dependencies\n7. Test rollback on API failure\n8. Verify fix report includes all changes\n9. Test idempotency (running twice has no effect)
+### Details:
+
+

@@ -1,0 +1,184 @@
+# Task ID: 2
+# Title: Create Linear adapter implementation
+# Status: pending
+# Dependencies: 1
+# Priority: high
+# Description: Implement the Linear GraphQL adapter following the adapter pattern in design_docs/alfred/backend-adapters.md
+# Details:
+## Implementation Details
+Reference: design_docs/alfred/backend-adapters.md
+
+Create Linear adapter with:
+- src/alfred/adapters/base.py - Abstract base adapter
+- src/alfred/adapters/linear_adapter.py - Linear GraphQL implementation
+
+Requirements:
+1. Abstract TaskAdapter base class with interface methods
+2. LinearAdapter implementing all base methods
+3. GraphQL queries for Linear API
+4. Error handling for API failures
+5. Data mapping between Alfred and Linear models
+
+## Methods to implement:
+- create_task(title, description, epic_id)
+- get_tasks(epic_id, status, limit)
+- get_task(task_id)
+- update_task(task_id, updates)
+- create_subtask(parent_id, title, description)
+- delete_task(task_id)
+- create_epic(name, description)
+- get_epics()
+- link_tasks(task_id, depends_on_id)
+
+# Test Strategy:
+## Test Instructions
+1. Create mock Linear API responses
+2. Test create_task with valid and invalid data
+3. Verify GraphQL query formation
+4. Test error handling for network failures
+5. Validate data mapping accuracy
+6. Test pagination for get_tasks
+
+## Success Criteria
+- [ ] All adapter methods implemented
+- [ ] GraphQL queries properly formed
+- [ ] Error responses handled gracefully
+- [ ] Data correctly mapped between systems
+- [ ] Rate limiting considered
+
+# Subtasks:
+## 1. Define TaskAdapter base, shared types, and exceptions [pending]
+### Dependencies: None
+### Description: Create the abstract base adapter and common error types per the adapter pattern. Establish consistent method signatures and typed payload shapes for tasks and epics.
+### Details:
+File: src/alfred/adapters/base.py
+- Create exception hierarchy to standardize error handling across adapters:
+  - class AdapterError(Exception)
+  - class AuthError(AdapterError)
+  - class NotFoundError(AdapterError)
+  - class ValidationError(AdapterError)
+  - class RateLimitError(AdapterError)
+  - class APIConnectionError(AdapterError)
+  - class APIResponseError(AdapterError)
+  - class MappingError(AdapterError)
+- Define typed structures (TypedDict or dataclasses) used by adapters to normalize data:
+  - TaskDict: { id: str, title: str, description: Optional[str], status: Optional[str], epic_id: Optional[str], parent_id: Optional[str], url: Optional[str], created_at: Optional[str], updated_at: Optional[str] }
+  - EpicDict: { id: str, name: str, description: Optional[str], url: Optional[str], created_at: Optional[str], updated_at: Optional[str] }
+- Define abstract base class TaskAdapter (use abc.ABC) with the required methods and explicit parameter/return contracts. Each method should be annotated and documented to return normalized dictionaries or raise the above exceptions:
+  - create_task(title: str, description: Optional[str], epic_id: Optional[str]) -> TaskDict
+  - get_tasks(epic_id: Optional[str] = None, status: Optional[Union[str, List[str]]] = None, limit: int = 50) -> List[TaskDict]
+  - get_task(task_id: str) -> TaskDict
+  - update_task(task_id: str, updates: Dict[str, Any]) -> TaskDict
+  - create_subtask(parent_id: str, title: str, description: Optional[str]) -> TaskDict
+  - delete_task(task_id: str) -> bool
+  - create_epic(name: str, description: Optional[str]) -> EpicDict
+  - get_epics(limit: int = 50) -> List[EpicDict]
+  - link_tasks(task_id: str, depends_on_id: str) -> bool
+- Add clear docstrings noting: required/optional fields, expected exceptions, and that implementations must be idempotent where applicable.
+- Export public symbols via __all__ for consumption by adapter implementations.
+
+## 2. Prepare Linear GraphQL operations and mapping helpers [pending]
+### Dependencies: 2.1
+### Description: Define Linear GraphQL queries/mutations and mapping utilities to convert between Linear API objects and Alfred's normalized types.
+### Details:
+File: src/alfred/adapters/linear_adapter.py
+- Add module-level constants:
+  - GRAPHQL_ENDPOINT = "https://api.linear.app/graphql"
+  - DEFAULT_PAGE_SIZE = 50
+- Define GraphQL fragments for reuse:
+  - fragment IssueFields on Issue { id title description url createdAt updatedAt state { id name type } project { id name } parent { id } }
+  - fragment ProjectFields on Project { id name description url createdAt updatedAt }
+- Define operations as string constants:
+  - CREATE_ISSUE_MUTATION (issueCreate)
+  - GET_ISSUE_QUERY (issue(id: $id))
+  - DELETE_ISSUE_MUTATION (issueDelete)
+  - UPDATE_ISSUE_MUTATION (issueUpdate)
+  - LIST_ISSUES_QUERY (issues with filter, first, after, includes pageInfo and nodes { ...IssueFields })
+  - CREATE_PROJECT_MUTATION (projectCreate)
+  - LIST_PROJECTS_QUERY (projects with pagination, nodes { ...ProjectFields })
+  - CREATE_RELATION_MUTATION (issueRelationCreate; relation type "blocks" or "relatesTo")
+  - WORKFLOW_STATES_QUERY (workflowStates by team and/or name to resolve stateId for status updates)
+- Implement mapping helpers:
+  - def map_linear_issue_to_task(issue: dict) -> TaskDict: normalize keys, map state.name to TaskDict.status, project.id->epic_id, parent.id->parent_id.
+  - def map_linear_project_to_epic(project: dict) -> EpicDict: normalize keys.
+  - def normalize_status_filter(status: Optional[Union[str, List[str]]]) -> List[str]: sanitize to a list of state names; keep as-is to be matched against Linear state.name.
+  - def build_issue_filter(epic_id: Optional[str], state_names: Optional[List[str]]) -> dict: compose GraphQL filter object using project and state name filters.
+- Note on domain mapping: Treat Alfred "epic" as Linear Project. Subtasks use Issue.parentId. Dependencies use issueRelationCreate; for depends_on_id, create a relation where the dependency blocks the task (issueId=depends_on_id, relatedIssueId=task_id, type="blocks").
+- Include comments aligning with design_docs/alfred/backend-adapters.md to ensure interface consistency.
+- Complexity recommendations: centralize operations to avoid duplicated strings; reuse fragments; minimize extra round-trips by batching state lookups and caching them per team.
+
+## 3. Implement Linear GraphQL client with robust error handling and retries [pending]
+### Dependencies: 2.1, 2.2
+### Description: Create an internal GraphQL client responsible for HTTP transport, auth, retries, rate limit handling, and consistent error translation to AdapterError subclasses.
+### Details:
+File: src/alfred/adapters/linear_adapter.py (same module)
+- Implement internal class _LinearClient:
+  - __init__(token: str, endpoint: str = GRAPHQL_ENDPOINT, timeout: float = 15.0, max_retries: int = 3, backoff_base: float = 0.5, session: Optional[requests.Session] = None)
+  - execute(query: str, variables: dict) -> dict
+    - Build POST JSON { query, variables } with headers: Authorization: Bearer <token>, Content-Type: application/json.
+    - Send using requests.Session for connection reuse; apply timeout.
+    - Handle network errors (requests.Timeout/ConnectionError) -> raise APIConnectionError.
+    - If HTTP 401/403 -> raise AuthError.
+    - If HTTP 429 -> parse Retry-After or use exponential backoff; retry up to max_retries; then raise RateLimitError.
+    - If HTTP >= 500 -> retry with exponential backoff; else raise APIResponseError with status and body snippet.
+    - Parse JSON; if payload contains "errors" -> raise APIResponseError with concatenated messages and first error code/path.
+    - Return data dict on success.
+  - Simple observability: optional logger debug for query names (extract from operation name) and retry attempts; avoid logging secrets.
+- Add small LRU cache (functools.lru_cache) helper for stable lookups like workflow state by team+name to minimize repeated GraphQL calls in later steps.
+- Constructor validation: ensure token is non-empty; otherwise raise AuthError.
+- Keep client class internal to adapter module; do not export publicly.
+- Complexity recommendations implemented: connection pooling via Session, capped retries with jitter, and caching for workflow states.
+
+## 4. Implement LinearAdapter with all required methods and data mapping [pending]
+### Dependencies: 2.1, 2.2, 2.3
+### Description: Build the concrete LinearAdapter implementing the TaskAdapter interface. Use prepared operations, the internal client, and mapping helpers. Support pagination, status updates via workflow state resolution, and robust error handling.
+### Details:
+File: src/alfred/adapters/linear_adapter.py
+- Implement class LinearAdapter(TaskAdapter):
+  - __init__(api_token: Optional[str] = None, team_id: Optional[str] = None, default_project_id: Optional[str] = None, session: Optional[requests.Session] = None):
+    - Resolve token from argument or env LINEAR_API_KEY; if missing, raise AuthError.
+    - Save team_id (optional, used for status resolution). Instantiate _LinearClient.
+  - Private helpers:
+    - _resolve_state_id(state_name: str, team_id_hint: Optional[str] = None) -> Optional[str]:
+      - Use WORKFLOW_STATES_QUERY to fetch by name; prefer self.team_id; if not provided, attempt to derive team from the target issue (for update_task) by fetching the issue.team.id via GET_ISSUE_QUERY and re-query states for that team.
+      - Cache results per (team_id, state_name).
+    - _paginate(query: str, variables: dict, path: List[str], node_mapper: Callable) -> List[Any]: generic pagination using pageInfo.hasNextPage/ endCursor.
+  - Implement methods:
+    - create_task(title, description, epic_id): call CREATE_ISSUE_MUTATION with input { title, description, projectId: epic_id or default_project_id }. Map node using map_linear_issue_to_task.
+    - get_tasks(epic_id, status, limit): build filter via build_issue_filter(epic_id, normalize_status_filter(status)); paginate LIST_ISSUES_QUERY until limit; map each node.
+    - get_task(task_id): GET_ISSUE_QUERY; if not found or node is null -> NotFoundError.
+    - update_task(task_id, updates): translate updates keys { title, description, status } to Linear input; for status, resolve stateId via _resolve_state_id. Call UPDATE_ISSUE_MUTATION and map result.
+    - create_subtask(parent_id, title, description): CREATE_ISSUE_MUTATION with parentId=parent_id; map.
+    - delete_task(task_id): DELETE_ISSUE_MUTATION; return True on success; if not found -> NotFoundError; if API returns success: false -> APIResponseError.
+    - create_epic(name, description): CREATE_PROJECT_MUTATION; map using map_linear_project_to_epic.
+    - get_epics(): paginate LIST_PROJECTS_QUERY to DEFAULT_PAGE_SIZE; map.
+    - link_tasks(task_id, depends_on_id): CREATE_RELATION_MUTATION with input { type: "blocks", issueId: depends_on_id, relatedIssueId: task_id }; return True on success.
+  - Error handling: let _LinearClient translate transport errors; catch mapping issues and raise MappingError; convert missing IDs to NotFoundError with helpful context.
+  - Input validation: ensure at least one of epic_id/default_project_id when creating tasks; ensure non-empty titles; raise ValidationError for bad inputs.
+  - Ensure all methods are synchronous and comply with base signatures.
+  - Add minimal docstrings referencing design_docs/alfred/backend-adapters.md and note that Alfred "epics" are modeled as Linear Projects here.
+- Complexity recommendations: batch pagination requests up to DEFAULT_PAGE_SIZE, cache workflow state IDs, avoid redundant issue fetches when not necessary, and centralize variable building to reduce duplication.
+
+## 5. Add comprehensive unit tests and fixtures for Linear adapter [pending]
+### Dependencies: 2.4
+### Description: Implement tests covering query formation, success/error paths, mapping correctness, and pagination. Provide mock responses and sample payloads.
+### Details:
+Files (tests): tests/adapters/test_linear_adapter.py and fixtures in tests/fixtures/linear/*.json
+- Testing stack: pytest + responses/respx (or requests-mock). Use freezegun for timestamp stability if needed.
+- Create fixtures for common GraphQL payloads:
+  - issue_create_success.json, issue_get_success.json, issue_update_success.json, issue_delete_success.json
+  - issues_list_page1.json, issues_list_page2.json (with pageInfo.hasNextPage)
+  - project_create_success.json, projects_list_page1.json
+  - workflow_states_success.json
+  - relation_create_success.json
+  - error_payload.json (GraphQL errors array)
+- Implement tests per requirements:
+  1) Mock Linear API responses and assert create_task works with valid/invalid data.
+  2) Verify GraphQL variable formation for each method (validate sent JSON body against expected dicts).
+  3) Simulate network failures/timeouts and ensure proper exception classes are raised.
+  4) Validate mapping correctness for tasks and epics (status, epic_id, parent_id, urls, timestamps present when available).
+  5) Test pagination for get_tasks and get_epics (cursor handling, limit cutoff).
+  6) Status updates: ensure _resolve_state_id is called and uses cache on repeated calls.
+- Code coverage goal: >=90% for src/alfred/adapters/linear_adapter.py and base.py.
+- Provide parametrized tests for status filters (single vs list).
+

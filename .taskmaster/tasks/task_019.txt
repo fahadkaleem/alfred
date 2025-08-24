@@ -1,0 +1,31 @@
+# Task ID: 19
+# Title: Create documentation and API reference
+# Status: pending
+# Dependencies: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16, 17
+# Priority: low
+# Description: Create comprehensive documentation for Alfred including API reference, user guides, and developer documentation as specified in design_docs/alfred/PRD.md
+# Details:
+
+
+# Test Strategy:
+
+
+# Subtasks:
+## 1. Create MCP tool reference documentation [pending]
+### Dependencies: None
+### Description: Generate comprehensive tool reference documentation.\n\n**Design Reference:** design_docs/alfred/PRD.md lines 356-361\n**Acceptance Criteria:**\n- Document all 40 MCP tools with parameters\n- Include example usage for each tool\n- Document expected responses\n- Add error scenarios and handling\n- Group tools by category\n- Generate from docstrings where possible\n\n**Test Instructions:**\n1. Verify all 40 tools documented\n2. Check parameter descriptions complete\n3. Test example code snippets\n4. Verify response format documentation\n5. Check error scenario coverage\n6. Test navigation and search\n7. Verify auto-generation from code\n8. Check markdown formatting
+### Details:
+
+
+## 2. Create Linear/Jira setup guides [pending]
+### Dependencies: None
+### Description: Write platform-specific setup documentation.\n\n**Design Reference:** design_docs/alfred/PRD.md lines 356-361\n**Acceptance Criteria:**\n- Create Linear API key generation guide\n- Document workspace/team/project setup\n- Add Jira setup guide (future)\n- Include permission requirements\n- Add screenshots and examples\n- Document common setup issues\n\n**Test Instructions:**\n1. Follow Linear setup guide end-to-end\n2. Verify API key generation steps\n3. Test workspace configuration\n4. Check permission documentation\n5. Verify screenshot clarity\n6. Test troubleshooting steps\n7. Validate example configurations\n8. Check cross-platform differences
+### Details:
+
+
+## 3. Create developer documentation [pending]
+### Dependencies: None
+### Description: Write documentation for extending Alfred.\n\n**Design Reference:** design_docs/alfred/PRD.md lines 361-368\n**Acceptance Criteria:**\n- Document adapter interface specification\n- Create guide for adding new platforms\n- Document AI provider extension\n- Add prompt customization guide\n- Include contributing guidelines\n- Document testing requirements\n\n**Test Instructions:**\n1. Follow adapter creation guide\n2. Test example adapter implementation\n3. Verify interface documentation completeness\n4. Test AI provider addition steps\n5. Check prompt customization examples\n6. Verify contributing workflow\n7. Test documentation build process\n8. Check code style guidelines
+### Details:
+
+

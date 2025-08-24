@@ -1,0 +1,130 @@
+# Task ID: 15
+# Title: Create comprehensive test suite
+# Status: pending
+# Dependencies: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14
+# Priority: high
+# Description: Build complete test coverage for all Alfred components
+# Details:
+Reference: design_docs/alfred/architecture.md
+
+Create test structure:
+- tests/unit/ - Unit tests for each module (adapters, AI services, tools, utilities)
+- tests/integration/ - Integration tests for tool-to-adapter flows using mocked external services
+- tests/e2e/ - End-to-end scenarios exercised through public interfaces with all external calls mocked
+- tests/fixtures/ - Test data and mocks (Linear GraphQL, Anthropic responses, common entities)
+
+Requirements:
+1. 80%+ code coverage target enforced in pytest configuration
+2. Mock Linear API responses (GraphQL queries/mutations, error states, pagination) — no live network calls
+3. Mock Anthropic API responses (token usage, streaming, rate limits, error scenarios) — no live network calls
+4. Test all error paths and edge cases (network failures, invalid inputs, mapping errors, rate limits)
+5. Performance benchmarks using pytest-benchmark for critical paths (e.g., parsing specs, task listing)
+6. Deterministic tests: fixed seeds for randomness and stable fixtures
+7. Parallelizable tests (pytest -n) without shared-state flakiness
+
+Scope alignment with implementation tasks (1–14 only):
+- Adapters: src/alfred/adapters/base.py, src/alfred/adapters/linear_adapter.py
+- AI services: src/alfred/ai_services/anthropic_client.py, prompts
+- Tools: src/alfred/tools/task_creation.py (create_tasks_from_spec), src/alfred/tools/task_management.py (CRUD)
+- Ensure no dependency on documentation or CI/CD tasks that were removed
+
+# Test Strategy:
+## Test Instructions
+1. Environment setup
+   - Install dev dependencies: pytest, pytest-cov, pytest-benchmark, requests-mock/respx, freezegun, hypothesis (optional), pytest-xdist (optional)
+   - Disable outbound network in tests (e.g., pytest-socket or equivalent) to enforce mocked calls only
+   - Set dummy env vars for API keys and monkeypatch in tests
+
+2. Run unit tests with coverage
+   - pytest -q --cov=src/alfred --cov-report=term-missing --cov-fail-under=80
+   - Verify coverage includes adapters, AI services, tools, and utilities
+
+3. Integration tests
+   - Test tool-to-adapter integrations with mocked Linear/Anthropic layers
+   - Validate data mapping, pagination, status mapping, and error propagation
+
+4. E2E tests (mocked services)
+   - Simulate create_tasks_from_spec end-to-end from spec input to Linear adapter calls (all external APIs mocked)
+   - Simulate task lifecycle: create_task -> get_task -> update_task_status -> get_tasks
+
+5. Performance regression tests
+   - Use pytest-benchmark to baseline key operations (spec parsing, listing tasks with filters)
+   - Compare against stored baselines to detect regressions
+
+6. Determinism and parallelism
+   - Ensure tests pass with pytest -n auto and without network access
+
+## Success Criteria
+- [ ] 80%+ coverage achieved
+- [ ] All tools have tests
+- [ ] Integration tests pass
+- [ ] E2E scenarios covered
+- [ ] CI/CD ready
+
+# Subtasks:
+## 1. Set up pytest and coverage configuration [pending]
+### Dependencies: None
+### Description: Configure pytest and coverage in pyproject.toml (or setup.cfg) with --cov-fail-under=80 and test discovery paths.
+### Details:
+
+
+## 2. Add fixtures for Linear GraphQL API mocks [pending]
+### Dependencies: None
+### Description: Create reusable fixtures in tests/fixtures for Linear queries/mutations, error cases, and pagination; block live network calls.
+### Details:
+
+
+## 3. Add fixtures for Anthropic API mocks [pending]
+### Dependencies: None
+### Description: Create reusable fixtures to mock Anthropic responses, token usage, streaming, and rate limit errors.
+### Details:
+
+
+## 4. Unit tests for Linear adapter [pending]
+### Dependencies: None
+### Description: Cover happy paths, GraphQL query formation, data mapping, pagination, and error handling (network failures, API errors).
+### Details:
+
+
+## 5. Unit tests for Anthropic client and prompts [pending]
+### Dependencies: None
+### Description: Test prompt generation, token counting, streaming responses, and rate limit/backoff behavior.
+### Details:
+
+
+## 6. Unit tests for task_creation tool (create_tasks_from_spec) [pending]
+### Dependencies: None
+### Description: Validate parsing of sample PRDs/specs, task generation structure, epic creation logic (mocked), and error handling.
+### Details:
+
+
+## 7. Unit tests for task_management tool (CRUD) [pending]
+### Dependencies: None
+### Description: Test get_tasks filters and pagination, get_task details, create_task fields, update_task_status transitions, and status mapping.
+### Details:
+
+
+## 8. Integration tests for tool-to-adapter flows [pending]
+### Dependencies: None
+### Description: Validate interactions between tools and Linear adapter with mocked external services; assert data contracts and error propagation.
+### Details:
+
+
+## 9. E2E tests with mocked services [pending]
+### Dependencies: None
+### Description: Simulate end-to-end flows: spec-to-tasks and task lifecycle using only mocked Linear and Anthropic services; verify outcomes.
+### Details:
+
+
+## 10. Performance benchmarks [pending]
+### Dependencies: None
+### Description: Add pytest-benchmark suites for spec parsing and task listing; create baseline and comparison guidance.
+### Details:
+
+
+## 11. Ensure determinism and parallelism [pending]
+### Dependencies: None
+### Description: Enforce no-network policy, set random seeds in tests, and ensure tests pass with pytest -n auto without flakiness.
+### Details:
+
+

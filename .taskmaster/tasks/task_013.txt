@@ -1,0 +1,61 @@
+# Task ID: 13
+# Title: Implement research tool
+# Status: pending
+# Dependencies: 1, 2, 3, 6
+# Priority: medium
+# Description: Create AI-powered research tool with context gathering as defined in design_docs/alfred/tools/09-special-utilities/research.md
+# Details:
+Reference: design_docs/alfred/PRD.md (lines 151) & design_docs/alfred/tools/09-special-utilities/research.md
+
+Create in src/alfred/tools/research.py:
+- research - AI-powered research with context gathering
+
+Requirements:
+1. Gather context from workspace/tasks
+2. Use AI to research and provide insights
+3. Attach findings to tasks as comments
+4. Support multiple research modes
+5. Include source citations
+
+# Test Strategy:
+## Test Instructions
+1. Test context gathering
+2. Test research quality
+3. Test task attachment
+4. Test citation accuracy
+5. Test various research modes
+
+## Success Criteria
+- [ ] Quality research output
+- [ ] Context awareness
+- [ ] Task integration
+- [ ] Source citations
+- [ ] Error handling
+
+# Subtasks:
+## 1. Implement research tool [pending]
+### Dependencies: None
+### Description: Create the research MCP tool for AI-powered context gathering.
+
+**Design Reference:** design_docs/alfred/PRD.md lines 148, 189, tools/09-special-utilities/research.md
+**Acceptance Criteria:**
+- Tool accepts research query and optional task context
+- Uses Anthropic to gather relevant information
+- Can attach findings to specific task as comment
+- Supports web search integration (future)
+- Formats response with sources and confidence levels
+- Saves research results for future reference
+
+**Test Instructions:**
+1. Mock Anthropic research response
+2. Mock Linear comment creation
+3. Call research with query "best practices for API design"
+4. Verify AI prompt includes query and context
+5. Test attaching research to task_id
+6. Verify formatted response with sections
+7. Test token limit handling for long research
+8. Test caching of research results
+9. Verify Linear comment creation when task_id provided
+### Details:
+
+

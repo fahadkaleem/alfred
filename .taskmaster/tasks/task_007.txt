@@ -1,0 +1,86 @@
+# Task ID: 7
+# Title: Implement configuration management system
+# Status: pending
+# Dependencies: 1
+# Priority: high
+# Description: Create configuration and environment management as specified in design_docs/alfred/configuration.md
+# Details:
+## Implementation Details
+Reference: design_docs/alfred/architecture.md (lines 223-238)
+
+Create configuration system:
+- src/alfred/config/__init__.py
+- src/alfred/config/settings.py
+- .alfred directory structure
+- Environment variable handling
+
+Requirements:
+1. Load environment variables from .env
+2. Manage .alfred/config.json
+3. Validate API keys on startup
+4. Support workspace switching
+5. Handle missing configurations gracefully
+
+## Config Structure:
+```python
+class Config:
+    linear_api_key: str
+    anthropic_api_key: str
+    workspace_id: Optional[str]
+    team_id: Optional[str]
+    active_epic_id: Optional[str]
+```
+
+# Test Strategy:
+## Test Instructions
+1. Test with complete .env file
+2. Test with missing API keys
+3. Verify config.json creation
+4. Test workspace switching
+5. Validate environment override
+6. Test config persistence
+
+## Success Criteria
+- [ ] Environment variables loaded
+- [ ] Config file managed properly
+- [ ] API key validation works
+- [ ] Graceful error messages
+- [ ] Config changes persist
+
+# Subtasks:
+## 1. Scaffold config package and typed Config model [pending]
+### Dependencies: None
+### Description: Create the config package, define the Config data model, constants, exceptions, and environment variable mapping according to design_docs/alfred/configuration.md and architecture guidelines.
+### Details:
+1) Create src/alfred/config/__init__.py and src/alfred/config/settings.py. 2) In settings.py, define a typed dataclass (or pydantic model if already a project dependency) named Config with fields: linear_api_key: str | None, anthropic_api_key: str | None, workspace_id: str | None, team_id: str | None, active_epic_id: str | None. 3) Define custom exceptions: ConfigError (base), ConfigValidationError. 4) Set up a module-level logger named 'alfred.config'. 5) Define environment variable names and mapping: LINEAR_API_KEY -> linear_api_key, ANTHROPIC_API_KEY -> anthropic_api_key, ALFRED_WORKSPACE_ID -> workspace_id, ALFRED_TEAM_ID -> team_id, ALFRED_ACTIVE_EPIC_ID -> active_epic_id, ALFRED_CONFIG_DIR for overriding config directory, ALFRED_ENV_FILE to point to a specific .env file. 6) Implement a utility load_env(env_file: Optional[Path]) that uses python-dotenv (load_dotenv) to load variables from .env, searching in order: explicit env_file if provided, current working directory, project root, and user home. Ensure variables from the OS env are not overwritten by .env unless override=True is explicitly requested by caller. 7) Document and align with design_docs/alfred/architecture.md (lines 223-238) with a lightweight, testable design and single-responsibility helpers.
+
+## 2. Implement .alfred directory management and config.json persistence [pending]
+### Dependencies: 7.1
+### Description: Add cross-platform config directory resolution, ensure directory exists, and implement robust read/write for .alfred/config.json with atomic writes and graceful handling of missing/malformed files.
+### Details:
+1) In settings.py, implement config_dir() returning Path: if ALFRED_CONFIG_DIR is set, use it; else use ~/.alfred (expanduser). Optionally respect XDG_CONFIG_HOME on Linux if complexity report advises; if so, prefer $XDG_CONFIG_HOME/alfred over ~/.alfred. 2) Implement ensure_config_dir() to create the directory with mode 0o700 if missing. 3) Define CONFIG_FILE = config_dir() / 'config.json'. 4) Implement read_config_file() -> dict that: calls ensure_config_dir(), returns {} if file doesn't exist, and if malformed JSON, logs a warning and backs up the bad file to config.json.bak.TIMESTAMP then returns {}. 5) Implement write_config_file(cfg: Config) -> None that: writes to a temp file in the same directory and os.replace to CONFIG_FILE (atomic), serializing only known fields; set file permissions to 0o600 on POSIX. 6) Provide to_dict/from_dict helpers on Config to serialize/parse, ignoring unknown keys and normalizing empty strings to None. 7) Avoid global state; functions return values for testability.
+
+## 3. Implement layered config loading and environment overrides with public API [pending]
+### Dependencies: 7.1, 7.2
+### Description: Create the loading pipeline that merges .env-loaded values, process environment variables, and persisted config.json with defined precedence, exposes get_config(), set_config(), and refresh mechanisms, and handles missing values gracefully.
+### Details:
+1) Define precedence: config.json base -> overridden by OS environment variables (including those loaded from .env via load_env) -> function parameters (if provided). This ensures runtime env can override persisted file. 2) Implement merge_env_overrides(base: dict) -> dict that maps known env vars to fields and overrides non-empty values. 3) Implement build_config(strict: bool=False) -> Config: call load_env(None), parse base via read_config_file(), apply merge_env_overrides, normalize, and return Config. Missing keys remain None. 4) Implement get_config(refresh: bool=False, strict: bool=False) -> Config: cache the Config in a module-level _CACHE; if refresh True, rebuild; otherwise return cached. 5) Implement set_config(cfg: Config) -> None: write to config.json via write_config_file and update cache. 6) In __init__.py, export Config, get_config, set_config, load_env, CONFIG_FILE, config_dir. 7) Ensure graceful handling: if no keys present, return Config with Nones and log an info-level message about missing optional values. 8) Add simple schema validation for types during merge (e.g., strip whitespace, coerce empty strings to None).
+
+## 4. Add startup validation for API keys with clear error/warning semantics [pending]
+### Dependencies: 7.3
+### Description: Introduce validate_api_keys() invoked during config loading (opt-in strict mode) to verify Linear and Anthropic keys, with pattern checks, actionable error messages, and graceful degradation when keys are missing.
+### Details:
+1) Implement validate_api_keys(cfg: Config, strict: bool=False) -> None. 2) Validation rules: if strict is True, require non-empty linear_api_key and anthropic_api_key and raise ConfigValidationError if missing. If present, perform lightweight pattern checks (e.g., Linear keys commonly start with 'lin_' or similar; Anthropic with 'sk-ant-' or 'sk-ant-api'). Do not perform network calls here to keep config layer pure; network-based validation will be performed by tools using these keys. 3) Integrate into get_config(strict=...) so that when strict=True, build_config is followed by validate_api_keys. 4) Provide actionable error messages guiding user to set variables in .env or config.json and pointing to design_docs/alfred/configuration.md. 5) Log warnings (not errors) when strict=False and keys are missing, enabling non-API features to run. 6) Ensure exceptions include which key failed and which sources were checked.
+
+## 5. Implement workspace switching and persistence utilities [pending]
+### Dependencies: 7.3, 7.4
+### Description: Add helper functions to set and switch workspaces, update config.json, respect environment overrides for active workspace, and ensure graceful handling when switching without required keys.
+### Details:
+1) Implement set_active_workspace(workspace_id: Optional[str], team_id: Optional[str]=None, active_epic_id: Optional[str]=None) -> Config: load current config, update fields, persist via set_config, return updated config. 2) Implement switch_workspace(new_workspace_id: str, team_id: Optional[str]=None) -> Config: calls set_active_workspace and logs the change. 3) Respect environment overrides: if ALFRED_WORKSPACE_ID (or ALFRED_TEAM_ID/ALFRED_ACTIVE_EPIC_ID) are set, they should override persisted values in get_config; document that switching via functions updates the file but may be shadowed by env at runtime. 4) Handle missing configurations gracefully: if workspace switching occurs without API keys, do not fail; only warn. 5) Provide a small utility current_workspace() -> dict with the effective workspace_id, team_id, active_epic_id for display/diagnostics. 6) Ensure atomic persistence and cache update on changes.
+
+## 6. Implement models configuration tool [pending]
+### Dependencies: 7.4
+### Description: Create the models MCP tool to configure AI providers and models.\n\n**Design Reference:** design_docs/alfred/PRD.md, design_docs/alfred/tools/07-configuration/models.md\n**Acceptance Criteria:**\n- Tool lists available AI providers (Anthropic initially)\n- Shows current model configuration from environment\n- Validates API keys are present\n- Returns structured model information\n- Supports future provider expansion\n\n**Test Instructions:**\n1. Mock environment variables for API keys\n2. Call models tool without parameters\n3. Verify returns current Anthropic configuration\n4. Test with missing API key (should show warning)\n5. Test model listing functionality\n6. Verify structured response format\n7. Test configuration validation
+### Details:
+
+

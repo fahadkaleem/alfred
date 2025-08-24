@@ -1,0 +1,37 @@
+# Task ID: 18
+# Title: Set up Python package and deployment
+# Status: pending
+# Dependencies: None
+# Priority: high
+# Description: Configure Python packaging, dependencies, and deployment setup for Alfred as defined in design_docs/alfred/architecture.md
+# Details:
+
+
+# Test Strategy:
+
+
+# Subtasks:
+## 1. Create pyproject.toml with dependencies [pending]
+### Dependencies: None
+### Description: Set up Python package configuration with all required dependencies.\n\n**Design Reference:** design_docs/alfred/PRD.md lines 249-265, architecture.md\n**Acceptance Criteria:**\n- Create pyproject.toml with proper package metadata\n- Include all dependencies: fastmcp, anthropic, linear-api, python-dotenv, pydantic, aiohttp\n- Configure entry points for MCP server\n- Set Python version requirement (>=3.11)\n- Include dev dependencies: pytest, pytest-cov, pytest-asyncio, mypy, ruff\n- Configure build system (setuptools or hatchling)\n\n**Test Instructions:**\n1. Verify pyproject.toml is valid TOML\n2. Run `pip install -e .` successfully\n3. Verify all dependencies installed\n4. Test entry point `python -m alfred.server`\n5. Verify version metadata correct\n6. Test with uv: `uv sync`\n7. Check dev dependencies installation\n8. Verify Python version constraint
+### Details:
+
+
+## 2. Create package structure and __init__ files [pending]
+### Dependencies: 18.1
+### Description: Set up proper Python package structure with imports.\n\n**Design Reference:** design_docs/alfred/architecture.md lines 8-40\n**Acceptance Criteria:**\n- Create src/alfred/ directory structure\n- Add __init__.py files in all packages\n- Configure proper imports and exports\n- Set up __version__ variable\n- Create py.typed file for type hints\n- Ensure modules are discoverable\n\n**Test Instructions:**\n1. Verify all __init__.py files exist\n2. Test `from alfred import __version__`\n3. Test `from alfred.tools import *`\n4. Verify no import cycles\n5. Check py.typed file exists\n6. Test package discovery with setuptools\n7. Verify namespace packages work\n8. Test relative imports within package
+### Details:
+
+
+## 3. Create .env.example and README installation docs [pending]
+### Dependencies: 18.1
+### Description: Create environment configuration template and installation documentation.\n\n**Design Reference:** design_docs/alfred/PRD.md lines 267-276, README.md\n**Acceptance Criteria:**\n- Create .env.example with all required variables\n- Document each environment variable purpose\n- Create installation section in README\n- Include MCP configuration example\n- Document both pip and uv installation methods\n- Add troubleshooting section\n\n**Test Instructions:**\n1. Verify .env.example contains all variables\n2. Test copying .env.example to .env\n3. Verify README has clear installation steps\n4. Test installation following README instructions\n5. Verify MCP config JSON is valid\n6. Test both pip and uv installation paths\n7. Check environment variable documentation\n8. Verify troubleshooting covers common issues
+### Details:
+
+
+## 4. Set up CI/CD with GitHub Actions [pending]
+### Dependencies: 18.1, 18.15
+### Description: Configure continuous integration and deployment workflows.\n\n**Design Reference:** design_docs/alfred/architecture.md\n**Acceptance Criteria:**\n- Create .github/workflows/ci.yml for testing\n- Run tests on push and pull requests\n- Check code formatting with ruff\n- Run type checking with mypy\n- Generate coverage reports\n- Set up PyPI publishing workflow\n- Configure dependabot for dependencies\n\n**Test Instructions:**\n1. Push code and verify CI runs\n2. Check all test steps execute\n3. Verify coverage report generation\n4. Test PR checks integration\n5. Verify ruff formatting check\n6. Test mypy type checking\n7. Check PyPI publishing (dry-run)\n8. Verify dependabot configuration
+### Details:
+
+

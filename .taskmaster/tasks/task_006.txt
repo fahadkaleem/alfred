@@ -1,0 +1,133 @@
+# Task ID: 6
+# Title: Implement core task management tools
+# Status: pending
+# Dependencies: 1, 2, 4
+# Priority: high
+# Description: Create essential task CRUD operations: get_tasks, get_task, create_task, update_task_status as defined in design_docs/alfred/PRD.md
+# Details:
+## Implementation Details
+Reference: design_docs/alfred/PRD.md (lines 123-131)
+
+Create in src/alfred/tools/task_management.py:
+- get_tasks - List with filtering
+- get_task - View details
+- create_task - Single task creation
+- update_task_status - Change status
+
+Requirements:
+1. Use FastMCP @server.tool() decorators
+2. Integrate with Linear adapter
+3. Support filtering by status, epic
+4. Map Linear statuses to Alfred statuses
+5. Return structured responses
+
+## Status Mapping:
+- Linear: backlog → Alfred: pending
+- Linear: todo → Alfred: pending
+- Linear: in_progress → Alfred: in_progress
+- Linear: done → Alfred: done
+- Linear: canceled → Alfred: cancelled
+
+# Test Strategy:
+## Test Instructions
+1. Test get_tasks with various filters
+2. Test pagination for large task lists
+3. Verify get_task returns complete details
+4. Test create_task with all fields
+5. Test status transitions
+6. Verify Linear sync accuracy
+
+## Success Criteria
+- [ ] All CRUD operations working
+- [ ] Filtering works correctly
+- [ ] Status mapping accurate
+- [ ] Error handling robust
+- [ ] Performance acceptable
+
+# Subtasks:
+## 1. Scaffold task_management module, schemas, and status mapping [pending]
+### Dependencies: None
+### Description: Create src/alfred/tools/task_management.py with FastMCP tool scaffolding, Pydantic response schemas, and Linear↔Alfred status mapping utilities.
+### Details:
+1) Create file src/alfred/tools/task_management.py.
+2) Import FastMCP server instance and decorator: from alfred.server import server (or the project’s canonical server module). If not available, define a local Server() only for type/linting, but use the shared one if it exists.
+3) Define Pydantic models for structured responses:
+   - AlfredTaskStatus = Literal['pending','in_progress','done','cancelled']
+   - AlfredTask(BaseModel): id:str, title:str, description:Optional[str], status:AlfredTaskStatus, epic_id:Optional[str], assignee_id:Optional[str], labels:List[str]=[], priority:Optional[str], created_at:datetime, updated_at:datetime, url:Optional[str]
+   - TaskListResult(BaseModel): items:List[AlfredTask], page:int, per_page:int, total:Optional[int], has_next:bool, next_cursor:Optional[str]
+   Ensure models are JSON-serializable via .model_dump().
+4) Add status mapping constants and helpers:
+   - STATUS_LINEAR_TO_ALFRED = {'backlog':'pending','todo':'pending','in_progress':'in_progress','done':'done','canceled':'cancelled'}
+   - STATUS_ALFRED_TO_LINEAR = {'pending':'todo','in_progress':'in_progress','done':'done','cancelled':'canceled'}
+   - def map_status_linear_to_alfred(s:str)->AlfredTaskStatus and def map_status_alfred_to_linear(s:str)->str with ValueError on unknown.
+5) Add helper to map Linear Issue to AlfredTask: def to_alfred_task(issue:dict)->AlfredTask (handle missing fields, normalize timestamps, map status with helper, extract epic id/state/assignee/labels/url).
+6) Implement small utilities:
+   - def load_workspace_config(): read .alfred/config.json or use alfred.config.settings if available; return api_key, workspace_id, team_id.
+   - def get_linear_adapter(): from alfred.integrations.linear_adapter import LinearAdapter; instantiate with api_key and team/workspace context; if adapter not available, document expected methods: list_issues(filters,pagination), get_issue(id), create_issue(payload), update_issue_status(id,state).
+7) Create tools’ function stubs with @server.tool() decorators and PRD-aligned names: get_tasks, get_task, create_task, update_task_status. Leave pass for now. Ensure docstrings describe parameters per PRD (design_docs/alfred/PRD.md lines 123-131).
+
+## 2. Implement get_tasks with filtering, status mapping, and pagination [pending]
+### Dependencies: 6.1
+### Description: Implement the get_tasks tool to list tasks with filtering by status and epic, integrating with the Linear adapter and returning a structured TaskListResult.
+### Details:
+1) Define @server.tool(name='get_tasks', description='List tasks with optional filters (status, epic) and pagination').
+   Signature (align to PRD): async def get_tasks(status: Optional[List[str]] = None, epic_id: Optional[str] = None, page: int = 1, per_page: int = 50) -> dict
+2) Validate inputs:
+   - If status provided, normalize to lowercase, deduplicate, validate each against {'pending','in_progress','done','cancelled'} and map to Linear equivalents via map_status_alfred_to_linear.
+   - page >= 1, 1 <= per_page <= 100 (or adapter limit), else ValueError.
+3) Build adapter filters:
+   - filters = {}
+   - if epic_id: filters['epicId'] = epic_id
+   - if status: filters['state'] = mapped Linear statuses (or stateIds if adapter requires; delegate mapping to adapter if available).
+4) Pagination:
+   - Prefer cursor-based: adapter.list_issues(filters=filters, first=per_page, after=cursor). Compute "after" by iterating (page-1) times using endCursor from previous page (optimize later; note potential cost in docstring).
+   - Accept adapter responses like {nodes:[...], pageInfo:{hasNextPage, endCursor}, totalCount?}.
+5) Transform each Linear issue via to_alfred_task(issue) and assemble TaskListResult(items, page, per_page, total=totalCount if available, has_next=pageInfo.hasNextPage, next_cursor=pageInfo.endCursor). Return model_dump().
+6) Error handling:
+   - Catch adapter/HTTP errors, wrap into a consistent error response or raise a ValueError with message; keep functions small (complexity recommendations) and log debug info if logging is available.
+7) Ensure function adheres to FastMCP conventions: return a plain dict (serialized TaskListResult).
+
+## 3. Implement get_task to return complete task details [pending]
+### Dependencies: 6.1
+### Description: Implement the get_task tool to fetch a single task by ID from Linear and return a fully mapped AlfredTask response.
+### Details:
+1) Define @server.tool(name='get_task', description='Fetch a single task by ID').
+   Signature: async def get_task(task_id: str) -> dict
+2) Validate task_id non-empty; else ValueError.
+3) Use adapter = get_linear_adapter(); issue = await adapter.get_issue(task_id) or sync equivalent.
+4) If not found, return {'error':'not_found','task_id':task_id} with appropriate HTTP-like semantics (documented) or raise ValueError; follow project error conventions.
+5) Map to AlfredTask via to_alfred_task(issue) and return model_dump(). Include fields: id, title, description, status (mapped), epic_id, assignee_id, labels, priority, created_at, updated_at, url.
+6) Keep function minimal; rely on helpers from 6.1.
+
+## 4. Implement create_task for single task creation [pending]
+### Dependencies: 6.1
+### Description: Implement the create_task tool to create a new task in Linear with optional epic, assignee, labels, and priority, returning the created AlfredTask.
+### Details:
+1) Define @server.tool(name='create_task', description='Create a single task in Linear').
+   Signature (match PRD params): async def create_task(title: str, description: Optional[str] = None, epic_id: Optional[str] = None, assignee_id: Optional[str] = None, labels: Optional[List[str]] = None, priority: Optional[str] = None) -> dict
+2) Validate inputs: non-empty title; sanitize lengths (per Linear limits if known); normalize labels list.
+3) Build payload for adapter.create_issue:
+   - title, description
+   - epicId=epic_id if provided
+   - assigneeId=assignee_id if provided
+   - labelIds or names (align with adapter contract)
+   - priority mapping if required by Linear (e.g., P0–P4); if unknown, omit and log.
+   - team/workspace context from load_workspace_config().
+   - Initial state: default to Linear 'todo' (mapped from Alfred 'pending'); do not expose status param here unless PRD specifies.
+4) Call adapter.create_issue(payload) and get created issue.
+5) Map to AlfredTask via to_alfred_task and return model_dump().
+6) Error handling: surface validation errors (e.g., invalid epic) clearly; catch adapter errors and return {'error':'create_failed', 'details':...} or raise per project convention.
+
+## 5. Implement update_task_status with Linear↔Alfred transitions [pending]
+### Dependencies: 6.1
+### Description: Implement the update_task_status tool to change a task's status, mapping Alfred statuses to Linear states and returning the updated AlfredTask.
+### Details:
+1) Define @server.tool(name='update_task_status', description='Update a task status').
+   Signature: async def update_task_status(task_id: str, status: str) -> dict
+2) Validate: task_id non-empty; status in {'pending','in_progress','done','cancelled'}; map to Linear via map_status_alfred_to_linear.
+3) Determine Linear state/transition:
+   - If adapter exposes update_issue_status(id, linear_status) or update_issue_state(id, state_id), prefer it. Otherwise, resolve stateId by name via adapter (e.g., adapter.get_state_id(team_id, linear_status)). Use load_workspace_config() for team_id.
+4) Perform update via adapter; then fetch the updated issue (adapter.get_issue) to ensure source of truth.
+5) Map to AlfredTask via to_alfred_task and return model_dump().
+6) Handle invalid transitions or unknown status errors gracefully with clear messages; keep logic small and use helper functions.
+

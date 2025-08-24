@@ -1,0 +1,158 @@
+# Task ID: 1
+# Title: Set up FastMCP server structure
+# Status: pending
+# Dependencies: None
+# Priority: high
+# Description: Create the base FastMCP server implementation following the architecture defined in design_docs/alfred/architecture.md
+# Details:
+## Implementation Details
+Reference: design_docs/alfred/architecture.md (lines 8-40)
+
+Create the following structure:
+- src/alfred/server.py - Main FastMCP server
+- src/alfred/tools/__init__.py - Tool implementations directory
+- src/alfred/utils.py - Helper functions
+
+Requirements:
+1. Use FastMCP framework
+2. Set up basic server initialization
+3. Create tool registration system
+4. Add error handling framework
+5. Implement session management for workspace context
+
+## File Structure
+```
+src/
+└── alfred/
+    ├── __init__.py
+    ├── server.py          # FastMCP server implementation
+    ├── tools/
+    │   └── __init__.py
+    └── utils.py           # Shared utilities
+```
+
+# Test Strategy:
+## Test Instructions
+1. Verify server starts with: `python -m alfred.server`
+2. Check MCP protocol response: Server should respond to 'initialize' request
+3. Verify tool discovery: List available tools (should be empty initially)
+4. Test error handling: Send malformed request, should return proper error
+5. Validate session management: Multiple initialize calls should maintain context
+
+## Success Criteria
+- [ ] Server starts without errors
+- [ ] Responds to MCP protocol messages
+- [ ] Proper error messages for invalid requests
+- [ ] Clean shutdown on termination
+
+# Subtasks:
+## 1. Scaffold Alfred FastMCP package and files [pending]
+### Dependencies: None
+### Description: Create the initial package structure and placeholder modules for the FastMCP server, tools directory, and utilities, aligning with design_docs/alfred/architecture.md (lines 8-40).
+### Details:
+Implementation steps:
+- Create directories and files:
+  - src/alfred/__init__.py (empty, but include __all__ = ["server"] for clarity)
+  - src/alfred/server.py (placeholder with main() stub)
+  - src/alfred/tools/__init__.py (export register_tools placeholder)
+  - src/alfred/utils.py (logger and common types placeholder)
+- Ensure src is on PYTHONPATH during execution (e.g., by using a venv with editable install or setting PYTHONPATH=src in dev scripts).
+- In utils.py:
+  - Implement get_logger(name: str) -> logging.Logger that configures a root logger once with level from env (ALFRED_LOG_LEVEL default INFO) and structured format: "%(asctime)s %(levelname)s %(name)s %(message)s".
+  - Define basic type aliases/placeholders: SessionId = str.
+- In tools/__init__.py:
+  - Define def register_tools(server) -> None: currently a no-op to satisfy the contract; document that discovery is added in a later subtask.
+- In server.py:
+  - Add a main() function with a pass statement for now.
+- Add a minimal README note in comments referencing design_docs/alfred/architecture.md (lines 8-40) to clarify layering: transport -> protocol -> services -> tools.
+- Confirm the project uses the FastMCP framework (dependency installed in the environment), per requirements.
+
+## 2. Implement FastMCP server initialization and entrypoint [pending]
+### Dependencies: 1.1
+### Description: Implement the base FastMCP server in src/alfred/server.py with initialization, lifecycle handlers, and a runnable entrypoint (python -m alfred.server) that responds to MCP initialize.
+### Details:
+Implementation steps:
+- In src/alfred/server.py:
+  - Imports: import os, sys, logging; from alfred.utils import get_logger; import fastmcp (use the concrete class/method names from the FastMCP framework you are using; adjust imports accordingly).
+  - Define create_server() -> server:
+    - Instantiate the FastMCP server with a stable name (e.g., "alfred") and version (read from env ALFRED_VERSION or default).
+    - Configure server metadata/capabilities following the architecture doc (lines 8-40): declare tools capability enabled but initially none; set supports sessions/workspace if available in API.
+    - Wire basic lifecycle handlers:
+      - on_initialize: return server name, version, capabilities, and optionally workspace config read from env ALFRED_WORKSPACE.
+      - on_shutdown (if supported): log shutdown and flush.
+    - Attach a logger via get_logger("alfred.server").
+  - Define run_stdio(server): start serving on stdio transport (use FastMCP's stdio serve helper, e.g., fastmcp.serve_stdio(server)).
+  - Define main():
+    - logger = get_logger("alfred.server").
+    - server = create_server().
+    - Defer tool registration to a later call (next subtask) but ensure server starts even with zero tools.
+    - Call run_stdio(server).
+  - Guard: if __name__ == "__main__": main().
+- Keep functions small and cohesive, per complexity recommendations.
+- Do not register any tools yet; the tool registration system will be implemented in a subsequent subtask.
+
+## 3. Create tool discovery and registration system [pending]
+### Dependencies: 1.2
+### Description: Implement a dynamic tool registration mechanism that discovers tools in src/alfred/tools and registers them with the FastMCP server according to conventions from the architecture document.
+### Details:
+Implementation steps:
+- In src/alfred/tools/__init__.py implement:
+  - def register_tools(server) -> int:
+    - Discover tool modules using pkgutil.walk_packages on alfred.tools.__path__ (excluding __init__).
+    - importlib.import_module each module.
+    - Convention 1 (preferred): if module exposes register(server) callable, call it to register its tools; expect it to use the FastMCP @tool decorator or explicit server.add_tool API.
+    - Convention 2 (fallback): if module exposes MCP_TOOLS iterable of callables already decorated, iteratively attach/register as required by FastMCP (some frameworks auto-register via decorator; if so, skip).
+    - Maintain a count of registered tools; return the count.
+  - def list_discovered_modules() -> list[str] for diagnostics.
+- In src/alfred/server.py update create_server(): after server is constructed, import alfred.tools as tools and call tools.register_tools(server); log the number of tools discovered.
+- Do not add any concrete tool modules yet; the directory remains empty so count should be 0.
+- Ensure the system is robust to import errors: catch ImportError during discovery, log an error with module name, and continue (tie-in with error framework in a later subtask).
+
+## 4. Add centralized error handling framework [pending]
+### Dependencies: 1.2
+### Description: Implement structured error types, logging, and defensive wrappers so the server returns MCP-compliant error responses for malformed requests and internal failures.
+### Details:
+Implementation steps:
+- In src/alfred/utils.py add:
+  - Base exception classes:
+    - class AlfredError(Exception): base with code: int = -32000, message, data: Optional[dict].
+    - class BadRequestError(AlfredError): code = -32602.
+    - class NotFoundError(AlfredError): code = -32004.
+    - class ExternalServiceError(AlfredError): code = -32011.
+  - def to_mcp_error(exc: Exception) -> dict: map known exceptions to JSON-RPC/MCP error dict {"code": int, "message": str, "data": {...}}; unknown exceptions map to code -32603.
+  - def error_guard(fn): decorator wrapping tool handlers and lifecycle handlers:
+    - try/except Exception as e -> log exception with stack, return/raise MCP error per framework API (some FastMCP frameworks expect raising a specific Error type; otherwise return an error payload). Keep the wrapper generic and adapt to the concrete API you use.
+- In src/alfred/server.py:
+  - Wrap lifecycle handlers (e.g., initialize) with @error_guard.
+  - Ensure the server has a top-level exception hook if supported (e.g., server.on_error callback that logs and maps to MCP error response).
+- Logging:
+  - Use get_logger to log errors with context: request id, method, session id if available.
+- Align error shapes with architecture.md lines 8-40 guidelines.
+- Do not change behavior of successful paths; errors should never crash the process.
+
+## 5. Implement session management for workspace context [pending]
+### Dependencies: 1.2, 1.4
+### Description: Add a session manager that tracks per-session workspace context and integrates with FastMCP session lifecycle, enabling tools to access the active workspace safely.
+### Details:
+Implementation steps:
+- In src/alfred/utils.py implement:
+  - @dataclass class SessionContext:
+    - session_id: str
+    - workspace_path: str
+    - metadata: dict[str, Any] = {}
+  - class SessionManager:
+    - __init__(): self._contexts: dict[str, SessionContext] = {}
+    - start_session(session_id: str, workspace_path: Optional[str]) -> SessionContext: normalize and store; default to os.getcwd() or env ALFRED_WORKSPACE; validate path exists.
+    - get(session_id: str) -> SessionContext | raise NotFoundError.
+    - update_workspace(session_id: str, new_path: str) -> None with validation.
+    - end_session(session_id: str) -> None.
+  - def with_session_context(fn): decorator that injects a context kwarg into tool functions based on current session id from the FastMCP request (adapt extraction to the framework API; on missing session, raise BadRequestError).
+- In src/alfred/server.py:
+  - Instantiate SessionManager and attach to server state (e.g., server.state["session_manager"] = SessionManager()).
+  - Register session lifecycle hooks if FastMCP exposes them (e.g., on_session_started, on_session_ended):
+    - on_session_started: read desired workspace from initialize params or headers; call session_manager.start_session(session_id, workspace_path).
+    - on_session_ended: session_manager.end_session(session_id).
+  - Ensure initialize handler can optionally set the initial workspace via params; include it in the initialize result capabilities/data if appropriate.
+- Update documentation comments to show tools can use @with_session_context to access context.
+- Follow complexity recommendations: keep separation of concerns (server wiring vs. state management in utils).
+

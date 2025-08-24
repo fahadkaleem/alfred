@@ -1,0 +1,69 @@
+{
+	"meta": {
+		"generatedAt": "2025-08-24T05:20:13.460Z",
+		"tasksAnalyzed": 7,
+		"totalTasks": 7,
+		"analysisCount": 7,
+		"thresholdScore": 5,
+		"projectName": "Taskmaster",
+		"usedResearch": false
+	},
+	"complexityAnalysis": [
+		{
+			"taskId": 1,
+			"taskTitle": "Set up FastMCP server structure",
+			"complexityScore": 5,
+			"recommendedSubtasks": 7,
+			"expansionPrompt": "Expand the task 'Set up FastMCP server structure' into 7 concrete subtasks with deliverables, acceptance criteria, and tests. Respect the target file layout: src/alfred/server.py (main FastMCP server), src/alfred/tools/__init__.py (tool registration), src/alfred/utils.py (helpers). Cover: (1) project scaffolding and __init__.py; (2) FastMCP server bootstrap with CLI entry (python -m alfred.server), basic MCP initialize handler, clean shutdown; (3) tool discovery/registration system that can list available tools (empty initially); (4) centralized error handling framework (domain errors, MCP protocol errors, malformed requests), consistent error payloads/logging; (5) session management for workspace context (multi-session handling, context store, isolation across initialize calls); (6) configuration hooks (placeholders) to integrate with future config system; (7) tests: unit and minimal integration to validate initialize response, tool listing, malformed request error, session persistence, plus lint/type checks. Specify public interfaces, data structures for context, and test commands.",
+			"reasoning": "Foundational server bootstrap with protocol handling, tool registry, and session management; moderate complexity without external integrations."
+		},
+		{
+			"taskId": 2,
+			"taskTitle": "Create Linear adapter implementation",
+			"complexityScore": 7,
+			"recommendedSubtasks": 10,
+			"expansionPrompt": "Decompose 'Create Linear adapter implementation' into 10 subtasks with explicit deliverables and tests. Files: src/alfred/adapters/base.py (abstract TaskAdapter) and src/alfred/adapters/linear_adapter.py. Include: (1) define TaskAdapter interface covering listed methods; (2) GraphQL client setup (endpoint, auth, headers), request helper with retries/backoff; (3) data models and mapping between Alfred and Linear; (4) create_task and create_subtask with mutation queries; (5) get_tasks with filters (epic_id, status) and pagination; (6) get_task and get_epics queries; (7) update_task and delete_task mutations; (8) link_tasks mutation and validation; (9) unified error handling for network, GraphQL errors, rate limits; (10) comprehensive tests with mocked API responses verifying query formation, pagination, mappings, and failure cases. Document method signatures, expected inputs/outputs, and error semantics.",
+			"reasoning": "Multiple GraphQL operations, mapping layers, pagination, and robust error handling increase complexity; relies on stable abstractions."
+		},
+		{
+			"taskId": 3,
+			"taskTitle": "Implement Anthropic AI service integration",
+			"complexityScore": 8,
+			"recommendedSubtasks": 10,
+			"expansionPrompt": "Break down 'Implement Anthropic AI service integration' into 10 subtasks with clear outputs and test cases. Files: src/alfred/ai_services/__init__.py, anthropic_client.py, prompts.py. Include: (1) SDK client wrapper with config injection (API key, model, timeouts); (2) prompt template system in prompts.py with type-safe inputs for the listed prompts; (3) request/response schema normalization; (4) token usage tracking (prompt vs completion), aggregation, and exposure; (5) streaming response support (callbacks/async generator); (6) rate limit handling with exponential backoff and idempotency keys; (7) error classification (auth, rate limit, timeout) and helpful messages; (8) tracing/logging hooks; (9) offline/mocked mode for tests; (10) tests covering prompt rendering, token counting accuracy, streaming, rate limits, and failure modes (invalid key, API down). Define public methods (create_tasks_from_spec, decompose_task, assess_complexity, enhance_task, research) and their inputs/outputs.",
+			"reasoning": "External SDK integration with streaming, token accounting, and rate-limit resilience; multiple prompt workflows and robust testing raise complexity."
+		},
+		{
+			"taskId": 4,
+			"taskTitle": "Implement initialize_workspace tool",
+			"complexityScore": 6,
+			"recommendedSubtasks": 7,
+			"expansionPrompt": "Expand 'Implement initialize_workspace tool' into 7 subtasks aligned to FastMCP tooling. File: src/alfred/tools/workspace.py. Cover: (1) tool function using @server.tool() with inputs workspace_id, team_id; (2) input validation and schema; (3) Linear API key validation using adapter (lightweight verification query); (4) create/update .alfred/config.json with required structure and timestamps; (5) workspace switching logic and session/context update; (6) secure handling of secrets/env; (7) tests for valid/invalid keys, config creation, switching, and error messages. Define the response payload shape (workspace details) and edge cases.",
+			"reasoning": "Moderate complexity: integrates adapter and config, validates credentials, and updates persistent/session state with error handling."
+		},
+		{
+			"taskId": 5,
+			"taskTitle": "Implement create_tasks_from_spec tool",
+			"complexityScore": 9,
+			"recommendedSubtasks": 12,
+			"expansionPrompt": "Decompose 'Implement create_tasks_from_spec tool' into 12 subtasks with precise deliverables and tests. File: src/alfred/tools/task_creation.py. Include: (1) input contract (spec_content, num_tasks) and validation; (2) spec ingestion and normalization (MD/TXT), optional metadata extraction; (3) chunking/segmentation strategy for large docs with context window management; (4) prompt construction using prompts.py for extracting requirements; (5) call Anthropic client with streaming support and collect results; (6) parse/validate AI output into structured tasks (schema with title, description, priority, dependencies); (7) epic existence check and create_epic if needed; (8) batch create tasks in Linear with retry/rate-limit handling; (9) establish dependencies/linking between created tasks; (10) idempotency safeguards and partial failure recovery/compensation; (11) response payload with created entities and mapping to Linear IDs; (12) tests with sample PRDs, various formats, large inputs, and API failure simulations. Specify logging, error surfaces, and success criteria verification.",
+			"reasoning": "High complexity due to AI prompt engineering, large-text handling, structured parsing, and multi-step transactional creation with dependency linking."
+		},
+		{
+			"taskId": 6,
+			"taskTitle": "Implement core task management tools",
+			"complexityScore": 7,
+			"recommendedSubtasks": 9,
+			"expansionPrompt": "Expand 'Implement core task management tools' into 9 subtasks with clear deliverables and tests. File: src/alfred/tools/task_management.py. Cover: (1) define request/response schemas (DTOs) for get_tasks, get_task, create_task, update_task_status; (2) implement get_tasks with filtering (status, epic) and pagination; (3) implement get_task returning full details; (4) implement create_task with validation and mapping to adapter; (5) implement update_task_status with Linear→Alfred status mapping; (6) shared error handling and input sanitation; (7) integrate with session/workspace context; (8) performance considerations (batching/caching where applicable); (9) tests for filters, pagination, status transitions, sync correctness, and failure cases. Document status mapping table and return structures.",
+			"reasoning": "Multiple tools with consistent schemas and status mappings, adapter integration, and pagination/testing make it moderately high complexity."
+		},
+		{
+			"taskId": 7,
+			"taskTitle": "Implement configuration management system",
+			"complexityScore": 6,
+			"recommendedSubtasks": 8,
+			"expansionPrompt": "Break down 'Implement configuration management system' into 8 subtasks with outputs and tests. Files: src/alfred/config/__init__.py, settings.py; manage .alfred directory and config.json. Include: (1) Config class (typed) matching specified fields; (2) .env loading with precedence rules (env > config file > defaults); (3) read/write utilities for .alfred/config.json with schema validation; (4) API key validation hooks on startup; (5) workspace switching API updating persisted and in-memory state; (6) graceful handling of missing/invalid config with helpful messages; (7) integration points with server/session; (8) tests for env loading, persistence, overrides, switching, and error cases. Provide example usage and initialization flow.",
+			"reasoning": "Nontrivial state and precedence handling with validation and persistence; touches multiple parts of the system but limited external dependencies."
+		}
+	]
+}

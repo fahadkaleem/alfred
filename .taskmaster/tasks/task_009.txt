@@ -1,0 +1,108 @@
+# Task ID: 9
+# Title: Implement task analysis tools
+# Status: pending
+# Dependencies: 1, 2, 3, 6
+# Priority: high
+# Description: Create AI-powered task analysis tools as defined in design_docs/alfred/PRD.md
+# Details:
+Reference: design_docs/alfred/PRD.md (lines 133-139) & design_docs/alfred/tools/04-task-analysis/
+
+Create in src/alfred/tools/task_analysis.py:
+- get_next_task - AI-powered task prioritization
+- assess_complexity - Analyze task difficulty
+- get_complexity_report - View complexity analysis
+
+Requirements:
+1. Use AI to analyze task priorities
+2. Consider dependencies and blockers
+3. Assess complexity based on description
+4. Generate recommendations
+5. Support batch analysis
+
+# Test Strategy:
+## Test Instructions
+1. Test next task selection logic
+2. Test complexity assessment accuracy
+3. Test with various task states
+4. Test dependency consideration
+5. Test batch complexity analysis
+
+## Success Criteria
+- [ ] Smart task prioritization
+- [ ] Accurate complexity scoring
+- [ ] Dependency awareness
+- [ ] Clear recommendations
+- [ ] Performance acceptable
+
+# Subtasks:
+## 1. Implement assess_complexity tool [pending]
+### Dependencies: None
+### Description: Create the assess_complexity MCP tool to analyze task difficulty using AI.
+
+**Design Reference:** design_docs/alfred/PRD.md lines 137-139, tools/04-task-analysis/assess_complexity.md
+**Acceptance Criteria:**
+- Tool sends task details to Anthropic for complexity analysis
+- Returns complexity score (1-10) and reasoning
+- Provides decomposition recommendations for complex tasks
+- Analyzes based on: technical difficulty, dependencies, scope, unknowns
+- Caches analysis results in task custom fields
+
+**Test Instructions:**
+1. Mock Anthropic API response with complexity analysis
+2. Call assess_complexity with sample task
+3. Verify prompt includes task title, description, labels
+4. Verify response contains score, reasoning, recommendations
+5. Test error handling for AI API failures
+6. Test caching of results in Linear custom fields
+7. Verify token usage tracking
+### Details:
+
+
+## 2. Implement get_next_task tool [pending]
+### Dependencies: 9.1
+### Description: Create the get_next_task MCP tool for AI-powered task prioritization.
+
+**Design Reference:** design_docs/alfred/PRD.md lines 137-139, tools/04-task-analysis/get_next_task.md
+**Acceptance Criteria:**
+- Tool analyzes all pending tasks in active epic
+- Uses AI to recommend next task based on: dependencies, priority, complexity, context
+- Returns single recommended task with reasoning
+- Considers blocked tasks and skips them
+- Provides alternative suggestions if primary is blocked
+
+**Test Instructions:**
+1. Mock Linear task list with various statuses/priorities
+2. Mock Anthropic prioritization response
+3. Call get_next_task
+4. Verify AI prompt includes all pending tasks
+5. Verify blocked tasks excluded from recommendations
+6. Test with empty task list
+7. Test with all tasks blocked
+8. Verify reasoning explains the choice
+### Details:
+
+
+## 3. Implement get_complexity_report tool [pending]
+### Dependencies: 9.1
+### Description: Create the get_complexity_report MCP tool to view aggregated complexity analysis.
+
+**Design Reference:** design_docs/alfred/PRD.md lines 137-139, tools/04-task-analysis/get_complexity_report.md
+**Acceptance Criteria:**
+- Tool aggregates complexity scores across epic/workspace
+- Returns report with: task count by complexity, average score, recommendations
+- Groups tasks by complexity buckets (simple/moderate/complex)
+- Identifies tasks needing decomposition (score > 7)
+- Supports filtering by epic, status, or date range
+
+**Test Instructions:**
+1. Mock Linear tasks with various complexity scores
+2. Call get_complexity_report
+3. Verify aggregation calculations correct
+4. Test filtering by epic_id
+5. Test filtering by status (pending only)
+6. Verify recommendations for high-complexity tasks
+7. Test with no analyzed tasks
+8. Verify report formatting and structure
+### Details:
+
+

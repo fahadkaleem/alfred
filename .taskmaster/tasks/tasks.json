@@ -1,0 +1,1216 @@
+{
+  "master": {
+    "name": "master",
+    "createdAt": "2024-08-23T22:15:00Z",
+    "tasks": [
+      {
+        "id": 1,
+        "title": "Set up FastMCP server structure",
+        "description": "Create the base FastMCP server implementation following the architecture defined in design_docs/alfred/architecture.md",
+        "details": "## Implementation Details\nReference: design_docs/alfred/architecture.md (lines 8-40)\n\nCreate the following structure:\n- src/alfred/server.py - Main FastMCP server\n- src/alfred/tools/__init__.py - Tool implementations directory\n- src/alfred/utils.py - Helper functions\n\nRequirements:\n1. Use FastMCP framework\n2. Set up basic server initialization\n3. Create tool registration system\n4. Add error handling framework\n5. Implement session management for workspace context\n\n## File Structure\n```\nsrc/\n└── alfred/\n    ├── __init__.py\n    ├── server.py          # FastMCP server implementation\n    ├── tools/\n    │   └── __init__.py\n    └── utils.py           # Shared utilities\n```",
+        "testStrategy": "## Test Instructions\n1. Verify server starts with: `python -m alfred.server`\n2. Check MCP protocol response: Server should respond to 'initialize' request\n3. Verify tool discovery: List available tools (should be empty initially)\n4. Test error handling: Send malformed request, should return proper error\n5. Validate session management: Multiple initialize calls should maintain context\n\n## Success Criteria\n- [ ] Server starts without errors\n- [ ] Responds to MCP protocol messages\n- [ ] Proper error messages for invalid requests\n- [ ] Clean shutdown on termination",
+        "status": "pending",
+        "dependencies": [],
+        "priority": "high",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Scaffold Alfred FastMCP package and files",
+            "description": "Create the initial package structure and placeholder modules for the FastMCP server, tools directory, and utilities, aligning with design_docs/alfred/architecture.md (lines 8-40).",
+            "dependencies": [],
+            "details": "Implementation steps:\n- Create directories and files:\n  - src/alfred/__init__.py (empty, but include __all__ = [\"server\"] for clarity)\n  - src/alfred/server.py (placeholder with main() stub)\n  - src/alfred/tools/__init__.py (export register_tools placeholder)\n  - src/alfred/utils.py (logger and common types placeholder)\n- Ensure src is on PYTHONPATH during execution (e.g., by using a venv with editable install or setting PYTHONPATH=src in dev scripts).\n- In utils.py:\n  - Implement get_logger(name: str) -> logging.Logger that configures a root logger once with level from env (ALFRED_LOG_LEVEL default INFO) and structured format: \"%(asctime)s %(levelname)s %(name)s %(message)s\".\n  - Define basic type aliases/placeholders: SessionId = str.\n- In tools/__init__.py:\n  - Define def register_tools(server) -> None: currently a no-op to satisfy the contract; document that discovery is added in a later subtask.\n- In server.py:\n  - Add a main() function with a pass statement for now.\n- Add a minimal README note in comments referencing design_docs/alfred/architecture.md (lines 8-40) to clarify layering: transport -> protocol -> services -> tools.\n- Confirm the project uses the FastMCP framework (dependency installed in the environment), per requirements.",
+            "status": "pending",
+            "testStrategy": "Manual checks:\n- Verify files exist at the specified paths.\n- From project root, run python -c \"import sys; sys.path.insert(0, 'src'); import alfred, alfred.server, alfred.tools, alfred.utils; print('ok')\" and confirm it prints ok.\n- Run a linter (ruff/flake8) to ensure no syntax errors."
+          },
+          {
+            "id": 2,
+            "title": "Implement FastMCP server initialization and entrypoint",
+            "description": "Implement the base FastMCP server in src/alfred/server.py with initialization, lifecycle handlers, and a runnable entrypoint (python -m alfred.server) that responds to MCP initialize.",
+            "dependencies": [
+              "1.1"
+            ],
+            "details": "Implementation steps:\n- In src/alfred/server.py:\n  - Imports: import os, sys, logging; from alfred.utils import get_logger; import fastmcp (use the concrete class/method names from the FastMCP framework you are using; adjust imports accordingly).\n  - Define create_server() -> server:\n    - Instantiate the FastMCP server with a stable name (e.g., \"alfred\") and version (read from env ALFRED_VERSION or default).\n    - Configure server metadata/capabilities following the architecture doc (lines 8-40): declare tools capability enabled but initially none; set supports sessions/workspace if available in API.\n    - Wire basic lifecycle handlers:\n      - on_initialize: return server name, version, capabilities, and optionally workspace config read from env ALFRED_WORKSPACE.\n      - on_shutdown (if supported): log shutdown and flush.\n    - Attach a logger via get_logger(\"alfred.server\").\n  - Define run_stdio(server): start serving on stdio transport (use FastMCP's stdio serve helper, e.g., fastmcp.serve_stdio(server)).\n  - Define main():\n    - logger = get_logger(\"alfred.server\").\n    - server = create_server().\n    - Defer tool registration to a later call (next subtask) but ensure server starts even with zero tools.\n    - Call run_stdio(server).\n  - Guard: if __name__ == \"__main__\": main().\n- Keep functions small and cohesive, per complexity recommendations.\n- Do not register any tools yet; the tool registration system will be implemented in a subsequent subtask.",
+            "status": "pending",
+            "testStrategy": "Startup and initialize response:\n- Start: PYTHONPATH=src python -m alfred.server (ensure the process starts and waits on stdio).\n- Using an MCP-compatible client, send an initialize request and verify a valid initialize result (name = \"alfred\", version set, capabilities present). If no client is available, run an integration smoke test script that writes a minimal JSON-RPC initialize to stdin and reads stdout to assert a non-error response.\n- Logs: confirm startup log line contains server name and version."
+          },
+          {
+            "id": 3,
+            "title": "Create tool discovery and registration system",
+            "description": "Implement a dynamic tool registration mechanism that discovers tools in src/alfred/tools and registers them with the FastMCP server according to conventions from the architecture document.",
+            "dependencies": [
+              "1.2"
+            ],
+            "details": "Implementation steps:\n- In src/alfred/tools/__init__.py implement:\n  - def register_tools(server) -> int:\n    - Discover tool modules using pkgutil.walk_packages on alfred.tools.__path__ (excluding __init__).\n    - importlib.import_module each module.\n    - Convention 1 (preferred): if module exposes register(server) callable, call it to register its tools; expect it to use the FastMCP @tool decorator or explicit server.add_tool API.\n    - Convention 2 (fallback): if module exposes MCP_TOOLS iterable of callables already decorated, iteratively attach/register as required by FastMCP (some frameworks auto-register via decorator; if so, skip).\n    - Maintain a count of registered tools; return the count.\n  - def list_discovered_modules() -> list[str] for diagnostics.\n- In src/alfred/server.py update create_server(): after server is constructed, import alfred.tools as tools and call tools.register_tools(server); log the number of tools discovered.\n- Do not add any concrete tool modules yet; the directory remains empty so count should be 0.\n- Ensure the system is robust to import errors: catch ImportError during discovery, log an error with module name, and continue (tie-in with error framework in a later subtask).",
+            "status": "pending",
+            "testStrategy": "Tool discovery tests:\n- With the default repo (no tool modules), start the server and query the tools/list capability via your MCP client (or inspect server state) to verify zero tools are available.\n- Add a temporary test module src/alfred/tools/_example_tool.py in a test branch containing a register(server) that registers a simple ping tool; start the server and verify the tool appears and is invokable; then remove the file to keep main branch clean.\n- Verify that a broken import inside a tool module logs an error but does not crash the server."
+          },
+          {
+            "id": 4,
+            "title": "Add centralized error handling framework",
+            "description": "Implement structured error types, logging, and defensive wrappers so the server returns MCP-compliant error responses for malformed requests and internal failures.",
+            "dependencies": [
+              "1.2"
+            ],
+            "details": "Implementation steps:\n- In src/alfred/utils.py add:\n  - Base exception classes:\n    - class AlfredError(Exception): base with code: int = -32000, message, data: Optional[dict].\n    - class BadRequestError(AlfredError): code = -32602.\n    - class NotFoundError(AlfredError): code = -32004.\n    - class ExternalServiceError(AlfredError): code = -32011.\n  - def to_mcp_error(exc: Exception) -> dict: map known exceptions to JSON-RPC/MCP error dict {\"code\": int, \"message\": str, \"data\": {...}}; unknown exceptions map to code -32603.\n  - def error_guard(fn): decorator wrapping tool handlers and lifecycle handlers:\n    - try/except Exception as e -> log exception with stack, return/raise MCP error per framework API (some FastMCP frameworks expect raising a specific Error type; otherwise return an error payload). Keep the wrapper generic and adapt to the concrete API you use.\n- In src/alfred/server.py:\n  - Wrap lifecycle handlers (e.g., initialize) with @error_guard.\n  - Ensure the server has a top-level exception hook if supported (e.g., server.on_error callback that logs and maps to MCP error response).\n- Logging:\n  - Use get_logger to log errors with context: request id, method, session id if available.\n- Align error shapes with architecture.md lines 8-40 guidelines.\n- Do not change behavior of successful paths; errors should never crash the process.",
+            "status": "pending",
+            "testStrategy": "Error handling tests:\n- Malformed request: send an initialize request missing required fields; expect a JSON-RPC error with code -32602 (BadRequest) and a helpful message; server should stay running.\n- Internal error: create a temporary test tool that raises RuntimeError; invoke it and verify error code -32603 with stack logged.\n- External error mapping: simulate ExternalServiceError and verify custom code -32011 propagates; ensure data contains a cause field."
+          },
+          {
+            "id": 5,
+            "title": "Implement session management for workspace context",
+            "description": "Add a session manager that tracks per-session workspace context and integrates with FastMCP session lifecycle, enabling tools to access the active workspace safely.",
+            "dependencies": [
+              "1.2",
+              "1.4"
+            ],
+            "details": "Implementation steps:\n- In src/alfred/utils.py implement:\n  - @dataclass class SessionContext:\n    - session_id: str\n    - workspace_path: str\n    - metadata: dict[str, Any] = {}\n  - class SessionManager:\n    - __init__(): self._contexts: dict[str, SessionContext] = {}\n    - start_session(session_id: str, workspace_path: Optional[str]) -> SessionContext: normalize and store; default to os.getcwd() or env ALFRED_WORKSPACE; validate path exists.\n    - get(session_id: str) -> SessionContext | raise NotFoundError.\n    - update_workspace(session_id: str, new_path: str) -> None with validation.\n    - end_session(session_id: str) -> None.\n  - def with_session_context(fn): decorator that injects a context kwarg into tool functions based on current session id from the FastMCP request (adapt extraction to the framework API; on missing session, raise BadRequestError).\n- In src/alfred/server.py:\n  - Instantiate SessionManager and attach to server state (e.g., server.state[\"session_manager\"] = SessionManager()).\n  - Register session lifecycle hooks if FastMCP exposes them (e.g., on_session_started, on_session_ended):\n    - on_session_started: read desired workspace from initialize params or headers; call session_manager.start_session(session_id, workspace_path).\n    - on_session_ended: session_manager.end_session(session_id).\n  - Ensure initialize handler can optionally set the initial workspace via params; include it in the initialize result capabilities/data if appropriate.\n- Update documentation comments to show tools can use @with_session_context to access context.\n- Follow complexity recommendations: keep separation of concerns (server wiring vs. state management in utils).",
+            "status": "pending",
+            "testStrategy": "Session tests:\n- Start the server and open a session with a specified workspace path; verify the path exists and is stored (via a diagnostic tool or log output).\n- Simulate two sessions with different workspaces (if your client supports multiple sessions) and verify isolation: each request resolves to its own SessionContext.\n- Update workspace mid-session via a designated request (or re-initialize if supported) and verify the context reflects the change.\n- Attempt to access context without a session id and expect BadRequestError; ending a session should remove its context."
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Create Linear adapter implementation",
+        "description": "Implement the Linear GraphQL adapter following the adapter pattern in design_docs/alfred/backend-adapters.md",
+        "details": "## Implementation Details\nReference: design_docs/alfred/backend-adapters.md\n\nCreate Linear adapter with:\n- src/alfred/adapters/base.py - Abstract base adapter\n- src/alfred/adapters/linear_adapter.py - Linear GraphQL implementation\n\nRequirements:\n1. Abstract TaskAdapter base class with interface methods\n2. LinearAdapter implementing all base methods\n3. GraphQL queries for Linear API\n4. Error handling for API failures\n5. Data mapping between Alfred and Linear models\n\n## Methods to implement:\n- create_task(title, description, epic_id)\n- get_tasks(epic_id, status, limit)\n- get_task(task_id)\n- update_task(task_id, updates)\n- create_subtask(parent_id, title, description)\n- delete_task(task_id)\n- create_epic(name, description)\n- get_epics()\n- link_tasks(task_id, depends_on_id)",
+        "testStrategy": "## Test Instructions\n1. Create mock Linear API responses\n2. Test create_task with valid and invalid data\n3. Verify GraphQL query formation\n4. Test error handling for network failures\n5. Validate data mapping accuracy\n6. Test pagination for get_tasks\n\n## Success Criteria\n- [ ] All adapter methods implemented\n- [ ] GraphQL queries properly formed\n- [ ] Error responses handled gracefully\n- [ ] Data correctly mapped between systems\n- [ ] Rate limiting considered",
+        "status": "pending",
+        "dependencies": [
+          1
+        ],
+        "priority": "high",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Define TaskAdapter base, shared types, and exceptions",
+            "description": "Create the abstract base adapter and common error types per the adapter pattern. Establish consistent method signatures and typed payload shapes for tasks and epics.",
+            "dependencies": [],
+            "details": "File: src/alfred/adapters/base.py\n- Create exception hierarchy to standardize error handling across adapters:\n  - class AdapterError(Exception)\n  - class AuthError(AdapterError)\n  - class NotFoundError(AdapterError)\n  - class ValidationError(AdapterError)\n  - class RateLimitError(AdapterError)\n  - class APIConnectionError(AdapterError)\n  - class APIResponseError(AdapterError)\n  - class MappingError(AdapterError)\n- Define typed structures (TypedDict or dataclasses) used by adapters to normalize data:\n  - TaskDict: { id: str, title: str, description: Optional[str], status: Optional[str], epic_id: Optional[str], parent_id: Optional[str], url: Optional[str], created_at: Optional[str], updated_at: Optional[str] }\n  - EpicDict: { id: str, name: str, description: Optional[str], url: Optional[str], created_at: Optional[str], updated_at: Optional[str] }\n- Define abstract base class TaskAdapter (use abc.ABC) with the required methods and explicit parameter/return contracts. Each method should be annotated and documented to return normalized dictionaries or raise the above exceptions:\n  - create_task(title: str, description: Optional[str], epic_id: Optional[str]) -> TaskDict\n  - get_tasks(epic_id: Optional[str] = None, status: Optional[Union[str, List[str]]] = None, limit: int = 50) -> List[TaskDict]\n  - get_task(task_id: str) -> TaskDict\n  - update_task(task_id: str, updates: Dict[str, Any]) -> TaskDict\n  - create_subtask(parent_id: str, title: str, description: Optional[str]) -> TaskDict\n  - delete_task(task_id: str) -> bool\n  - create_epic(name: str, description: Optional[str]) -> EpicDict\n  - get_epics(limit: int = 50) -> List[EpicDict]\n  - link_tasks(task_id: str, depends_on_id: str) -> bool\n- Add clear docstrings noting: required/optional fields, expected exceptions, and that implementations must be idempotent where applicable.\n- Export public symbols via __all__ for consumption by adapter implementations.",
+            "status": "pending",
+            "testStrategy": "Unit tests for base module:\n- Verify TaskAdapter cannot be instantiated directly and that all abstract methods are present.\n- Validate method signatures (argument names and orders) using inspect.\n- Ensure custom exceptions inherit from AdapterError and behave as expected (caught polymorphically)."
+          },
+          {
+            "id": 2,
+            "title": "Prepare Linear GraphQL operations and mapping helpers",
+            "description": "Define Linear GraphQL queries/mutations and mapping utilities to convert between Linear API objects and Alfred's normalized types.",
+            "dependencies": [
+              "2.1"
+            ],
+            "details": "File: src/alfred/adapters/linear_adapter.py\n- Add module-level constants:\n  - GRAPHQL_ENDPOINT = \"https://api.linear.app/graphql\"\n  - DEFAULT_PAGE_SIZE = 50\n- Define GraphQL fragments for reuse:\n  - fragment IssueFields on Issue { id title description url createdAt updatedAt state { id name type } project { id name } parent { id } }\n  - fragment ProjectFields on Project { id name description url createdAt updatedAt }\n- Define operations as string constants:\n  - CREATE_ISSUE_MUTATION (issueCreate)\n  - GET_ISSUE_QUERY (issue(id: $id))\n  - DELETE_ISSUE_MUTATION (issueDelete)\n  - UPDATE_ISSUE_MUTATION (issueUpdate)\n  - LIST_ISSUES_QUERY (issues with filter, first, after, includes pageInfo and nodes { ...IssueFields })\n  - CREATE_PROJECT_MUTATION (projectCreate)\n  - LIST_PROJECTS_QUERY (projects with pagination, nodes { ...ProjectFields })\n  - CREATE_RELATION_MUTATION (issueRelationCreate; relation type \"blocks\" or \"relatesTo\")\n  - WORKFLOW_STATES_QUERY (workflowStates by team and/or name to resolve stateId for status updates)\n- Implement mapping helpers:\n  - def map_linear_issue_to_task(issue: dict) -> TaskDict: normalize keys, map state.name to TaskDict.status, project.id->epic_id, parent.id->parent_id.\n  - def map_linear_project_to_epic(project: dict) -> EpicDict: normalize keys.\n  - def normalize_status_filter(status: Optional[Union[str, List[str]]]) -> List[str]: sanitize to a list of state names; keep as-is to be matched against Linear state.name.\n  - def build_issue_filter(epic_id: Optional[str], state_names: Optional[List[str]]) -> dict: compose GraphQL filter object using project and state name filters.\n- Note on domain mapping: Treat Alfred \"epic\" as Linear Project. Subtasks use Issue.parentId. Dependencies use issueRelationCreate; for depends_on_id, create a relation where the dependency blocks the task (issueId=depends_on_id, relatedIssueId=task_id, type=\"blocks\").\n- Include comments aligning with design_docs/alfred/backend-adapters.md to ensure interface consistency.\n- Complexity recommendations: centralize operations to avoid duplicated strings; reuse fragments; minimize extra round-trips by batching state lookups and caching them per team.",
+            "status": "pending",
+            "testStrategy": "Lightweight tests (no HTTP):\n- Assert all required operation strings are defined and contain referenced fragments.\n- Validate build_issue_filter output shapes for various inputs (only epic, only status, both, none).\n- Test mapping helpers using representative Linear issue/project payloads; confirm normalized TaskDict/EpicDict fields."
+          },
+          {
+            "id": 3,
+            "title": "Implement Linear GraphQL client with robust error handling and retries",
+            "description": "Create an internal GraphQL client responsible for HTTP transport, auth, retries, rate limit handling, and consistent error translation to AdapterError subclasses.",
+            "dependencies": [
+              "2.1",
+              "2.2"
+            ],
+            "details": "File: src/alfred/adapters/linear_adapter.py (same module)\n- Implement internal class _LinearClient:\n  - __init__(token: str, endpoint: str = GRAPHQL_ENDPOINT, timeout: float = 15.0, max_retries: int = 3, backoff_base: float = 0.5, session: Optional[requests.Session] = None)\n  - execute(query: str, variables: dict) -> dict\n    - Build POST JSON { query, variables } with headers: Authorization: Bearer <token>, Content-Type: application/json.\n    - Send using requests.Session for connection reuse; apply timeout.\n    - Handle network errors (requests.Timeout/ConnectionError) -> raise APIConnectionError.\n    - If HTTP 401/403 -> raise AuthError.\n    - If HTTP 429 -> parse Retry-After or use exponential backoff; retry up to max_retries; then raise RateLimitError.\n    - If HTTP >= 500 -> retry with exponential backoff; else raise APIResponseError with status and body snippet.\n    - Parse JSON; if payload contains \"errors\" -> raise APIResponseError with concatenated messages and first error code/path.\n    - Return data dict on success.\n  - Simple observability: optional logger debug for query names (extract from operation name) and retry attempts; avoid logging secrets.\n- Add small LRU cache (functools.lru_cache) helper for stable lookups like workflow state by team+name to minimize repeated GraphQL calls in later steps.\n- Constructor validation: ensure token is non-empty; otherwise raise AuthError.\n- Keep client class internal to adapter module; do not export publicly.\n- Complexity recommendations implemented: connection pooling via Session, capped retries with jitter, and caching for workflow states.",
+            "status": "pending",
+            "testStrategy": "HTTP-layer unit tests using responses or respx:\n- Success path: return data, no retries.\n- 401/403: assert AuthError is raised.\n- 429 with Retry-After: verify retry attempts and eventual RateLimitError after exhausting retries.\n- 500s: verify exponential backoff retries then APIResponseError.\n- Network timeout/connection error: APIConnectionError.\n- GraphQL error in body (errors[]): APIResponseError with message extraction.\n- Confirm headers include Authorization and content-type."
+          },
+          {
+            "id": 4,
+            "title": "Implement LinearAdapter with all required methods and data mapping",
+            "description": "Build the concrete LinearAdapter implementing the TaskAdapter interface. Use prepared operations, the internal client, and mapping helpers. Support pagination, status updates via workflow state resolution, and robust error handling.",
+            "dependencies": [
+              "2.1",
+              "2.2",
+              "2.3"
+            ],
+            "details": "File: src/alfred/adapters/linear_adapter.py\n- Implement class LinearAdapter(TaskAdapter):\n  - __init__(api_token: Optional[str] = None, team_id: Optional[str] = None, default_project_id: Optional[str] = None, session: Optional[requests.Session] = None):\n    - Resolve token from argument or env LINEAR_API_KEY; if missing, raise AuthError.\n    - Save team_id (optional, used for status resolution). Instantiate _LinearClient.\n  - Private helpers:\n    - _resolve_state_id(state_name: str, team_id_hint: Optional[str] = None) -> Optional[str]:\n      - Use WORKFLOW_STATES_QUERY to fetch by name; prefer self.team_id; if not provided, attempt to derive team from the target issue (for update_task) by fetching the issue.team.id via GET_ISSUE_QUERY and re-query states for that team.\n      - Cache results per (team_id, state_name).\n    - _paginate(query: str, variables: dict, path: List[str], node_mapper: Callable) -> List[Any]: generic pagination using pageInfo.hasNextPage/ endCursor.\n  - Implement methods:\n    - create_task(title, description, epic_id): call CREATE_ISSUE_MUTATION with input { title, description, projectId: epic_id or default_project_id }. Map node using map_linear_issue_to_task.\n    - get_tasks(epic_id, status, limit): build filter via build_issue_filter(epic_id, normalize_status_filter(status)); paginate LIST_ISSUES_QUERY until limit; map each node.\n    - get_task(task_id): GET_ISSUE_QUERY; if not found or node is null -> NotFoundError.\n    - update_task(task_id, updates): translate updates keys { title, description, status } to Linear input; for status, resolve stateId via _resolve_state_id. Call UPDATE_ISSUE_MUTATION and map result.\n    - create_subtask(parent_id, title, description): CREATE_ISSUE_MUTATION with parentId=parent_id; map.\n    - delete_task(task_id): DELETE_ISSUE_MUTATION; return True on success; if not found -> NotFoundError; if API returns success: false -> APIResponseError.\n    - create_epic(name, description): CREATE_PROJECT_MUTATION; map using map_linear_project_to_epic.\n    - get_epics(): paginate LIST_PROJECTS_QUERY to DEFAULT_PAGE_SIZE; map.\n    - link_tasks(task_id, depends_on_id): CREATE_RELATION_MUTATION with input { type: \"blocks\", issueId: depends_on_id, relatedIssueId: task_id }; return True on success.\n  - Error handling: let _LinearClient translate transport errors; catch mapping issues and raise MappingError; convert missing IDs to NotFoundError with helpful context.\n  - Input validation: ensure at least one of epic_id/default_project_id when creating tasks; ensure non-empty titles; raise ValidationError for bad inputs.\n  - Ensure all methods are synchronous and comply with base signatures.\n  - Add minimal docstrings referencing design_docs/alfred/backend-adapters.md and note that Alfred \"epics\" are modeled as Linear Projects here.\n- Complexity recommendations: batch pagination requests up to DEFAULT_PAGE_SIZE, cache workflow state IDs, avoid redundant issue fetches when not necessary, and centralize variable building to reduce duplication.",
+            "status": "pending",
+            "testStrategy": "Adapter behavior tests with mocked _LinearClient/HTTP:\n- create_task: success path returns normalized TaskDict; validation error on missing title; API error propagation.\n- get_tasks: verify filter composition, pagination stops at limit, and status filter applied; test with and without epic_id.\n- get_task: returns task; NotFoundError when API returns null/unknown id.\n- update_task: title/description changes; status change resolves stateId (mock WORKFLOW_STATES_QUERY); error when state not found -> ValidationError.\n- create_subtask: parent_id is set in result.\n- delete_task: returns True; NotFoundError path.\n- create_epic and get_epics: mapping and pagination.\n- link_tasks: ensure correct direction (depends_on blocks task); verify True on success and error propagation.\n- Data mapping accuracy: fields populated as expected (status from state.name, epic_id from project.id, etc.)."
+          },
+          {
+            "id": 5,
+            "title": "Add comprehensive unit tests and fixtures for Linear adapter",
+            "description": "Implement tests covering query formation, success/error paths, mapping correctness, and pagination. Provide mock responses and sample payloads.",
+            "dependencies": [
+              "2.4"
+            ],
+            "details": "Files (tests): tests/adapters/test_linear_adapter.py and fixtures in tests/fixtures/linear/*.json\n- Testing stack: pytest + responses/respx (or requests-mock). Use freezegun for timestamp stability if needed.\n- Create fixtures for common GraphQL payloads:\n  - issue_create_success.json, issue_get_success.json, issue_update_success.json, issue_delete_success.json\n  - issues_list_page1.json, issues_list_page2.json (with pageInfo.hasNextPage)\n  - project_create_success.json, projects_list_page1.json\n  - workflow_states_success.json\n  - relation_create_success.json\n  - error_payload.json (GraphQL errors array)\n- Implement tests per requirements:\n  1) Mock Linear API responses and assert create_task works with valid/invalid data.\n  2) Verify GraphQL variable formation for each method (validate sent JSON body against expected dicts).\n  3) Simulate network failures/timeouts and ensure proper exception classes are raised.\n  4) Validate mapping correctness for tasks and epics (status, epic_id, parent_id, urls, timestamps present when available).\n  5) Test pagination for get_tasks and get_epics (cursor handling, limit cutoff).\n  6) Status updates: ensure _resolve_state_id is called and uses cache on repeated calls.\n- Code coverage goal: >=90% for src/alfred/adapters/linear_adapter.py and base.py.\n- Provide parametrized tests for status filters (single vs list).",
+            "status": "pending",
+            "testStrategy": "Run pytest with coverage. Use responses to intercept POSTs to https://api.linear.app/graphql and assert call counts (including retries). Include negative tests (401, 429, 500, GraphQL errors). Validate that exceptions are the types defined in base.py and that error messages include context like operation name or task_id."
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Implement Anthropic AI service integration",
+        "description": "Create the AI service layer with Anthropic Claude integration as specified in design_docs/alfred/ai-integration.md",
+        "details": "## Implementation Details\nReference: design_docs/alfred/ai-integration.md\n\nCreate AI service structure:\n- src/alfred/ai_services/__init__.py\n- src/alfred/ai_services/anthropic_client.py - Claude integration\n- src/alfred/ai_services/prompts.py - Prompt templates\n\nRequirements:\n1. Anthropic SDK integration\n2. Prompt template system\n3. Token usage tracking\n4. Response streaming support\n5. Error handling for rate limits\n\n## Key Prompts to Implement:\n- create_tasks_from_spec(spec_content, num_tasks)\n- decompose_task(task, num_subtasks)\n- assess_complexity(task)\n- enhance_task(task, context)\n- research(query, context)",
+        "testStrategy": "## Test Instructions\n1. Mock Anthropic API responses\n2. Test prompt generation with various inputs\n3. Verify token counting accuracy\n4. Test rate limit handling\n5. Validate streaming responses\n6. Test error scenarios (API down, invalid key)\n\n## Success Criteria\n- [ ] All prompt templates working\n- [ ] Token usage tracked correctly\n- [ ] Rate limits handled gracefully\n- [ ] Streaming responses functional\n- [ ] Errors return helpful messages",
+        "status": "pending",
+        "dependencies": [
+          1
+        ],
+        "priority": "high",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Scaffold AI service package and configuration",
+            "description": "Create the AI service module structure, export interfaces, and wire up configuration for Anthropic API usage.",
+            "dependencies": [],
+            "details": "1) Create files and folders:\n- src/alfred/ai_services/__init__.py\n- src/alfred/ai_services/anthropic_client.py (placeholder class and types)\n- src/alfred/ai_services/prompts.py (placeholder functions)\n2) Add dependency: anthropic>=0.34.0 to pyproject.toml and install.\n3) In src/alfred/ai_services/__init__.py, export key classes/functions:\n- from .anthropic_client import AnthropicAIClient, AnthropicAIService, AIResponse, TokenUsage, AIServiceError, RateLimitedError\n- from .prompts import (\n    render_create_tasks_from_spec,\n    render_decompose_task,\n    render_assess_complexity,\n    render_enhance_task,\n    render_research,\n  )\n4) Define shared types in anthropic_client.py for later use:\n- @dataclass TokenUsage { input_tokens: int; output_tokens: int; total_tokens: int }\n- @dataclass AIResponse { text: str; usage: TokenUsage; model: str; stop_reason: Optional[str]; raw: Any }\n- class AIServiceError(Exception) and class RateLimitedError(AIServiceError)\n5) Configuration loading (minimal, independent of Task 7):\n- Read Anthropic API key from env: ANTROPHIC_API_KEY or ANTHROPIC_API_KEY (support both, prefer ANTHROPIC_API_KEY)\n- Optional envs: ANTHROPIC_MODEL (default from design_docs), ANTHROPIC_BASE_URL\n- Provide helper get_anthropic_config() that validates presence of API key and returns dict {api_key, model, base_url}\n6) Define module-level defaults: DEFAULT_MODEL (e.g., \"claude-3-5-sonnet-20240620\" or per design_docs), DEFAULT_MAX_TOKENS, DEFAULT_TEMPERATURE, TIMEOUT_SEC.",
+            "status": "pending",
+            "testStrategy": "Unit: import package and verify exports exist. Env handling: ensure missing ANTHROPIC_API_KEY raises helpful AIServiceError. Ensure reading ANTHROPIC_MODEL override works. Verify pyproject dependency added."
+          },
+          {
+            "id": 2,
+            "title": "Implement prompt template system with key prompt renderers",
+            "description": "Create a lightweight prompt templating system and implement the five key prompt builders that return message arrays compatible with Anthropic Messages API.",
+            "dependencies": [
+              "3.1"
+            ],
+            "details": "1) In src/alfred/ai_services/prompts.py implement:\n- Utility sanitize_text(value: str) to normalize whitespace and fence code blocks with triple backticks where appropriate.\n- A render_prompt(template: str, **kwargs) using Python str.format with safe placeholder replacement; raise ValueError on missing keys.\n- A helper to wrap content into Messages API format: messages_from_text(system: Optional[str], user: str) -> list[dict].\n2) Implement key prompt renderers returning dict with fields {system: str|None, user: str, messages: list[dict]}:\n- render_create_tasks_from_spec(spec_content: str, num_tasks: int)\n  System: \"You are Alfred, an expert software PM generating actionable engineering tasks. Respond in JSON.\"\n  User: include instructions to generate exactly num_tasks tasks with fields: title, description, labels, estimate, dependencies. Include guidance from complexity report recommendations (e.g., call out to produce complexity and risk per task).\n- render_decompose_task(task: str, num_subtasks: int)\n  System: \"Decompose tasks into precise, implementable subtasks with dependencies. Respond in JSON.\"\n- render_assess_complexity(task: str)\n  System: \"Assess technical complexity, risk, required skills, and estimated tokens. Respond in JSON with fields complexity(1-5), risk(1-5), rationale, est_tokens.\" Include instruction to be conservative.\n- render_enhance_task(task: str, context: str)\n  System: \"Enhance task with acceptance criteria and edge cases. Respond in JSON.\"\n- render_research(query: str, context: str)\n  System: \"Research assistant: propose sources, hypotheses, and next steps. Respond in JSON.\"\n3) Each renderer must:\n- Sanitize inputs (limit length if huge; the service will chunk later).\n- Return messages=[{\"role\":\"system\",\"content\":system}, {\"role\":\"user\",\"content\":user}] or omit system if None.\n- Include explicit JSON schema-like instructions to minimize hallucinations.\n4) Add simple prompt validation: ensure non-empty inputs; raise ValueError on invalid num_* <= 0.",
+            "status": "pending",
+            "testStrategy": "Unit: for each renderer, verify message roles and contents, presence of JSON response instruction, and that num_* is reflected. Verify sanitize_text handles long strings and markdown. Property test with randomized strings for format safety."
+          },
+          {
+            "id": 3,
+            "title": "Build Anthropic client wrapper with SDK integration, token counting, and streaming",
+            "description": "Implement AnthropicAIClient to abstract Anthropic SDK calls, support non-streaming and streaming responses, and capture token usage.",
+            "dependencies": [
+              "3.1",
+              "3.2"
+            ],
+            "details": "1) In src/alfred/ai_services/anthropic_client.py implement class AnthropicAIClient:\n- __init__(api_key: Optional[str]=None, model: Optional[str]=None, base_url: Optional[str]=None, timeout: int=60):\n  Creates anthropic.Anthropic(api_key=...), optionally with base_url if provided; set defaults from get_anthropic_config().\n- call(messages: list[dict], model: Optional[str]=None, max_tokens: int=DEFAULT_MAX_TOKENS, temperature: float=DEFAULT_TEMPERATURE, stream: bool=False, extra: Optional[dict]=None) -> AIResponse | Generator[dict, None, None]\n  Non-streaming: client.messages.create(...). Extract text by joining content blocks; build TokenUsage from response.usage.{input_tokens, output_tokens}. Return AIResponse.\n  Streaming: use context manager client.messages.stream(...). Yield structured events: {\"type\":\"message_start\",\"model\":...,\"usage\":None}, then for chunk in stream.text_stream yield {\"type\":\"text\",\"delta\":chunk}. After completion, final_message = stream.get_final_message(); yield {\"type\":\"message_end\",\"usage\": {input, output, total}, \"stop_reason\": final_message.stop_reason}. Consumers can aggregate text from text events.\n- count_tokens(messages: list[dict]) -> int: if SDK provides client.messages.count_tokens, use it; else fallback to heuristic len(\" \".join([m[\"content\"] for m in messages]))//4.\n- Private helpers: _extract_text(message) to join content blocks; _to_usage(usage_obj) -> TokenUsage.\n2) Error mapping:\n- Catch anthropic.RateLimitError -> raise RateLimitedError with details including retry-after if present.\n- Catch anthropic.APIStatusError / anthropic.APIError -> raise AIServiceError with status and message.\n- On streaming, ensure exceptions inside generator propagate as RateLimitedError/AIServiceError.\n3) Logging hooks (optional): accept on_event callback in call(..., extra={\"on_event\": callable}) to receive events in streaming and final AIResponse in non-streaming.\n4) Respect timeout by configuring underlying HTTP client via Anthropics SDK options if available; otherwise, document that default SDK timeout applies.",
+            "status": "pending",
+            "testStrategy": "Mock SDK: monkeypatch anthropic.Anthropic.messages.create and .stream. Test non-streaming call returns AIResponse with correct text and usage. Test streaming: collect yielded events to reassemble text and verify final usage event exists. Test count_tokens path with and without SDK support. Verify error mapping for RateLimitError (429) and generic API errors."
+          },
+          {
+            "id": 4,
+            "title": "Implement high-level AI service methods for key prompts with chunking and usage aggregation",
+            "description": "Create AnthropicAIService that uses prompt renderers and the client to implement create_tasks_from_spec, decompose_task, assess_complexity, enhance_task, and research, including large-input handling and optional streaming.",
+            "dependencies": [
+              "3.2",
+              "3.3"
+            ],
+            "details": "1) In anthropic_client.py add class AnthropicAIService:\n- __init__(client: Optional[AnthropicAIClient]=None). If None, instantiate a default client.\n- Public methods (each signature aligns with requirements and supports stream: bool=False, return_json: bool=True):\n  a) create_tasks_from_spec(spec_content: str, num_tasks: int, stream: bool=False) -> dict | Generator[dict, None, None]\n     - If spec_content is large (token estimate via client.count_tokens on rendered messages exceeds threshold, e.g., 60% of model context), chunk into segments with overlap; for each chunk, call assess_complexity first to adjust density and chunk size per complexity recommendations; generate partial tasks and merge/dedupe; finally trim/expand to exactly num_tasks, preserving coverage.\n  b) decompose_task(task: str, num_subtasks: int, stream: bool=False) -> dict | Generator[dict, None, None]\n  c) assess_complexity(task: str) -> dict\n  d) enhance_task(task: str, context: str, stream: bool=False) -> dict | Generator[dict, None, None]\n  e) research(query: str, context: str, stream: bool=False) -> dict | Generator[dict, None, None]\n- Each method uses corresponding renderer from prompts.py to build messages, then calls client.call(..., stream=...). For streaming, yield client events directly, but also accumulate text to parse final JSON when a 'message_end' event is seen and then yield a final {\"type\":\"result\",\"data\": parsed_json}. For non-streaming, parse JSON from AIResponse.text. On JSON parsing failure, wrap text in {\"raw_text\": text} and include a warning field.\n- Token usage tracking: Aggregate TokenUsage across chunked calls; return alongside result in a wrapper dict: {\"result\": ..., \"usage\": {input, output, total}, \"model\": model} for non-streaming; for streaming, include usage in the final 'result' event.\n2) JSON safety:\n- Implement _parse_json_safely(text) to strip code fences and attempt json.loads with fallback.\n- Enforce schemas lightly (e.g., ensure arrays/objects exist) and normalize output shapes.\n3) Parameters and defaults:\n- Allow overriding model, temperature, and max_tokens via optional kwargs.\n4) Document return shapes in docstrings so downstream tools (Task 5/6) can consume consistently.",
+            "status": "pending",
+            "testStrategy": "Unit/integration with mocked client: \n- Verify each method calls correct renderer and client.call with expected stream flag. \n- Large spec: ensure chunking occurs when token threshold exceeded and results merged to exact num_tasks. \n- Validate JSON parsing and fallback behavior. \n- Verify usage aggregation across chunks and that streaming emits 'message_start'/'text'/'message_end' and final 'result' with parsed JSON."
+          },
+          {
+            "id": 5,
+            "title": "Add robust retry/backoff for rate limits and transient errors plus error-path tests",
+            "description": "Implement exponential backoff with jitter for RateLimitError and transient API errors, integrate with both non-streaming and streaming flows, and validate via tests.",
+            "dependencies": [
+              "3.3",
+              "3.4"
+            ],
+            "details": "1) In AnthropicAIClient.call add retry logic:\n- Wrap the request in a retry loop with max_retries=5 (configurable), base_delay=0.5s, multiplier=2, max_delay=8s, and full jitter. \n- On RateLimitedError: if 'retry-after' header available in exception or response, sleep that duration; else use backoff. \n- On AIServiceError with HTTP status >= 500: retry with backoff. \n- Do not retry on auth (401/403) or validation (400) errors.\n- For streaming, implement retries only before opening the stream. If a stream fails mid-flight, raise the error and let caller decide (documented behavior).\n2) Centralize error creation functions to include context (model, endpoint, message sizes) in exception messages to aid debugging.\n3) Telemetry hooks: allow optional on_retry callback in extra to observe retries and reasons.\n4) Update AnthropicAIService methods to surface structured errors with clear messages and to propagate RateLimitedError distinctly so callers can handle.\n5) Documentation: inline docstrings referencing design_docs/alfred/ai-integration.md for behavior expectations.",
+            "status": "pending",
+            "testStrategy": "Tests with mocked SDK raising errors:\n- Rate limit: simulate two 429s then success; assert number of attempts, total delay approximately increases, and final success. \n- API down: simulate 500 then success. \n- Auth error: 401 should not retry and should raise immediately with helpful message. \n- Streaming pre-open failure should retry; mid-stream failure should raise once. \n- Verify that on_retry callback is invoked with correct attempt count and error type."
+          },
+          {
+            "id": 6,
+            "title": "Set up Anthropic SDK and client wrapper",
+            "description": "Initialize Anthropic SDK with configuration and create client wrapper class",
+            "details": "Reference: design_docs/alfred/ai-integration.md\n\nImplementation steps:\n- Install anthropic SDK: pip install anthropic>=0.20.0\n- Create src/alfred/ai_services/__init__.py\n- Create src/alfred/ai_services/anthropic_client.py\n- Implement AnthropicClient class:\n  - Initialize with API key from config\n  - Set default model: claude-3-5-sonnet-20241022\n  - Configure timeouts (30s default)\n  - Add retry logic with tenacity\n- Create methods:\n  - async def complete(prompt, max_tokens, temperature)\n  - async def stream_complete(prompt, max_tokens)\n- Add token counting utility using anthropic.count_tokens()",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 3
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Implement initialize_workspace tool",
+        "description": "Create the first MCP tool to connect to Linear workspace as defined in design_docs/alfred/tools/01-project-setup/initialize_project.md",
+        "details": "## Implementation Details\nReference: design_docs/alfred/PRD.md (lines 116-118)\n\nCreate in src/alfred/tools/workspace.py:\n- initialize_workspace tool using FastMCP decorators\n- Connect to Linear API\n- Store workspace configuration\n- Validate API keys\n\nRequirements:\n1. Use @server.tool() decorator from FastMCP\n2. Accept workspace_id, team_id parameters\n3. Validate Linear API key\n4. Store config in .alfred/config.json\n5. Return workspace details\n\n## Configuration to store:\n```json\n{\n  \"platform\": \"linear\",\n  \"workspace_id\": \"xxx\",\n  \"team_id\": \"xxx\",\n  \"active_epic_id\": null,\n  \"last_sync\": \"2024-01-20T10:00:00Z\"\n}\n```",
+        "testStrategy": "## Test Instructions\n1. Test with valid Linear API key\n2. Test with invalid API key (should fail gracefully)\n3. Verify config file created correctly\n4. Test workspace switching\n5. Validate stored configuration structure\n\n## Success Criteria\n- [ ] Connects to Linear successfully\n- [ ] Stores configuration locally\n- [ ] Validates API credentials\n- [ ] Returns workspace information\n- [ ] Handles errors gracefully",
+        "status": "pending",
+        "dependencies": [
+          1,
+          2
+        ],
+        "priority": "high",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Scaffold FastMCP tool module and entrypoint",
+            "description": "Create src/alfred/tools/workspace.py with FastMCP server and initialize_workspace tool stub. Define clear function signature and docstring, and prepare structure for helpers.",
+            "dependencies": [],
+            "details": "Implementation steps:\n- File: src/alfred/tools/workspace.py\n- Imports: typing, os, json, datetime, pathlib (Path), logging, requests (or httpx), and FastMCP server from FastMCP.\n- Initialize FastMCP server instance: e.g., from fastmcp import FastMCP; server = FastMCP(app_name=\"alfred\").\n- Define tool stub using @server.tool():\n  def initialize_workspace(workspace_id: str, team_id: str) -> dict: ...\n- Add module-level logger = logging.getLogger(__name__) with INFO default.\n- Prepare helper function placeholders (to be implemented in later subtasks): _get_linear_api_key(), _linear_graphql(), _validate_linear_credentials(), _load_config(), _write_config().\n- Include precise docstring: purpose, parameters, return format, and error behavior.\n- Export in __all__ = [\"initialize_workspace\"].",
+            "status": "pending",
+            "testStrategy": "Static checks: run ruff/flake8 and mypy on the stub. Import test: from src.alfred.tools.workspace import initialize_workspace should succeed. Ensure @server.tool decorator is applied."
+          },
+          {
+            "id": 2,
+            "title": "Implement Linear API client and credential validation",
+            "description": "Add secure environment key retrieval, a minimal GraphQL client with retries/timeouts, and a validator that confirms the API key and team_id are valid against Linear.",
+            "dependencies": [
+              "4.1"
+            ],
+            "details": "Implementation steps in src/alfred/tools/workspace.py:\n- _get_linear_api_key() -> str: Read LINEAR_API_KEY from environment; if missing/empty, raise ValueError with actionable message. Do not log key.\n- _linear_graphql(query: str, variables: dict | None = None) -> dict:\n  - Endpoint: https://api.linear.app/graphql\n  - Headers: Authorization: Bearer <LINEAR_API_KEY>, Content-Type: application/json\n  - Use requests.post with timeout=10s.\n  - Implement simple retry (e.g., up to 3 attempts) on 5xx and connection errors with exponential backoff (0.5s, 1s, 2s).\n  - Parse JSON; if response includes errors, raise RuntimeError with sanitized messages.\n- _validate_linear_credentials(team_id: str) -> dict:\n  - Compose a single GraphQL query to validate key and fetch team + organization:\n    query ($teamId: String!) {\n      viewer { id name }\n      team(id: $teamId) { id name organization { id name } }\n    }\n  - Call _linear_graphql; if team is None, raise ValueError(\"Invalid team_id\").\n  - Return dict with keys: viewer_id, viewer_name, team_id, team_name, workspace_id (org id), workspace_name.\n- Error handling: distinguish auth errors (401/403 or errors containing Authentication) and raise a ValueError(\"Invalid Linear API key\").",
+            "status": "pending",
+            "testStrategy": "Unit test with mocked HTTP: \n- Valid key: respond with viewer and team; expect returned details.\n- Invalid key: 401 or GraphQL errors -> ValueError.\n- Network 5xx: ensure retries then raises after final attempt.\n- Ensure no secrets printed in exceptions/logs."
+          },
+          {
+            "id": 3,
+            "title": "Implement configuration persistence for .alfred/config.json",
+            "description": "Create helpers to read, validate, and atomically write workspace configuration to .alfred/config.json with the specified schema. Handle missing directories and backups for workspace switching.",
+            "dependencies": [
+              "4.1"
+            ],
+            "details": "Implementation steps in src/alfred/tools/workspace.py:\n- Paths: CONFIG_DIR = Path.cwd() / \".alfred\"; CONFIG_PATH = CONFIG_DIR / \"config.json\".\n- _ensure_config_dir(): create directory with exist_ok=True.\n- _validate_config_schema(cfg: dict) -> None: Ensure keys exist: platform(str==\"linear\"), workspace_id(str), team_id(str), active_epic_id(None or str), last_sync(ISO8601 str). Raise ValueError if invalid.\n- _load_config() -> dict | None: Read JSON if exists; validate schema; return dict or None if not found.\n- _atomic_write(path: Path, data: str): write to temp file then replace (Path.with_suffix(\".tmp\")). Ensure permissions 0o600.\n- _write_config(cfg: dict) -> None: _ensure_config_dir(); _validate_config_schema(cfg); if CONFIG_PATH exists and (workspace/team differ), create a timestamped backup: config.<YYYYmmddHHMMSS>.backup.json; then _atomic_write(CONFIG_PATH, json.dumps(cfg, indent=2)).",
+            "status": "pending",
+            "testStrategy": "Unit tests for schema and IO:\n- Writes new valid config and reads back identical content.\n- Creates .alfred directory when missing.\n- Atomic write: simulate crash between temp and move by mocking; ensure no partial file left.\n- Backup on switching: write config A, then config B with different workspace/team -> backup exists and new file contains B.\n- Permissions: if platform supports, verify 0o600 on created file."
+          },
+          {
+            "id": 4,
+            "title": "Implement initialize_workspace tool logic and return structure",
+            "description": "Wire the tool: validate inputs, check API key, verify team/workspace via Linear, persist config, and return structured workspace details as the tool result.",
+            "dependencies": [
+              "4.2",
+              "4.3"
+            ],
+            "details": "Implementation steps in initialize_workspace:\n- Input validation: ensure non-empty workspace_id and team_id; strip whitespace.\n- Acquire key via _get_linear_api_key().\n- Call _validate_linear_credentials(team_id) to fetch viewer, team, and organization. Confirm that returned workspace_id matches provided workspace_id; if mismatch, raise ValueError with guidance.\n- Build config dict exactly as required:\n  {\n    \"platform\": \"linear\",\n    \"workspace_id\": <workspace_id>,\n    \"team_id\": <team_id>,\n    \"active_epic_id\": None,\n    \"last_sync\": datetime.datetime.utcnow().replace(microsecond=0).isoformat() + \"Z\"\n  }\n- Persist using _write_config(config).\n- Return dict with:\n  {\n    \"status\": \"ok\",\n    \"platform\": \"linear\",\n    \"workspace\": { \"id\": org_id, \"name\": org_name },\n    \"team\": { \"id\": team_id, \"name\": team_name },\n    \"viewer\": { \"id\": viewer_id, \"name\": viewer_name },\n    \"config_path\": str(CONFIG_PATH)\n  }\n- Error handling: catch known ValueError/RuntimeError, log at warning, and re-raise to let FastMCP return a tool error. Do not include secrets in messages. Use the complexity recommendations: clear error boundaries, timeouts, retries (already implemented), and minimal coupling.\n- Add type hints to all functions and ensure the decorator remains @server.tool().",
+            "status": "pending",
+            "testStrategy": "End-to-end tool tests (with mocked HTTP):\n- Success path: valid key + matching workspace/team -> returns status ok, fields present, config file written with required schema.\n- Invalid key: expect tool error and no config written.\n- Invalid team_id: expect tool error and no config written.\n- Mismatched workspace_id vs organization id: expect tool error and no config written.\n- Workspace switching: call twice with different team_id/workspace_id; expect backup file created and new config persisted."
+          },
+          {
+            "id": 5,
+            "title": "Add tests and developer documentation for initialize_workspace",
+            "description": "Create pytest unit tests and a short usage doc snippet referenced by design_docs. Cover valid/invalid key, config creation, switching, and structure validation.",
+            "dependencies": [
+              "4.4"
+            ],
+            "details": "Implementation steps:\n- Tests in tests/tools/test_workspace.py.\n- Use responses (requests-mock) to stub Linear GraphQL endpoint responses for each scenario.\n- Parametrize tests for different inputs; assert config contents and returned payload structure.\n- Add a small README section or update design_docs/alfred/tools/01-project-setup/initialize_project.md with usage:\n  - Required env: LINEAR_API_KEY\n  - Example call: initialize_workspace(workspace_id=\"org_xxx\", team_id=\"team_xxx\")\n  - Behavior on switching and where config is stored.\n- Add CI hook to run tests for this module.\n- Ensure tests are deterministic and do not require network.\n- Include a manual test checklist for running with a real key (optional, skipped in CI).",
+            "status": "pending",
+            "testStrategy": "Run pytest locally/CI. Validate:\n- All cases from Task Test Instructions (valid key, invalid key, config file creation, workspace switching, stored structure).\n- 100% branch coverage for error paths in validation and persistence functions."
+          },
+          {
+            "id": 6,
+            "title": "Create workspace.py with tool scaffold",
+            "description": "Set up the workspace tool module with FastMCP decorators and basic structure",
+            "details": "Reference: design_docs/alfred/PRD.md (lines 116-118) & design_docs/alfred/tools/01-project-setup/initialize_project.md\n\nImplementation steps:\n- Create src/alfred/tools/workspace.py\n- Import FastMCP server: from alfred.server import server\n- Import config: from alfred.config import get_config, set_config, Config\n- Import Linear adapter: from alfred.adapters.linear_adapter import LinearAdapter\n- Add logging setup\n- Create tool function scaffold:\n  @server.tool(name='initialize_workspace', description='Connect to Linear workspace')\n  async def initialize_workspace(workspace_id: str, team_id: str) -> dict\n- Add input validation\n- Document response structure",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 4
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Implement create_tasks_from_spec tool",
+        "description": "Create the AI-powered tool to parse specifications and generate tasks as defined in design_docs/alfred/tools/02-task-creation/create_tasks_from_spec.md",
+        "details": "## Implementation Details\nReference: design_docs/alfred/PRD.md (lines 167-168)\n\nCreate in src/alfred/tools/task_creation.py:\n- create_tasks_from_spec tool\n- Parse PRD/specification documents\n- Use AI to generate tasks\n- Create tasks in Linear\n\nRequirements:\n1. Accept spec_content and num_tasks parameters\n2. Use Anthropic AI to analyze specification\n3. Generate structured task list\n4. Create epic in Linear if needed\n5. Batch create tasks via Linear API\n6. Handle large specifications (chunking)\n\n## AI Prompt Structure:\n- Extract key requirements\n- Generate actionable tasks\n- Assign priorities\n- Suggest dependencies\n- Create clear descriptions",
+        "testStrategy": "## Test Instructions\n1. Test with sample PRD document\n2. Verify AI generates appropriate tasks\n3. Test task creation in Linear\n4. Validate epic creation if needed\n5. Test with various spec formats (MD, TXT)\n6. Test error handling for API failures\n\n## Success Criteria\n- [ ] Parses specifications correctly\n- [ ] AI generates quality tasks\n- [ ] Tasks created in Linear\n- [ ] Handles large documents\n- [ ] Maintains task relationships",
+        "status": "pending",
+        "dependencies": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "priority": "high",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Define data models, chunking, and parsing utilities for task generation",
+            "description": "Create reusable schemas and helper functions to parse spec content, chunk large inputs, normalize AI outputs, and merge results. These utilities will be used by the tool and the AI orchestration layer.",
+            "dependencies": [],
+            "details": "Implement in src/alfred/tools/_task_creation_utils.py:\n- Pydantic models:\n  - TaskSuggestion { title:str, description:str, priority:Literal['P0','P1','P2','P3'], labels:List[str]=[], dependencies:List[str]=[], estimate:Optional[int], acceptance_criteria:List[str]=[] }\n  - EpicSuggestion { title:str, description:str, create_epic:bool }\n  - GenerationResult { epic:Optional[EpicSuggestion], tasks:List[TaskSuggestion] }\n- Chunking utilities:\n  - estimate_tokens(text:str) -> int: use anthropic counting if available (from ai client) else heuristic len(text)/4.\n  - chunk_markdown(text:str, target_tokens:int=3000, overlap_tokens:int=200) -> List[str]: split by headings/paragraphs; ensure overlap for context continuity; support MD and TXT.\n- Parsing and normalization:\n  - safe_extract_json(text:str) -> dict: extract JSON from plain text or code-fenced blocks; strip trailing commas; guard against JSON5 features.\n  - parse_ai_response(payload:Union[str,dict]) -> GenerationResult: validate via Pydantic; coerce priorities to P0-P3; ensure descriptions present; backfill acceptance criteria.\n- Merging/deduplication:\n  - merge_task_candidates(candidates:List[TaskSuggestion], limit:int, complexity:Optional[dict]) -> List[TaskSuggestion]: normalize titles (lowercase, strip punctuation), deduplicate by normalized title, weight by AI-provided priority and complexity recommendations, then truncate to 'limit'.\n- Priority mappings & helpers:\n  - map_priority_to_linear(priority:str) -> int: e.g., P0->3, P1->2, P2->1, P3->0 (adjust if your Linear config differs).\n  - load_complexity_report(path:str='.alfred/reports/complexity.json') -> Optional[dict]: used to nudge priorities and estimates if present.\nUpdate src/alfred/tools/task_creation.py to import these utilities for later subtasks.",
+            "status": "pending",
+            "testStrategy": "Unit tests in tests/tools/test_task_creation_utils.py:\n- chunk_markdown splits long MD (>50k chars) into chunks under the token target with overlaps.\n- safe_extract_json parses JSON within code fences and fixes minor format issues.\n- parse_ai_response validates and normalizes priority values; raises on invalid schema.\n- merge_task_candidates deduplicates near-identical titles, respects limit, and boosts high-complexity items when complexity_report is provided."
+          },
+          {
+            "id": 2,
+            "title": "Compose prompts and integrate with Anthropic to generate task plans",
+            "description": "Wire up the AI orchestration to analyze the specification using Anthropic Claude, including chunk-wise generation and a synthesis step. Ensure strict JSON output matching the defined schemas.",
+            "dependencies": [
+              "5.1"
+            ],
+            "details": "Implementation:\n- Add/create prompt template in src/alfred/ai_services/prompts.py:\n  - create_tasks_from_spec_prompt(system): instruct as senior PM; require strict JSON with schemas for EpicSuggestion and TaskSuggestion; include sections: extract key requirements, generate actionable tasks, assign priorities, suggest dependencies, write clear descriptions and acceptance criteria.\n  - Include explicit JSON schema example and a note: 'Respond ONLY with JSON'.\n- In src/alfred/tools/task_creation_ai.py (new) or within task_creation.py if preferred, implement:\n  - async def generate_task_plan(spec_content:str, num_tasks:int, anthropic_client, complexity:Optional[dict]) -> GenerationResult\n    Steps:\n    1) Use chunk_markdown to split spec_content.\n    2) For each chunk, call anthropic_client.complete/messages with the prompt; parse each response via parse_ai_response.\n    3) Aggregate all TaskSuggestion lists; union any EpicSuggestion flags (if any chunk proposes create_epic=True, carry forward the most complete epic info).\n    4) If multiple chunks, run a synthesis call: provide the aggregated candidates and ask the model to consolidate, deduplicate, and rank to 'num_tasks'.\n    5) Validate final JSON with Pydantic and return GenerationResult.\n- Robustness:\n  - Implement retry with exponential backoff (e.g., tenacity) for rate limits (HTTP 429) and transient errors.\n  - Add guardrail: if model returns non-JSON, use safe_extract_json; if parsing fails, re-prompt with 'You returned invalid JSON, here is the error... please fix'.\n  - Track token usage via the Anthropic client if available and log with debug level.",
+            "status": "pending",
+            "testStrategy": "Tests in tests/tools/test_task_creation_ai.py with mocked Anthropic client:\n- Single-chunk spec returns valid GenerationResult with <= num_tasks.\n- Multi-chunk spec triggers synthesis and deduplication.\n- Invalid JSON on first try gets corrected via re-prompt.\n- Rate limit errors trigger retries with backoff.\n- Complexity report nudges priorities upward for complex areas."
+          },
+          {
+            "id": 3,
+            "title": "Implement Linear epic detection/creation and batch task creation layer",
+            "description": "Create a Linear integration layer that can optionally create an epic and batch-create tasks mapped from AI suggestions. Pull workspace/team configuration from the config system.",
+            "dependencies": [
+              "5.1",
+              "5.2"
+            ],
+            "details": "Implementation in src/alfred/tools/_linear_task_creation.py (new helper) using existing Linear client/adapter if available (e.g., src/alfred/integrations/linear_client.py):\n- Config: read Linear API key, team ID, and workspace from alfred config (see tasks 4/7). Validate presence; surface clear errors if missing.\n- Epic helpers:\n  - async def ensure_epic_if_needed(epic:Optional[EpicSuggestion], team_id:str) -> Optional[dict]:\n    - If epic is None or epic.create_epic is False, return None.\n    - Search by title; if not found, create the epic (Project or Issue with parent type depending on your Linear setup). Return {id,title,url}.\n- Task creation:\n  - def task_to_issue_input(t:TaskSuggestion, team_id:str, epic_id:Optional[str]) -> dict: map fields, including priority via map_priority_to_linear, labels, estimate, and parent=epic_id if present.\n  - async def batch_create_tasks(tasks:List[TaskSuggestion], team_id:str, epic_id:Optional[str]) -> List[dict]:\n    - Create in batches of 10-20 with asyncio.Semaphore to limit concurrency.\n    - On partial failures, retry failed items individually; collect errors for reporting.\n    - Return list of created issues: {id, title, url, priority} preserving order.\n- Error handling: classify Linear errors (auth, validation, rate limit) and apply retries/backoff for transient ones; fail gracefully with actionable messages.",
+            "status": "pending",
+            "testStrategy": "Tests in tests/tools/test_linear_task_creation.py with mocked Linear API:\n- ensure_epic_if_needed creates epic when requested and returns existing when title matches.\n- batch_create_tasks creates all tasks; verify priority mapping and epic association.\n- Partial failure retries: simulate one failure in a batch and ensure it is retried and reported.\n- Auth error surfaces a clear exception; missing config yields a helpful message."
+          },
+          {
+            "id": 4,
+            "title": "Implement FastMCP tool entrypoint create_tasks_from_spec",
+            "description": "Create the MCP tool function in src/alfred/tools/task_creation.py that accepts spec_content and num_tasks, orchestrates AI generation and Linear creation, and returns a structured result.",
+            "dependencies": [
+              "5.1",
+              "5.2",
+              "5.3"
+            ],
+            "details": "Implementation in src/alfred/tools/task_creation.py:\n- Define the MCP tool:\n  - from fastmcp import server\n  - @server.tool(name='create_tasks_from_spec', description='Analyze a PRD/spec and create tasks in Linear')\n  - async def create_tasks_from_spec(spec_content:str, num_tasks:int) -> dict\n- Orchestration steps:\n  1) Validate inputs (non-empty spec_content, 1<=num_tasks<=100).\n  2) Optionally load complexity report from .alfred/reports/complexity.json.\n  3) Initialize Anthropic client via ai_services.anthropic_client and call generate_task_plan(spec_content, num_tasks, client, complexity).\n  4) If the plan suggests an epic, call ensure_epic_if_needed to create or fetch epic.\n  5) Call batch_create_tasks to create Linear issues; capture mapping from TaskSuggestion.title -> created issue id/url/priority.\n  6) Build and return a structured response: {\n       'epic': {id,title,url} | None,\n       'tasks': [{id,title,url,priority,dependencies: original textual deps}],\n       'summary': { 'requested': num_tasks, 'created': len(tasks), 'skipped': num_tasks-len(tasks), 'teamId': team_id }\n     }\n- Logging & observability: log token usage (if available), chunk counts, and Linear operation timings at debug level.\n- Do not add extra input parameters; read optional context (complexity report) implicitly if present.",
+            "status": "pending",
+            "testStrategy": "Integration-style test in tests/tools/test_create_tasks_from_spec_tool.py with mocked Anthropic and Linear:\n- Happy path: returns epic and the requested number of tasks with URLs.\n- No-epic path: plan sets create_epic=False and epic remains None.\n- Validation: empty spec_content or invalid num_tasks returns descriptive error.\n- Large spec triggers chunking and still returns successfully."
+          },
+          {
+            "id": 5,
+            "title": "Add dependency linking, large-spec hardening, and end-to-end verification",
+            "description": "Finalize dependency relations in Linear, harden chunking and error handling for very large specs, and perform comprehensive end-to-end tests across formats.",
+            "dependencies": [
+              "5.1",
+              "5.2",
+              "5.3",
+              "5.4"
+            ],
+            "details": "Implementation:\n- Dependency linking:\n  - After tasks are created in the tool flow, resolve TaskSuggestion.dependencies by mapping textual references to created issues (match by normalized title; additionally support ordinal references like '#1' or 'T1' based on order). Create relations via Linear (issueRelationCreate) as 'blocks/blockedBy'. Handle missing matches by skipping and recording a warning in the response 'summary'.\n- Large-spec hardening:\n  - Ensure chunk_markdown enforces strict token ceilings (e.g., <= 3500 tokens per chunk for Claude 3 Haiku/Sonnet compatibility); adjust overlap dynamically when input is extremely large.\n  - Add guard for total chunks > 50: switch to two-pass map-reduce (outline first, then detail only top sections) to control cost.\n- Error handling:\n  - Centralize retries/backoff for both Anthropic and Linear; set sane max retries (e.g., 3) and jitter.\n  - Return partial successes with a 'errors' array in the tool response.\n- Update tool response to include dependency link results per task: dependencies_resolved: [{'from':taskId,'to':depId}].",
+            "status": "pending",
+            "testStrategy": "End-to-end tests in tests/e2e/test_create_tasks_from_spec_e2e.py with mocks and sample PRDs:\n- Markdown and plain text specs both work.\n- Very large spec (>200k chars) triggers two-pass map-reduce and completes within limits.\n- Dependency suggestions result in Linear relations being created; unresolved dependencies are reported but do not fail the run.\n- Simulate Linear and Anthropic transient failures to verify retries and partial success reporting."
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "title": "Implement core task management tools",
+        "description": "Create essential task CRUD operations: get_tasks, get_task, create_task, update_task_status as defined in design_docs/alfred/PRD.md",
+        "details": "## Implementation Details\nReference: design_docs/alfred/PRD.md (lines 123-131)\n\nCreate in src/alfred/tools/task_management.py:\n- get_tasks - List with filtering\n- get_task - View details\n- create_task - Single task creation\n- update_task_status - Change status\n\nRequirements:\n1. Use FastMCP @server.tool() decorators\n2. Integrate with Linear adapter\n3. Support filtering by status, epic\n4. Map Linear statuses to Alfred statuses\n5. Return structured responses\n\n## Status Mapping:\n- Linear: backlog → Alfred: pending\n- Linear: todo → Alfred: pending\n- Linear: in_progress → Alfred: in_progress\n- Linear: done → Alfred: done\n- Linear: canceled → Alfred: cancelled",
+        "testStrategy": "## Test Instructions\n1. Test get_tasks with various filters\n2. Test pagination for large task lists\n3. Verify get_task returns complete details\n4. Test create_task with all fields\n5. Test status transitions\n6. Verify Linear sync accuracy\n\n## Success Criteria\n- [ ] All CRUD operations working\n- [ ] Filtering works correctly\n- [ ] Status mapping accurate\n- [ ] Error handling robust\n- [ ] Performance acceptable",
+        "status": "pending",
+        "dependencies": [
+          1,
+          2,
+          4
+        ],
+        "priority": "high",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Scaffold task_management module, schemas, and status mapping",
+            "description": "Create src/alfred/tools/task_management.py with FastMCP tool scaffolding, Pydantic response schemas, and Linear↔Alfred status mapping utilities.",
+            "dependencies": [],
+            "details": "1) Create file src/alfred/tools/task_management.py.\n2) Import FastMCP server instance and decorator: from alfred.server import server (or the project’s canonical server module). If not available, define a local Server() only for type/linting, but use the shared one if it exists.\n3) Define Pydantic models for structured responses:\n   - AlfredTaskStatus = Literal['pending','in_progress','done','cancelled']\n   - AlfredTask(BaseModel): id:str, title:str, description:Optional[str], status:AlfredTaskStatus, epic_id:Optional[str], assignee_id:Optional[str], labels:List[str]=[], priority:Optional[str], created_at:datetime, updated_at:datetime, url:Optional[str]\n   - TaskListResult(BaseModel): items:List[AlfredTask], page:int, per_page:int, total:Optional[int], has_next:bool, next_cursor:Optional[str]\n   Ensure models are JSON-serializable via .model_dump().\n4) Add status mapping constants and helpers:\n   - STATUS_LINEAR_TO_ALFRED = {'backlog':'pending','todo':'pending','in_progress':'in_progress','done':'done','canceled':'cancelled'}\n   - STATUS_ALFRED_TO_LINEAR = {'pending':'todo','in_progress':'in_progress','done':'done','cancelled':'canceled'}\n   - def map_status_linear_to_alfred(s:str)->AlfredTaskStatus and def map_status_alfred_to_linear(s:str)->str with ValueError on unknown.\n5) Add helper to map Linear Issue to AlfredTask: def to_alfred_task(issue:dict)->AlfredTask (handle missing fields, normalize timestamps, map status with helper, extract epic id/state/assignee/labels/url).\n6) Implement small utilities:\n   - def load_workspace_config(): read .alfred/config.json or use alfred.config.settings if available; return api_key, workspace_id, team_id.\n   - def get_linear_adapter(): from alfred.integrations.linear_adapter import LinearAdapter; instantiate with api_key and team/workspace context; if adapter not available, document expected methods: list_issues(filters,pagination), get_issue(id), create_issue(payload), update_issue_status(id,state).\n7) Create tools’ function stubs with @server.tool() decorators and PRD-aligned names: get_tasks, get_task, create_task, update_task_status. Leave pass for now. Ensure docstrings describe parameters per PRD (design_docs/alfred/PRD.md lines 123-131).",
+            "status": "pending",
+            "testStrategy": "- Unit test STATUS mapping helpers with all values and unknown throws.\n- Unit test to_alfred_task mapping from a Linear-like issue fixture.\n- Validate Pydantic models serialize with model_dump().\n- Import test ensures module loads without side effects and that the four tool functions exist (introspection on server registry if available)."
+          },
+          {
+            "id": 2,
+            "title": "Implement get_tasks with filtering, status mapping, and pagination",
+            "description": "Implement the get_tasks tool to list tasks with filtering by status and epic, integrating with the Linear adapter and returning a structured TaskListResult.",
+            "dependencies": [
+              "6.1"
+            ],
+            "details": "1) Define @server.tool(name='get_tasks', description='List tasks with optional filters (status, epic) and pagination').\n   Signature (align to PRD): async def get_tasks(status: Optional[List[str]] = None, epic_id: Optional[str] = None, page: int = 1, per_page: int = 50) -> dict\n2) Validate inputs:\n   - If status provided, normalize to lowercase, deduplicate, validate each against {'pending','in_progress','done','cancelled'} and map to Linear equivalents via map_status_alfred_to_linear.\n   - page >= 1, 1 <= per_page <= 100 (or adapter limit), else ValueError.\n3) Build adapter filters:\n   - filters = {}\n   - if epic_id: filters['epicId'] = epic_id\n   - if status: filters['state'] = mapped Linear statuses (or stateIds if adapter requires; delegate mapping to adapter if available).\n4) Pagination:\n   - Prefer cursor-based: adapter.list_issues(filters=filters, first=per_page, after=cursor). Compute \"after\" by iterating (page-1) times using endCursor from previous page (optimize later; note potential cost in docstring).\n   - Accept adapter responses like {nodes:[...], pageInfo:{hasNextPage, endCursor}, totalCount?}.\n5) Transform each Linear issue via to_alfred_task(issue) and assemble TaskListResult(items, page, per_page, total=totalCount if available, has_next=pageInfo.hasNextPage, next_cursor=pageInfo.endCursor). Return model_dump().\n6) Error handling:\n   - Catch adapter/HTTP errors, wrap into a consistent error response or raise a ValueError with message; keep functions small (complexity recommendations) and log debug info if logging is available.\n7) Ensure function adheres to FastMCP conventions: return a plain dict (serialized TaskListResult).",
+            "status": "pending",
+            "testStrategy": "- Mock LinearAdapter.list_issues to return deterministic fixtures with/without epic and various states.\n- Test: no filters returns items; status=['pending'] returns only mapped backlog/todo issues; epic_id filter narrows results; combined filters.\n- Test: pagination page=2 with endCursor navigation, ensure items/page metadata, has_next toggles.\n- Test: invalid status -> ValueError; per_page bounds enforced.\n- Integration smoke (optional): behind env flag, hit real Linear sandbox with read-only token."
+          },
+          {
+            "id": 3,
+            "title": "Implement get_task to return complete task details",
+            "description": "Implement the get_task tool to fetch a single task by ID from Linear and return a fully mapped AlfredTask response.",
+            "dependencies": [
+              "6.1"
+            ],
+            "details": "1) Define @server.tool(name='get_task', description='Fetch a single task by ID').\n   Signature: async def get_task(task_id: str) -> dict\n2) Validate task_id non-empty; else ValueError.\n3) Use adapter = get_linear_adapter(); issue = await adapter.get_issue(task_id) or sync equivalent.\n4) If not found, return {'error':'not_found','task_id':task_id} with appropriate HTTP-like semantics (documented) or raise ValueError; follow project error conventions.\n5) Map to AlfredTask via to_alfred_task(issue) and return model_dump(). Include fields: id, title, description, status (mapped), epic_id, assignee_id, labels, priority, created_at, updated_at, url.\n6) Keep function minimal; rely on helpers from 6.1.",
+            "status": "pending",
+            "testStrategy": "- Mock adapter.get_issue to return a rich Linear issue fixture with epic, assignee, labels; assert full mapping matches expectations.\n- Test: unknown ID returns not_found structure (or raises) per convention.\n- Test: status mapping correctness for each Linear state.\n- Regression: ensure description preserves markdown and URLs."
+          },
+          {
+            "id": 4,
+            "title": "Implement create_task for single task creation",
+            "description": "Implement the create_task tool to create a new task in Linear with optional epic, assignee, labels, and priority, returning the created AlfredTask.",
+            "dependencies": [
+              "6.1"
+            ],
+            "details": "1) Define @server.tool(name='create_task', description='Create a single task in Linear').\n   Signature (match PRD params): async def create_task(title: str, description: Optional[str] = None, epic_id: Optional[str] = None, assignee_id: Optional[str] = None, labels: Optional[List[str]] = None, priority: Optional[str] = None) -> dict\n2) Validate inputs: non-empty title; sanitize lengths (per Linear limits if known); normalize labels list.\n3) Build payload for adapter.create_issue:\n   - title, description\n   - epicId=epic_id if provided\n   - assigneeId=assignee_id if provided\n   - labelIds or names (align with adapter contract)\n   - priority mapping if required by Linear (e.g., P0–P4); if unknown, omit and log.\n   - team/workspace context from load_workspace_config().\n   - Initial state: default to Linear 'todo' (mapped from Alfred 'pending'); do not expose status param here unless PRD specifies.\n4) Call adapter.create_issue(payload) and get created issue.\n5) Map to AlfredTask via to_alfred_task and return model_dump().\n6) Error handling: surface validation errors (e.g., invalid epic) clearly; catch adapter errors and return {'error':'create_failed', 'details':...} or raise per project convention.",
+            "status": "pending",
+            "testStrategy": "- Mock adapter.create_issue to assert payload includes epicId/assignee/labels/priority when provided.\n- Test: create with only required title; create with all fields; verify returned task matches mapping.\n- Negative: invalid epic_id -> adapter error bubble; long title -> validation error; unknown priority -> omitted with warning."
+          },
+          {
+            "id": 5,
+            "title": "Implement update_task_status with Linear↔Alfred transitions",
+            "description": "Implement the update_task_status tool to change a task's status, mapping Alfred statuses to Linear states and returning the updated AlfredTask.",
+            "dependencies": [
+              "6.1"
+            ],
+            "details": "1) Define @server.tool(name='update_task_status', description='Update a task status').\n   Signature: async def update_task_status(task_id: str, status: str) -> dict\n2) Validate: task_id non-empty; status in {'pending','in_progress','done','cancelled'}; map to Linear via map_status_alfred_to_linear.\n3) Determine Linear state/transition:\n   - If adapter exposes update_issue_status(id, linear_status) or update_issue_state(id, state_id), prefer it. Otherwise, resolve stateId by name via adapter (e.g., adapter.get_state_id(team_id, linear_status)). Use load_workspace_config() for team_id.\n4) Perform update via adapter; then fetch the updated issue (adapter.get_issue) to ensure source of truth.\n5) Map to AlfredTask via to_alfred_task and return model_dump().\n6) Handle invalid transitions or unknown status errors gracefully with clear messages; keep logic small and use helper functions.",
+            "status": "pending",
+            "testStrategy": "- Mock adapter to verify called with correct mapped status/stateId.\n- Test transitions: pending→in_progress, in_progress→done, to cancelled; verify final mapped status.\n- Negative: unknown status -> ValueError; adapter transition error -> clear error; non-existent task -> not_found handling.\n- Idempotency: updating to current status returns unchanged task."
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "title": "Implement configuration management system",
+        "description": "Create configuration and environment management as specified in design_docs/alfred/configuration.md",
+        "details": "## Implementation Details\nReference: design_docs/alfred/architecture.md (lines 223-238)\n\nCreate configuration system:\n- src/alfred/config/__init__.py\n- src/alfred/config/settings.py\n- .alfred directory structure\n- Environment variable handling\n\nRequirements:\n1. Load environment variables from .env\n2. Manage .alfred/config.json\n3. Validate API keys on startup\n4. Support workspace switching\n5. Handle missing configurations gracefully\n\n## Config Structure:\n```python\nclass Config:\n    linear_api_key: str\n    anthropic_api_key: str\n    workspace_id: Optional[str]\n    team_id: Optional[str]\n    active_epic_id: Optional[str]\n```",
+        "testStrategy": "## Test Instructions\n1. Test with complete .env file\n2. Test with missing API keys\n3. Verify config.json creation\n4. Test workspace switching\n5. Validate environment override\n6. Test config persistence\n\n## Success Criteria\n- [ ] Environment variables loaded\n- [ ] Config file managed properly\n- [ ] API key validation works\n- [ ] Graceful error messages\n- [ ] Config changes persist",
+        "status": "pending",
+        "dependencies": [
+          1
+        ],
+        "priority": "high",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Scaffold config package and typed Config model",
+            "description": "Create the config package, define the Config data model, constants, exceptions, and environment variable mapping according to design_docs/alfred/configuration.md and architecture guidelines.",
+            "dependencies": [],
+            "details": "1) Create src/alfred/config/__init__.py and src/alfred/config/settings.py. 2) In settings.py, define a typed dataclass (or pydantic model if already a project dependency) named Config with fields: linear_api_key: str | None, anthropic_api_key: str | None, workspace_id: str | None, team_id: str | None, active_epic_id: str | None. 3) Define custom exceptions: ConfigError (base), ConfigValidationError. 4) Set up a module-level logger named 'alfred.config'. 5) Define environment variable names and mapping: LINEAR_API_KEY -> linear_api_key, ANTHROPIC_API_KEY -> anthropic_api_key, ALFRED_WORKSPACE_ID -> workspace_id, ALFRED_TEAM_ID -> team_id, ALFRED_ACTIVE_EPIC_ID -> active_epic_id, ALFRED_CONFIG_DIR for overriding config directory, ALFRED_ENV_FILE to point to a specific .env file. 6) Implement a utility load_env(env_file: Optional[Path]) that uses python-dotenv (load_dotenv) to load variables from .env, searching in order: explicit env_file if provided, current working directory, project root, and user home. Ensure variables from the OS env are not overwritten by .env unless override=True is explicitly requested by caller. 7) Document and align with design_docs/alfred/architecture.md (lines 223-238) with a lightweight, testable design and single-responsibility helpers.",
+            "status": "pending",
+            "testStrategy": "Unit tests: verify Config dataclass default None for optional fields; verify mapping of environment variable names to Config fields; test load_env loads from a temp .env without clobbering existing os.environ; test that ALFRED_ENV_FILE path is respected."
+          },
+          {
+            "id": 2,
+            "title": "Implement .alfred directory management and config.json persistence",
+            "description": "Add cross-platform config directory resolution, ensure directory exists, and implement robust read/write for .alfred/config.json with atomic writes and graceful handling of missing/malformed files.",
+            "dependencies": [
+              "7.1"
+            ],
+            "details": "1) In settings.py, implement config_dir() returning Path: if ALFRED_CONFIG_DIR is set, use it; else use ~/.alfred (expanduser). Optionally respect XDG_CONFIG_HOME on Linux if complexity report advises; if so, prefer $XDG_CONFIG_HOME/alfred over ~/.alfred. 2) Implement ensure_config_dir() to create the directory with mode 0o700 if missing. 3) Define CONFIG_FILE = config_dir() / 'config.json'. 4) Implement read_config_file() -> dict that: calls ensure_config_dir(), returns {} if file doesn't exist, and if malformed JSON, logs a warning and backs up the bad file to config.json.bak.TIMESTAMP then returns {}. 5) Implement write_config_file(cfg: Config) -> None that: writes to a temp file in the same directory and os.replace to CONFIG_FILE (atomic), serializing only known fields; set file permissions to 0o600 on POSIX. 6) Provide to_dict/from_dict helpers on Config to serialize/parse, ignoring unknown keys and normalizing empty strings to None. 7) Avoid global state; functions return values for testability.",
+            "status": "pending",
+            "testStrategy": "Use tmp directory and monkeypatch ALFRED_CONFIG_DIR. Tests: when config.json missing, read_config_file returns {}; write_config_file creates file with expected content; malformed JSON is backed up and replaced by empty state; file permissions correct on POSIX (skip on Windows); serialization ignores unknown keys and preserves known ones."
+          },
+          {
+            "id": 3,
+            "title": "Implement layered config loading and environment overrides with public API",
+            "description": "Create the loading pipeline that merges .env-loaded values, process environment variables, and persisted config.json with defined precedence, exposes get_config(), set_config(), and refresh mechanisms, and handles missing values gracefully.",
+            "dependencies": [
+              "7.1",
+              "7.2"
+            ],
+            "details": "1) Define precedence: config.json base -> overridden by OS environment variables (including those loaded from .env via load_env) -> function parameters (if provided). This ensures runtime env can override persisted file. 2) Implement merge_env_overrides(base: dict) -> dict that maps known env vars to fields and overrides non-empty values. 3) Implement build_config(strict: bool=False) -> Config: call load_env(None), parse base via read_config_file(), apply merge_env_overrides, normalize, and return Config. Missing keys remain None. 4) Implement get_config(refresh: bool=False, strict: bool=False) -> Config: cache the Config in a module-level _CACHE; if refresh True, rebuild; otherwise return cached. 5) Implement set_config(cfg: Config) -> None: write to config.json via write_config_file and update cache. 6) In __init__.py, export Config, get_config, set_config, load_env, CONFIG_FILE, config_dir. 7) Ensure graceful handling: if no keys present, return Config with Nones and log an info-level message about missing optional values. 8) Add simple schema validation for types during merge (e.g., strip whitespace, coerce empty strings to None).",
+            "status": "pending",
+            "testStrategy": "Tests: create config.json with values and verify get_config reads them; add .env with overrides and ensure environment takes precedence; verify calling get_config twice returns cached object unless refresh=True; verify missing values produce Config with None and do not raise; verify set_config persists and subsequent get_config returns updated values."
+          },
+          {
+            "id": 4,
+            "title": "Add startup validation for API keys with clear error/warning semantics",
+            "description": "Introduce validate_api_keys() invoked during config loading (opt-in strict mode) to verify Linear and Anthropic keys, with pattern checks, actionable error messages, and graceful degradation when keys are missing.",
+            "dependencies": [
+              "7.3"
+            ],
+            "details": "1) Implement validate_api_keys(cfg: Config, strict: bool=False) -> None. 2) Validation rules: if strict is True, require non-empty linear_api_key and anthropic_api_key and raise ConfigValidationError if missing. If present, perform lightweight pattern checks (e.g., Linear keys commonly start with 'lin_' or similar; Anthropic with 'sk-ant-' or 'sk-ant-api'). Do not perform network calls here to keep config layer pure; network-based validation will be performed by tools using these keys. 3) Integrate into get_config(strict=...) so that when strict=True, build_config is followed by validate_api_keys. 4) Provide actionable error messages guiding user to set variables in .env or config.json and pointing to design_docs/alfred/configuration.md. 5) Log warnings (not errors) when strict=False and keys are missing, enabling non-API features to run. 6) Ensure exceptions include which key failed and which sources were checked.",
+            "status": "pending",
+            "testStrategy": "Tests: with complete .env, get_config(strict=True) succeeds; with missing Linear or Anthropic key, get_config(strict=True) raises ConfigValidationError with informative message; with strict=False, missing keys only produce warnings; pattern mismatches produce clear validation errors; ensure no network calls are made."
+          },
+          {
+            "id": 5,
+            "title": "Implement workspace switching and persistence utilities",
+            "description": "Add helper functions to set and switch workspaces, update config.json, respect environment overrides for active workspace, and ensure graceful handling when switching without required keys.",
+            "dependencies": [
+              "7.3",
+              "7.4"
+            ],
+            "details": "1) Implement set_active_workspace(workspace_id: Optional[str], team_id: Optional[str]=None, active_epic_id: Optional[str]=None) -> Config: load current config, update fields, persist via set_config, return updated config. 2) Implement switch_workspace(new_workspace_id: str, team_id: Optional[str]=None) -> Config: calls set_active_workspace and logs the change. 3) Respect environment overrides: if ALFRED_WORKSPACE_ID (or ALFRED_TEAM_ID/ALFRED_ACTIVE_EPIC_ID) are set, they should override persisted values in get_config; document that switching via functions updates the file but may be shadowed by env at runtime. 4) Handle missing configurations gracefully: if workspace switching occurs without API keys, do not fail; only warn. 5) Provide a small utility current_workspace() -> dict with the effective workspace_id, team_id, active_epic_id for display/diagnostics. 6) Ensure atomic persistence and cache update on changes.",
+            "status": "pending",
+            "testStrategy": "Tests: starting with empty config, call set_active_workspace and verify config.json is created and contains the new values; test switch_workspace updates values; set ALFRED_WORKSPACE_ID in env and verify get_config returns the env value even if the file contains a different one; verify persistence is not affected by env overrides; ensure switching with missing API keys emits warnings but does not raise; verify values survive process restart (read from disk)."
+          },
+          {
+            "id": 6,
+            "title": "Implement models configuration tool",
+            "description": "Create the models MCP tool to configure AI providers and models.\\n\\n**Design Reference:** design_docs/alfred/PRD.md, design_docs/alfred/tools/07-configuration/models.md\\n**Acceptance Criteria:**\\n- Tool lists available AI providers (Anthropic initially)\\n- Shows current model configuration from environment\\n- Validates API keys are present\\n- Returns structured model information\\n- Supports future provider expansion\\n\\n**Test Instructions:**\\n1. Mock environment variables for API keys\\n2. Call models tool without parameters\\n3. Verify returns current Anthropic configuration\\n4. Test with missing API key (should show warning)\\n5. Test model listing functionality\\n6. Verify structured response format\\n7. Test configuration validation",
+            "details": "",
+            "status": "pending",
+            "dependencies": [
+              "7.4"
+            ],
+            "parentTaskId": 7
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "title": "Implement epic management tools",
+        "description": "Create epic/project management tools as defined in design_docs/alfred/PRD.md",
+        "details": "Reference: design_docs/alfred/PRD.md (lines 119-125 & 159-165)\n\nCreate in src/alfred/tools/epic_management.py:\n- create_epic - Create new Epic/Project\n- list_epics - View all Epics/Projects  \n- switch_epic - Change active Epic context\n- rename_epic - Rename Epic/Project\n- duplicate_epic - Copy Epic with all tasks\n- delete_epic - Remove Epic/Project\n\nRequirements:\n1. Use FastMCP @server.tool() decorators\n2. Map Linear Projects to Alfred Epics\n3. Store active epic in config\n4. Support epic duplication with tasks\n5. Handle epic deletion safely",
+        "testStrategy": "## Test Instructions\n1. Test epic creation with various inputs\n2. Test listing epics with pagination\n3. Test switching active epic context\n4. Test rename operation\n5. Test duplication with tasks\n6. Test deletion with confirmation\n\n## Success Criteria\n- [ ] All epic operations working\n- [ ] Active epic persisted in config\n- [ ] Duplication preserves task structure\n- [ ] Deletion handles dependencies\n- [ ] Error handling robust",
+        "status": "pending",
+        "dependencies": [
+          1,
+          2,
+          4,
+          7
+        ],
+        "priority": "high",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement list_epics tool",
+            "description": "Create the list_epics MCP tool to fetch all Linear Projects (mapped as epics) in the workspace.\n\n**Design Reference:** design_docs/alfred/PRD.md lines 159-164\n**Acceptance Criteria:**\n- Tool returns all Linear Projects in the workspace\n- Each epic includes: id, name, description, task count, created_at\n- Properly maps Linear Project → Alfred Epic concept\n- Returns structured JSON response via MCP\n\n**Test Instructions:**\n1. Mock Linear GraphQL response with 3 sample projects\n2. Call list_epics tool\n3. Verify response contains all projects with correct fields\n4. Test empty workspace case\n5. Test API error handling",
+            "details": "",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 8
+          },
+          {
+            "id": 2,
+            "title": "Implement create_epic tool",
+            "description": "Create the create_epic MCP tool to create a new Linear Project (mapped as epic).\n\n**Design Reference:** design_docs/alfred/PRD.md lines 159-164\n**Acceptance Criteria:**\n- Tool creates a new Linear Project via GraphQL mutation\n- Accepts: name (required), description (optional), color (optional)\n- Returns created epic with id, name, and creation timestamp\n- Validates name is not empty\n- Handles duplicate name errors gracefully\n\n**Test Instructions:**\n1. Mock successful Linear Project creation mutation\n2. Call create_epic with valid name and description\n3. Verify returned epic has generated ID and matches input\n4. Test duplicate name error case\n5. Test missing required name parameter\n6. Test with optional color parameter",
+            "details": "",
+            "status": "pending",
+            "dependencies": [
+              "8.1"
+            ],
+            "parentTaskId": 8
+          },
+          {
+            "id": 3,
+            "title": "Implement switch_epic tool",
+            "description": "Create the switch_epic MCP tool to change the active epic context for task operations.\n\n**Design Reference:** design_docs/alfred/PRD.md lines 159-164, architecture.md lines 221-223\n**Acceptance Criteria:**\n- Tool updates active_epic_id in .alfred/config.json\n- Validates epic exists in Linear before switching\n- Returns confirmation with new active epic details\n- Persists change immediately to config file\n- Handles non-existent epic ID gracefully\n\n**Test Instructions:**\n1. Create mock config with existing epic\n2. Call switch_epic with valid epic ID\n3. Verify config.json updated with new active_epic_id\n4. Test switching to non-existent epic (should fail)\n5. Test persistence across tool invocations\n6. Test atomic write to prevent corruption",
+            "details": "",
+            "status": "pending",
+            "dependencies": [
+              "8.1"
+            ],
+            "parentTaskId": 8
+          },
+          {
+            "id": 4,
+            "title": "Implement rename_epic tool",
+            "description": "Create the rename_epic MCP tool to rename an existing Linear Project (epic).\n\n**Design Reference:** design_docs/alfred/PRD.md lines 159-164\n**Acceptance Criteria:**\n- Tool updates Linear Project name via GraphQL mutation\n- Accepts: epic_id, new_name (required)\n- Validates epic exists before renaming\n- Returns updated epic with new name\n- Handles duplicate name conflicts\n\n**Test Instructions:**\n1. Mock Linear Project update mutation\n2. Call rename_epic with valid ID and new name\n3. Verify mutation called with correct parameters\n4. Test renaming non-existent epic\n5. Test duplicate name error handling\n6. Verify response contains updated epic details",
+            "details": "",
+            "status": "pending",
+            "dependencies": [
+              "8.1"
+            ],
+            "parentTaskId": 8
+          },
+          {
+            "id": 5,
+            "title": "Implement duplicate_epic tool",
+            "description": "Create the duplicate_epic MCP tool to copy a Linear Project with all its tasks.\n\n**Design Reference:** design_docs/alfred/PRD.md lines 159-164\n**Acceptance Criteria:**\n- Tool creates new Linear Project with copied name + \" (Copy)\"\n- Copies all tasks from source epic to new epic\n- Preserves task descriptions, priorities, labels\n- Does NOT copy task status (all start as \"todo\")\n- Returns new epic with task count\n\n**Test Instructions:**\n1. Mock Linear Project query and creation mutations\n2. Mock task listing and batch creation\n3. Call duplicate_epic with source epic containing 3 tasks\n4. Verify new epic created with correct name\n5. Verify all tasks copied with correct attributes\n6. Test empty epic duplication\n7. Test handling of large task counts (pagination)",
+            "details": "",
+            "status": "pending",
+            "dependencies": [
+              "8.1",
+              "8.2"
+            ],
+            "parentTaskId": 8
+          },
+          {
+            "id": 6,
+            "title": "Implement delete_epic tool",
+            "description": "Create the delete_epic MCP tool to remove a Linear Project and optionally its tasks.\n\n**Design Reference:** design_docs/alfred/PRD.md lines 159-164\n**Acceptance Criteria:**\n- Tool deletes Linear Project via GraphQL mutation\n- Accepts: epic_id, delete_tasks (boolean, default false)\n- If delete_tasks=true, deletes all tasks in epic first\n- If delete_tasks=false and epic has tasks, returns error\n- Confirms deletion before executing\n- Cannot delete the last epic in workspace\n\n**Test Instructions:**\n1. Mock Linear Project deletion mutation\n2. Test deleting empty epic (should succeed)\n3. Test deleting epic with tasks, delete_tasks=false (should fail)\n4. Test deleting epic with tasks, delete_tasks=true (should succeed)\n5. Test attempting to delete last epic (should fail)\n6. Verify confirmation prompt behavior\n7. Test cascade deletion of tasks",
+            "details": "",
+            "status": "pending",
+            "dependencies": [
+              "8.1"
+            ],
+            "parentTaskId": 8
+          }
+        ]
+      },
+      {
+        "id": 9,
+        "title": "Implement task analysis tools",
+        "description": "Create AI-powered task analysis tools as defined in design_docs/alfred/PRD.md",
+        "details": "Reference: design_docs/alfred/PRD.md (lines 133-139) & design_docs/alfred/tools/04-task-analysis/\n\nCreate in src/alfred/tools/task_analysis.py:\n- get_next_task - AI-powered task prioritization\n- assess_complexity - Analyze task difficulty\n- get_complexity_report - View complexity analysis\n\nRequirements:\n1. Use AI to analyze task priorities\n2. Consider dependencies and blockers\n3. Assess complexity based on description\n4. Generate recommendations\n5. Support batch analysis",
+        "testStrategy": "## Test Instructions\n1. Test next task selection logic\n2. Test complexity assessment accuracy\n3. Test with various task states\n4. Test dependency consideration\n5. Test batch complexity analysis\n\n## Success Criteria\n- [ ] Smart task prioritization\n- [ ] Accurate complexity scoring\n- [ ] Dependency awareness\n- [ ] Clear recommendations\n- [ ] Performance acceptable",
+        "status": "pending",
+        "dependencies": [
+          1,
+          2,
+          3,
+          6
+        ],
+        "priority": "high",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement assess_complexity tool",
+            "description": "Create the assess_complexity MCP tool to analyze task difficulty using AI.\n\n**Design Reference:** design_docs/alfred/PRD.md lines 137-139, tools/04-task-analysis/assess_complexity.md\n**Acceptance Criteria:**\n- Tool sends task details to Anthropic for complexity analysis\n- Returns complexity score (1-10) and reasoning\n- Provides decomposition recommendations for complex tasks\n- Analyzes based on: technical difficulty, dependencies, scope, unknowns\n- Caches analysis results in task custom fields\n\n**Test Instructions:**\n1. Mock Anthropic API response with complexity analysis\n2. Call assess_complexity with sample task\n3. Verify prompt includes task title, description, labels\n4. Verify response contains score, reasoning, recommendations\n5. Test error handling for AI API failures\n6. Test caching of results in Linear custom fields\n7. Verify token usage tracking",
+            "details": "",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 9
+          },
+          {
+            "id": 2,
+            "title": "Implement get_next_task tool",
+            "description": "Create the get_next_task MCP tool for AI-powered task prioritization.\n\n**Design Reference:** design_docs/alfred/PRD.md lines 137-139, tools/04-task-analysis/get_next_task.md\n**Acceptance Criteria:**\n- Tool analyzes all pending tasks in active epic\n- Uses AI to recommend next task based on: dependencies, priority, complexity, context\n- Returns single recommended task with reasoning\n- Considers blocked tasks and skips them\n- Provides alternative suggestions if primary is blocked\n\n**Test Instructions:**\n1. Mock Linear task list with various statuses/priorities\n2. Mock Anthropic prioritization response\n3. Call get_next_task\n4. Verify AI prompt includes all pending tasks\n5. Verify blocked tasks excluded from recommendations\n6. Test with empty task list\n7. Test with all tasks blocked\n8. Verify reasoning explains the choice",
+            "details": "",
+            "status": "pending",
+            "dependencies": [
+              "9.1"
+            ],
+            "parentTaskId": 9
+          },
+          {
+            "id": 3,
+            "title": "Implement get_complexity_report tool",
+            "description": "Create the get_complexity_report MCP tool to view aggregated complexity analysis.\n\n**Design Reference:** design_docs/alfred/PRD.md lines 137-139, tools/04-task-analysis/get_complexity_report.md\n**Acceptance Criteria:**\n- Tool aggregates complexity scores across epic/workspace\n- Returns report with: task count by complexity, average score, recommendations\n- Groups tasks by complexity buckets (simple/moderate/complex)\n- Identifies tasks needing decomposition (score > 7)\n- Supports filtering by epic, status, or date range\n\n**Test Instructions:**\n1. Mock Linear tasks with various complexity scores\n2. Call get_complexity_report\n3. Verify aggregation calculations correct\n4. Test filtering by epic_id\n5. Test filtering by status (pending only)\n6. Verify recommendations for high-complexity tasks\n7. Test with no analyzed tasks\n8. Verify report formatting and structure",
+            "details": "",
+            "status": "pending",
+            "dependencies": [
+              "9.1"
+            ],
+            "parentTaskId": 9
+          }
+        ]
+      },
+      {
+        "id": 10,
+        "title": "Implement task decomposition tools",
+        "description": "Create AI-powered task breakdown tools as defined in design_docs/alfred/tools/02-task-creation/",
+        "details": "Reference: design_docs/alfred/PRD.md (lines 169-171) & design_docs/alfred/tools/02-task-creation/decompose_task.md\n\nCreate in src/alfred/tools/task_decomposition.py:\n- decompose_task - Break task into subtasks\n- decompose_all_tasks - Batch decomposition\n\nRequirements:\n1. Use AI to analyze task and suggest subtasks\n2. Create 3-7 subtasks based on complexity\n3. Maintain parent-child relationships\n4. Support batch operations\n5. Preserve context and dependencies",
+        "testStrategy": "## Test Instructions\n1. Test single task decomposition\n2. Test batch decomposition\n3. Test subtask quality\n4. Test relationship preservation\n5. Test with various task types\n\n## Success Criteria\n- [ ] Quality subtask generation\n- [ ] Appropriate granularity\n- [ ] Context preservation\n- [ ] Batch efficiency\n- [ ] Error handling",
+        "status": "pending",
+        "dependencies": [
+          1,
+          2,
+          3,
+          6
+        ],
+        "priority": "high",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement decompose_task tool",
+            "description": "Create the decompose_task MCP tool to break tasks into subtasks using AI.\n\n**Design Reference:** design_docs/alfred/PRD.md lines 168-171, tools/02-task-creation/decompose_task.md\n**Acceptance Criteria:**\n- Tool sends task to Anthropic for decomposition\n- Accepts: task_id, num_subtasks (optional, default 3-5)\n- Creates Linear sub-issues under parent task\n- Each subtask has clear title and description\n- Preserves parent epic and labels\n- Returns created subtasks with IDs\n\n**Test Instructions:**\n1. Mock Anthropic decomposition response (3 subtasks)\n2. Mock Linear sub-issue creation mutations\n3. Call decompose_task with task_id\n4. Verify AI prompt includes full task context\n5. Verify subtasks created with correct parent\n6. Test with custom num_subtasks parameter\n7. Test error when task already has subtasks\n8. Verify subtask ordering preserved",
+            "details": "",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 10
+          },
+          {
+            "id": 2,
+            "title": "Implement decompose_all_tasks tool",
+            "description": "Create the decompose_all_tasks MCP tool for batch task decomposition.\n\n**Design Reference:** design_docs/alfred/PRD.md lines 168-171, tools/02-task-creation/decompose_all_tasks.md\n**Acceptance Criteria:**\n- Tool identifies all tasks with complexity > threshold\n- Batch decomposes eligible tasks using AI\n- Skips tasks that already have subtasks\n- Processes in priority order\n- Provides progress updates during batch operation\n- Returns summary of decomposed tasks\n\n**Test Instructions:**\n1. Mock Linear task list with varying complexities\n2. Mock Anthropic batch decomposition responses\n3. Call decompose_all_tasks with threshold=7\n4. Verify only high-complexity tasks processed\n5. Verify tasks with existing subtasks skipped\n6. Test progress reporting for 10+ tasks\n7. Test partial failure handling\n8. Verify summary report accuracy",
+            "details": "",
+            "status": "pending",
+            "dependencies": [
+              "10.1"
+            ],
+            "parentTaskId": 10
+          }
+        ]
+      },
+      {
+        "id": 11,
+        "title": "Implement task enhancement tools",
+        "description": "Create AI-powered task enhancement and simplification tools as defined in design_docs/alfred/tools/03-task-management/",
+        "details": "Reference: design_docs/alfred/PRD.md (lines 147-150) & design_docs/alfred/tools/03-task-management/\n\nCreate in src/alfred/tools/task_enhancement.py:\n- enhance_task_scope - Add requirements to task\n- simplify_task - Reduce task to core requirements\n- update_task - Enhance single task with AI context\n- bulk_update_tasks - Mass AI-powered updates\n\nRequirements:\n1. Use AI to enhance task descriptions\n2. Add/remove requirements intelligently\n3. Maintain task intent\n4. Support batch operations\n5. Track enhancement history",
+        "testStrategy": "## Test Instructions\n1. Test scope enhancement\n2. Test simplification\n3. Test context preservation\n4. Test batch updates\n5. Test AI quality\n\n## Success Criteria\n- [ ] Quality enhancements\n- [ ] Intent preservation\n- [ ] Batch efficiency\n- [ ] History tracking\n- [ ] Error handling",
+        "status": "pending",
+        "dependencies": [
+          1,
+          2,
+          3,
+          6
+        ],
+        "priority": "medium",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement enhance_task_scope tool",
+            "description": "Create the enhance_task_scope MCP tool to increase task complexity with AI.\n\n**Design Reference:** design_docs/alfred/PRD.md lines 148-150, tools/03-task-management/enhance_task_scope.md\n**Acceptance Criteria:**\n- Tool uses AI to add requirements and expand task scope\n- Accepts: task_id, enhancement_prompt (optional)\n- Updates task description with additional requirements\n- Adds relevant labels and increases priority if needed\n- Preserves original requirements while adding new ones\n- Returns updated task with changes highlighted\n\n**Test Instructions:**\n1. Mock Anthropic enhancement response\n2. Mock Linear task update mutation\n3. Call enhance_task_scope with task_id\n4. Verify AI prompt includes current task details\n5. Verify description updated with new requirements\n6. Test with custom enhancement_prompt\n7. Verify original requirements preserved\n8. Test priority escalation logic",
+            "details": "",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 11
+          },
+          {
+            "id": 2,
+            "title": "Implement simplify_task tool",
+            "description": "Create the simplify_task MCP tool to reduce task complexity with AI.\n\n**Design Reference:** design_docs/alfred/PRD.md lines 148-150, tools/03-task-management/simplify_task.md\n**Acceptance Criteria:**\n- Tool uses AI to identify core requirements and remove extras\n- Accepts: task_id, simplification_prompt (optional)\n- Updates task to focus on MVP/essential features\n- Moves removed requirements to \"Future Enhancements\" section\n- Reduces priority if appropriate\n- Returns updated task with simplification summary\n\n**Test Instructions:**\n1. Mock Anthropic simplification response\n2. Mock Linear task update mutation\n3. Call simplify_task with complex task\n4. Verify AI identifies core vs nice-to-have features\n5. Verify description updated with focused scope\n6. Test future enhancements section creation\n7. Verify priority reduction logic\n8. Test with custom simplification_prompt",
+            "details": "",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 11
+          }
+        ]
+      },
+      {
+        "id": 12,
+        "title": "Implement task relationship tools",
+        "description": "Create task linking and dependency management tools as defined in design_docs/alfred/tools/06-task-hierarchy/",
+        "details": "Reference: design_docs/alfred/PRD.md (lines 141-145) & design_docs/alfred/tools/06-task-hierarchy/\n\nCreate in src/alfred/tools/task_relationships.py:\n- link_tasks - Create blocking/blocked relationships\n- unlink_tasks - Remove relationships\n- check_task_links - Validate relationships\n- repair_task_links - Fix broken links\n- reassign_task - Move between Epics\n\nRequirements:\n1. Create Linear issue relations\n2. Validate dependency chains\n3. Detect circular dependencies\n4. Fix broken links automatically\n5. Support cross-epic moves",
+        "testStrategy": "## Test Instructions\n1. Test link creation\n2. Test unlink operation\n3. Test circular dependency detection\n4. Test link repair\n5. Test epic reassignment\n\n## Success Criteria\n- [ ] Relations created in Linear\n- [ ] Circular deps prevented\n- [ ] Broken links fixed\n- [ ] Epic moves preserve data\n- [ ] Error handling robust",
+        "status": "pending",
+        "dependencies": [
+          1,
+          2,
+          6,
+          8
+        ],
+        "priority": "medium",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement link_tasks tool",
+            "description": "Create the link_tasks MCP tool to create blocking/blocked relationships.\n\n**Design Reference:** design_docs/alfred/PRD.md lines 179-183, tools/06-task-hierarchy/link_tasks.md\n**Acceptance Criteria:**\n- Tool creates Linear Relations between tasks\n- Accepts: blocker_id, blocked_id, relation_type (blocks/relates)\n- Validates both tasks exist before linking\n- Prevents circular dependencies\n- Returns confirmation with relationship details\n- Updates task statuses if needed (blocked status)\n\n**Test Instructions:**\n1. Mock Linear relation creation mutation\n2. Call link_tasks with valid task IDs\n3. Verify GraphQL mutation with correct relation type\n4. Test circular dependency prevention\n5. Test linking non-existent tasks (should fail)\n6. Test duplicate relationship handling\n7. Verify blocked task status update\n8. Test cross-epic linking",
+            "details": "",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 12
+          },
+          {
+            "id": 2,
+            "title": "Implement unlink_tasks tool",
+            "description": "Create the unlink_tasks MCP tool to remove task relationships.\n\n**Design Reference:** design_docs/alfred/PRD.md lines 179-183, tools/06-task-hierarchy/unlink_tasks.md\n**Acceptance Criteria:**\n- Tool removes Linear Relations between tasks\n- Accepts: relation_id or (task1_id, task2_id)\n- Finds and deletes the specific relation\n- Updates task statuses if unblocking\n- Returns confirmation of removed relationship\n\n**Test Instructions:**\n1. Mock Linear relation query and deletion\n2. Call unlink_tasks with relation_id\n3. Verify relation deleted via mutation\n4. Test unlinking by task pair IDs\n5. Test unlinking non-existent relation\n6. Verify task status update when unblocked\n7. Test partial match scenarios\n8. Verify idempotency",
+            "details": "",
+            "status": "pending",
+            "dependencies": [
+              "12.1"
+            ],
+            "parentTaskId": 12
+          },
+          {
+            "id": 3,
+            "title": "Implement check_task_links tool",
+            "description": "Create the check_task_links MCP tool to validate task relationships.\n\n**Design Reference:** design_docs/alfred/PRD.md lines 179-183, tools/06-task-hierarchy/check_task_links.md\n**Acceptance Criteria:**\n- Tool analyzes all task relationships in epic/workspace\n- Detects circular dependencies\n- Identifies orphaned relations (deleted tasks)\n- Finds conflicting relationships\n- Returns validation report with issues found\n- Suggests fixes for identified problems\n\n**Test Instructions:**\n1. Mock Linear tasks with various relations\n2. Create test data with circular dependency A→B→C→A\n3. Call check_task_links\n4. Verify circular dependency detected\n5. Test orphaned relation detection\n6. Test conflicting relationship detection\n7. Verify fix suggestions provided\n8. Test with clean relationship graph",
+            "details": "",
+            "status": "pending",
+            "dependencies": [
+              "12.1"
+            ],
+            "parentTaskId": 12
+          },
+          {
+            "id": 4,
+            "title": "Implement repair_task_links tool",
+            "description": "Create the repair_task_links MCP tool to fix broken task relationships.\n\n**Design Reference:** design_docs/alfred/PRD.md lines 179-183, tools/06-task-hierarchy/repair_task_links.md\n**Acceptance Criteria:**\n- Tool automatically fixes issues found by check_task_links\n- Removes circular dependencies by breaking oldest link\n- Deletes orphaned relations\n- Resolves conflicting relationships\n- Provides dry-run mode to preview changes\n- Returns summary of repairs made\n\n**Test Instructions:**\n1. Mock Linear relations with various issues\n2. Call repair_task_links in dry-run mode\n3. Verify proposed fixes without changes\n4. Call repair_task_links with execute=true\n5. Verify circular dependencies resolved\n6. Verify orphaned relations removed\n7. Test rollback on partial failure\n8. Verify detailed repair report",
+            "details": "",
+            "status": "pending",
+            "dependencies": [
+              "12.3"
+            ],
+            "parentTaskId": 12
+          },
+          {
+            "id": 5,
+            "title": "Implement reassign_task tool",
+            "description": "Create the reassign_task MCP tool to move tasks between epics.\n\n**Design Reference:** design_docs/alfred/PRD.md lines 183, tools/06-task-hierarchy/reassign_task.md\n**Acceptance Criteria:**\n- Tool moves task from one epic to another\n- Accepts: task_id, target_epic_id\n- Updates task's project assignment in Linear\n- Preserves task relationships and subtasks\n- Handles cross-epic dependencies appropriately\n- Returns updated task with new epic\n\n**Test Instructions:**\n1. Mock Linear task update mutation\n2. Call reassign_task with task and target epic\n3. Verify project field updated in mutation\n4. Test moving task with subtasks\n5. Test moving task with dependencies\n6. Test moving to non-existent epic (should fail)\n7. Verify subtasks move with parent\n8. Test cross-epic dependency warnings",
+            "details": "",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 12
+          }
+        ]
+      },
+      {
+        "id": 13,
+        "title": "Implement research tool",
+        "description": "Create AI-powered research tool with context gathering as defined in design_docs/alfred/tools/09-special-utilities/research.md",
+        "details": "Reference: design_docs/alfred/PRD.md (lines 151) & design_docs/alfred/tools/09-special-utilities/research.md\n\nCreate in src/alfred/tools/research.py:\n- research - AI-powered research with context gathering\n\nRequirements:\n1. Gather context from workspace/tasks\n2. Use AI to research and provide insights\n3. Attach findings to tasks as comments\n4. Support multiple research modes\n5. Include source citations",
+        "testStrategy": "## Test Instructions\n1. Test context gathering\n2. Test research quality\n3. Test task attachment\n4. Test citation accuracy\n5. Test various research modes\n\n## Success Criteria\n- [ ] Quality research output\n- [ ] Context awareness\n- [ ] Task integration\n- [ ] Source citations\n- [ ] Error handling",
+        "status": "pending",
+        "dependencies": [
+          1,
+          2,
+          3,
+          6
+        ],
+        "priority": "medium",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement research tool",
+            "description": "Create the research MCP tool for AI-powered context gathering.\n\n**Design Reference:** design_docs/alfred/PRD.md lines 148, 189, tools/09-special-utilities/research.md\n**Acceptance Criteria:**\n- Tool accepts research query and optional task context\n- Uses Anthropic to gather relevant information\n- Can attach findings to specific task as comment\n- Supports web search integration (future)\n- Formats response with sources and confidence levels\n- Saves research results for future reference\n\n**Test Instructions:**\n1. Mock Anthropic research response\n2. Mock Linear comment creation\n3. Call research with query \"best practices for API design\"\n4. Verify AI prompt includes query and context\n5. Test attaching research to task_id\n6. Verify formatted response with sections\n7. Test token limit handling for long research\n8. Test caching of research results\n9. Verify Linear comment creation when task_id provided",
+            "details": "",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 13
+          }
+        ]
+      },
+      {
+        "id": 14,
+        "title": "Implement export tools",
+        "description": "Create task export utilities as defined in design_docs/alfred/tools/08-utilities/",
+        "details": "Reference: design_docs/alfred/PRD.md (lines 189-190) & design_docs/alfred/tools/08-utilities/export_tasks.md\n\nCreate in src/alfred/tools/export.py:\n- export_tasks - Export to markdown/CSV\n- export_to_markdown - Documentation export\n\nRequirements:\n1. Export tasks in multiple formats\n2. Preserve hierarchy and relationships\n3. Include metadata and custom fields\n4. Support filtered exports\n5. Generate documentation-ready output",
+        "testStrategy": "## Test Instructions\n1. Test markdown export\n2. Test CSV export\n3. Test hierarchy preservation\n4. Test filtered exports\n5. Test documentation generation\n\n## Success Criteria\n- [ ] Multiple format support\n- [ ] Data completeness\n- [ ] Hierarchy maintained\n- [ ] Filtering works\n- [ ] Quality output",
+        "status": "pending",
+        "dependencies": [
+          1,
+          2,
+          6
+        ],
+        "priority": "low",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement export_tasks tool",
+            "description": "Create the export_tasks MCP tool to export tasks in various formats.\n\n**Design Reference:** design_docs/alfred/PRD.md lines 189-190, tools/08-utilities/export_tasks.md\n**Acceptance Criteria:**\n- Tool exports tasks from Linear to CSV/JSON formats\n- Accepts: epic_id (optional), format (csv/json), include_subtasks\n- Includes all task fields: id, title, description, status, priority\n- Supports filtering by status or date range\n- Handles pagination for large datasets\n- Returns file path or inline data\n\n**Test Instructions:**\n1. Mock Linear task query with pagination\n2. Call export_tasks with format=csv\n3. Verify CSV structure and headers\n4. Test JSON export format\n5. Test filtering by epic_id\n6. Test including/excluding subtasks\n7. Verify proper escaping in CSV\n8. Test large dataset pagination\n9. Verify file creation or inline response",
+            "details": "",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 14
+          },
+          {
+            "id": 2,
+            "title": "Implement export_to_markdown tool",
+            "description": "Create the export_to_markdown MCP tool for documentation generation.\n\n**Design Reference:** design_docs/alfred/PRD.md lines 189-190, tools/09-special-utilities/export_to_markdown.md\n**Acceptance Criteria:**\n- Tool exports tasks as formatted markdown documentation\n- Creates hierarchical structure: Epic → Tasks → Subtasks\n- Includes task details, descriptions, status badges\n- Generates table of contents with links\n- Supports mermaid diagrams for dependencies\n- Creates README-style documentation\n\n**Test Instructions:**\n1. Mock Linear tasks with hierarchy\n2. Call export_to_markdown for epic\n3. Verify markdown structure and formatting\n4. Test TOC generation with anchor links\n5. Test status badge formatting\n6. Test dependency diagram generation\n7. Verify proper markdown escaping\n8. Test with tasks having no subtasks\n9. Verify readability of output",
+            "details": "",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 14
+          }
+        ]
+      },
+      {
+        "id": 15,
+        "title": "Create comprehensive test suite",
+        "description": "Build complete test coverage for all Alfred components",
+        "status": "pending",
+        "dependencies": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14
+        ],
+        "priority": "high",
+        "details": "Reference: design_docs/alfred/architecture.md\n\nCreate test structure:\n- tests/unit/ - Unit tests for each module (adapters, AI services, tools, utilities)\n- tests/integration/ - Integration tests for tool-to-adapter flows using mocked external services\n- tests/e2e/ - End-to-end scenarios exercised through public interfaces with all external calls mocked\n- tests/fixtures/ - Test data and mocks (Linear GraphQL, Anthropic responses, common entities)\n\nRequirements:\n1. 80%+ code coverage target enforced in pytest configuration\n2. Mock Linear API responses (GraphQL queries/mutations, error states, pagination) — no live network calls\n3. Mock Anthropic API responses (token usage, streaming, rate limits, error scenarios) — no live network calls\n4. Test all error paths and edge cases (network failures, invalid inputs, mapping errors, rate limits)\n5. Performance benchmarks using pytest-benchmark for critical paths (e.g., parsing specs, task listing)\n6. Deterministic tests: fixed seeds for randomness and stable fixtures\n7. Parallelizable tests (pytest -n) without shared-state flakiness\n\nScope alignment with implementation tasks (1–14 only):\n- Adapters: src/alfred/adapters/base.py, src/alfred/adapters/linear_adapter.py\n- AI services: src/alfred/ai_services/anthropic_client.py, prompts\n- Tools: src/alfred/tools/task_creation.py (create_tasks_from_spec), src/alfred/tools/task_management.py (CRUD)\n- Ensure no dependency on documentation or CI/CD tasks that were removed",
+        "testStrategy": "## Test Instructions\n1. Environment setup\n   - Install dev dependencies: pytest, pytest-cov, pytest-benchmark, requests-mock/respx, freezegun, hypothesis (optional), pytest-xdist (optional)\n   - Disable outbound network in tests (e.g., pytest-socket or equivalent) to enforce mocked calls only\n   - Set dummy env vars for API keys and monkeypatch in tests\n\n2. Run unit tests with coverage\n   - pytest -q --cov=src/alfred --cov-report=term-missing --cov-fail-under=80\n   - Verify coverage includes adapters, AI services, tools, and utilities\n\n3. Integration tests\n   - Test tool-to-adapter integrations with mocked Linear/Anthropic layers\n   - Validate data mapping, pagination, status mapping, and error propagation\n\n4. E2E tests (mocked services)\n   - Simulate create_tasks_from_spec end-to-end from spec input to Linear adapter calls (all external APIs mocked)\n   - Simulate task lifecycle: create_task -> get_task -> update_task_status -> get_tasks\n\n5. Performance regression tests\n   - Use pytest-benchmark to baseline key operations (spec parsing, listing tasks with filters)\n   - Compare against stored baselines to detect regressions\n\n6. Determinism and parallelism\n   - Ensure tests pass with pytest -n auto and without network access\n\n## Success Criteria\n- [ ] 80%+ coverage achieved\n- [ ] All tools have tests\n- [ ] Integration tests pass\n- [ ] E2E scenarios covered\n- [ ] CI/CD ready",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Set up pytest and coverage configuration",
+            "description": "Configure pytest and coverage in pyproject.toml (or setup.cfg) with --cov-fail-under=80 and test discovery paths.",
+            "status": "pending",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 2,
+            "title": "Add fixtures for Linear GraphQL API mocks",
+            "description": "Create reusable fixtures in tests/fixtures for Linear queries/mutations, error cases, and pagination; block live network calls.",
+            "status": "pending",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 3,
+            "title": "Add fixtures for Anthropic API mocks",
+            "description": "Create reusable fixtures to mock Anthropic responses, token usage, streaming, and rate limit errors.",
+            "status": "pending",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 4,
+            "title": "Unit tests for Linear adapter",
+            "description": "Cover happy paths, GraphQL query formation, data mapping, pagination, and error handling (network failures, API errors).",
+            "status": "pending",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 5,
+            "title": "Unit tests for Anthropic client and prompts",
+            "description": "Test prompt generation, token counting, streaming responses, and rate limit/backoff behavior.",
+            "status": "pending",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 6,
+            "title": "Unit tests for task_creation tool (create_tasks_from_spec)",
+            "description": "Validate parsing of sample PRDs/specs, task generation structure, epic creation logic (mocked), and error handling.",
+            "status": "pending",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 7,
+            "title": "Unit tests for task_management tool (CRUD)",
+            "description": "Test get_tasks filters and pagination, get_task details, create_task fields, update_task_status transitions, and status mapping.",
+            "status": "pending",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 8,
+            "title": "Integration tests for tool-to-adapter flows",
+            "description": "Validate interactions between tools and Linear adapter with mocked external services; assert data contracts and error propagation.",
+            "status": "pending",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 9,
+            "title": "E2E tests with mocked services",
+            "description": "Simulate end-to-end flows: spec-to-tasks and task lifecycle using only mocked Linear and Anthropic services; verify outcomes.",
+            "status": "pending",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 10,
+            "title": "Performance benchmarks",
+            "description": "Add pytest-benchmark suites for spec parsing and task listing; create baseline and comparison guidance.",
+            "status": "pending",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          },
+          {
+            "id": 11,
+            "title": "Ensure determinism and parallelism",
+            "description": "Enforce no-network policy, set random seeds in tests, and ensure tests pass with pytest -n auto without flakiness.",
+            "status": "pending",
+            "dependencies": [],
+            "details": "",
+            "testStrategy": ""
+          }
+        ]
+      },
+      {
+        "id": 16,
+        "title": "Implement additional task management tools",
+        "description": "Create remaining task management MCP tools not covered in other tasks",
+        "details": "This task covers the implementation of additional task management tools defined in the PRD that weren't included in the core CRUD operations:\n- update_task: AI-enhanced task updates\n- update_subtask: Append information to subtasks\n- bulk_update_tasks: Mass AI-powered updates\n- add_subtask: Create subtasks\n- remove_task: Delete tasks\n- remove_subtask: Delete subtasks\n- archive_subtasks: Mark all subtasks as done\n\n**Design Reference:** design_docs/alfred/PRD.md lines 175-177, 184-186",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [
+          1,
+          2,
+          3,
+          6
+        ],
+        "priority": "high",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement update_task tool",
+            "description": "Create the update_task MCP tool for AI-enhanced task updates.\n\n**Design Reference:** design_docs/alfred/PRD.md lines 175-177, tools/05-task-operations/update_task.md\n**Acceptance Criteria:**\n- Tool uses AI to enhance task with additional context\n- Accepts: task_id, update_prompt\n- AI analyzes prompt and intelligently updates task fields\n- Can update: description, labels, priority, custom fields\n- Preserves existing content while adding new information\n- Returns updated task with change summary\n\n**Test Instructions:**\n1. Mock Anthropic update analysis response\n2. Mock Linear task update mutation\n3. Call update_task with task_id and prompt\n4. Verify AI determines which fields to update\n5. Test description enhancement\n6. Test priority adjustment logic\n7. Test label addition/removal\n8. Verify change summary generation",
+            "details": "",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 16
+          },
+          {
+            "id": 2,
+            "title": "Implement update_subtask tool",
+            "description": "Create the update_subtask MCP tool to append information to subtasks.\n\n**Design Reference:** design_docs/alfred/PRD.md lines 175-177, tools/05-task-operations/update_subtask.md\n**Acceptance Criteria:**\n- Tool appends new information to subtask description\n- Accepts: subtask_id, additional_info\n- Adds timestamped entry to preserve history\n- Does not overwrite existing content\n- Updates subtask modified timestamp\n- Returns updated subtask\n\n**Test Instructions:**\n1. Mock Linear sub-issue query and update\n2. Call update_subtask with info to append\n3. Verify description appended with timestamp\n4. Test multiple appends to same subtask\n5. Verify original content preserved\n6. Test with very long descriptions\n7. Test updating non-existent subtask\n8. Verify modified timestamp updated",
+            "details": "",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 16
+          },
+          {
+            "id": 3,
+            "title": "Implement bulk_update_tasks tool",
+            "description": "Create the bulk_update_tasks MCP tool for mass AI-powered updates.\n\n**Design Reference:** design_docs/alfred/PRD.md lines 175-177, tools/05-task-operations/update.md\n**Acceptance Criteria:**\n- Tool applies AI-generated updates to multiple tasks\n- Accepts: task_ids[], update_prompt, filter_criteria\n- AI determines appropriate updates per task\n- Batches Linear API calls for efficiency\n- Provides progress updates during operation\n- Returns summary of all changes made\n\n**Test Instructions:**\n1. Mock Anthropic bulk analysis response\n2. Mock Linear batch update mutations\n3. Call bulk_update_tasks with 5 task IDs\n4. Verify AI analyzes each task individually\n5. Test batch API call efficiency\n6. Test progress reporting\n7. Test partial failure handling\n8. Verify rollback on critical errors\n9. Test filter criteria application",
+            "details": "",
+            "status": "pending",
+            "dependencies": [
+              "16.1"
+            ],
+            "parentTaskId": 16
+          },
+          {
+            "id": 4,
+            "title": "Implement add_subtask tool",
+            "description": "Create the add_subtask MCP tool to create subtasks under existing tasks.\n\n**Design Reference:** design_docs/alfred/PRD.md lines 168, 184, tools/05-task-operations/add_subtask.md\n**Acceptance Criteria:**\n- Tool creates Linear sub-issue under parent task\n- Accepts: parent_id, title, description, assignee (optional)\n- Inherits epic and labels from parent\n- Sets initial status to \"todo\"\n- Validates parent task exists\n- Returns created subtask with ID\n\n**Test Instructions:**\n1. Mock Linear sub-issue creation mutation\n2. Call add_subtask with parent_id and details\n3. Verify sub-issue created with correct parent\n4. Test epic inheritance\n5. Test label inheritance\n6. Test with non-existent parent (should fail)\n7. Test assignee setting\n8. Verify response includes subtask ID",
+            "details": "",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 16
+          },
+          {
+            "id": 5,
+            "title": "Implement remove_task tool",
+            "description": "Create the remove_task MCP tool to delete tasks.\n\n**Design Reference:** design_docs/alfred/PRD.md lines 184, tools/05-task-operations/remove_task.md\n**Acceptance Criteria:**\n- Tool deletes task from Linear via GraphQL\n- Accepts: task_id, cascade_delete (boolean)\n- If cascade_delete=true, deletes all subtasks\n- If cascade_delete=false and has subtasks, returns error\n- Confirms deletion before executing\n- Handles task not found gracefully\n\n**Test Instructions:**\n1. Mock Linear task deletion mutation\n2. Call remove_task with task having no subtasks\n3. Verify deletion mutation called\n4. Test task with subtasks, cascade_delete=false (should fail)\n5. Test task with subtasks, cascade_delete=true\n6. Test deleting non-existent task\n7. Verify confirmation behavior\n8. Test idempotency of deletion",
+            "details": "",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 16
+          },
+          {
+            "id": 6,
+            "title": "Implement remove_subtask tool",
+            "description": "Create the remove_subtask MCP tool to delete subtasks.\n\n**Design Reference:** design_docs/alfred/PRD.md lines 184, tools/05-task-operations/remove_subtask.md\n**Acceptance Criteria:**\n- Tool deletes subtask from Linear\n- Accepts: subtask_id\n- Updates parent task's subtask count\n- Handles subtask not found gracefully\n- Does not affect sibling subtasks\n- Returns confirmation of deletion\n\n**Test Instructions:**\n1. Mock Linear sub-issue deletion\n2. Call remove_subtask with valid ID\n3. Verify deletion mutation called\n4. Test parent task subtask count update\n5. Test deleting non-existent subtask\n6. Test that siblings remain unchanged\n7. Verify idempotency\n8. Test orphaned subtask handling",
+            "details": "",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 16
+          },
+          {
+            "id": 7,
+            "title": "Implement archive_subtasks tool",
+            "description": "Create the archive_subtasks MCP tool to mark all subtasks as done.\n\n**Design Reference:** design_docs/alfred/PRD.md lines 186, tools/05-task-operations/archive_subtasks.md\n**Acceptance Criteria:**\n- Tool batch updates all subtasks to \"done\" status\n- Accepts: parent_task_id\n- Updates all subtasks in single batch operation\n- Skips already completed subtasks\n- Updates parent task progress indicator\n- Returns count of archived subtasks\n\n**Test Instructions:**\n1. Mock Linear batch status update\n2. Call archive_subtasks with parent having 5 subtasks\n3. Verify all subtasks updated to done\n4. Test with mix of pending/done subtasks\n5. Verify only pending ones updated\n6. Test parent progress update\n7. Test with task having no subtasks\n8. Verify batch operation efficiency",
+            "details": "",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 16
+          }
+        ]
+      },
+      {
+        "id": 17,
+        "title": "Implement workflow utility tools",
+        "description": "Create utility MCP tools for workflow management including dependency validation and file generation as defined in design_docs/alfred/PRD.md",
+        "details": "",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [
+          1,
+          2,
+          6
+        ],
+        "priority": "medium",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement validate_dependencies tool",
+            "description": "Create the validate_dependencies MCP tool to check for dependency issues.\\n\\n**Design Reference:** design_docs/alfred/PRD.md lines 179-183, tools/06-task-hierarchy/check_task_links.md\\n**Acceptance Criteria:**\\n- Tool validates all task dependencies in workspace/epic\\n- Detects circular dependencies using graph traversal\\n- Identifies dependencies on non-existent tasks\\n- Checks for dependency conflicts\\n- Returns detailed validation report\\n- Does NOT make any changes (read-only)\\n\\n**Test Instructions:**\\n1. Mock Linear tasks with various dependencies\\n2. Create test scenario with circular dependency A→B→C→A\\n3. Call validate_dependencies\\n4. Verify circular dependency detected with path shown\\n5. Test detection of dependencies on deleted tasks\\n6. Test with clean dependency graph (no issues)\\n7. Verify detailed report structure\\n8. Test performance with 100+ tasks",
+            "details": "",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 17
+          },
+          {
+            "id": 2,
+            "title": "Implement fix_dependencies tool",
+            "description": "Create the fix_dependencies MCP tool to automatically repair dependency issues.\\n\\n**Design Reference:** design_docs/alfred/PRD.md lines 179-183, tools/06-task-hierarchy/repair_task_links.md\\n**Acceptance Criteria:**\\n- Tool automatically fixes issues found by validate_dependencies\\n- Breaks circular dependencies by removing newest link in cycle\\n- Removes dependencies on non-existent tasks\\n- Provides dry-run mode to preview changes\\n- Supports undo/rollback on failure\\n- Returns detailed report of fixes applied\\n\\n**Test Instructions:**\\n1. Mock Linear tasks with circular dependency\\n2. Call fix_dependencies with dry_run=true\\n3. Verify proposed fixes without actual changes\\n4. Call fix_dependencies with dry_run=false\\n5. Verify circular dependency broken at correct point\\n6. Test removal of orphaned dependencies\\n7. Test rollback on API failure\\n8. Verify fix report includes all changes\\n9. Test idempotency (running twice has no effect)",
+            "details": "",
+            "status": "pending",
+            "dependencies": [
+              "17.1"
+            ],
+            "parentTaskId": 17
+          }
+        ]
+      },
+      {
+        "id": 18,
+        "title": "Set up Python package and deployment",
+        "description": "Configure Python packaging, dependencies, and deployment setup for Alfred as defined in design_docs/alfred/architecture.md",
+        "details": "",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [],
+        "priority": "high",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create pyproject.toml with dependencies",
+            "description": "Set up Python package configuration with all required dependencies.\\n\\n**Design Reference:** design_docs/alfred/PRD.md lines 249-265, architecture.md\\n**Acceptance Criteria:**\\n- Create pyproject.toml with proper package metadata\\n- Include all dependencies: fastmcp, anthropic, linear-api, python-dotenv, pydantic, aiohttp\\n- Configure entry points for MCP server\\n- Set Python version requirement (>=3.11)\\n- Include dev dependencies: pytest, pytest-cov, pytest-asyncio, mypy, ruff\\n- Configure build system (setuptools or hatchling)\\n\\n**Test Instructions:**\\n1. Verify pyproject.toml is valid TOML\\n2. Run `pip install -e .` successfully\\n3. Verify all dependencies installed\\n4. Test entry point `python -m alfred.server`\\n5. Verify version metadata correct\\n6. Test with uv: `uv sync`\\n7. Check dev dependencies installation\\n8. Verify Python version constraint",
+            "details": "",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 18
+          },
+          {
+            "id": 2,
+            "title": "Create package structure and __init__ files",
+            "description": "Set up proper Python package structure with imports.\\n\\n**Design Reference:** design_docs/alfred/architecture.md lines 8-40\\n**Acceptance Criteria:**\\n- Create src/alfred/ directory structure\\n- Add __init__.py files in all packages\\n- Configure proper imports and exports\\n- Set up __version__ variable\\n- Create py.typed file for type hints\\n- Ensure modules are discoverable\\n\\n**Test Instructions:**\\n1. Verify all __init__.py files exist\\n2. Test `from alfred import __version__`\\n3. Test `from alfred.tools import *`\\n4. Verify no import cycles\\n5. Check py.typed file exists\\n6. Test package discovery with setuptools\\n7. Verify namespace packages work\\n8. Test relative imports within package",
+            "details": "",
+            "status": "pending",
+            "dependencies": [
+              "18.1"
+            ],
+            "parentTaskId": 18
+          },
+          {
+            "id": 3,
+            "title": "Create .env.example and README installation docs",
+            "description": "Create environment configuration template and installation documentation.\\n\\n**Design Reference:** design_docs/alfred/PRD.md lines 267-276, README.md\\n**Acceptance Criteria:**\\n- Create .env.example with all required variables\\n- Document each environment variable purpose\\n- Create installation section in README\\n- Include MCP configuration example\\n- Document both pip and uv installation methods\\n- Add troubleshooting section\\n\\n**Test Instructions:**\\n1. Verify .env.example contains all variables\\n2. Test copying .env.example to .env\\n3. Verify README has clear installation steps\\n4. Test installation following README instructions\\n5. Verify MCP config JSON is valid\\n6. Test both pip and uv installation paths\\n7. Check environment variable documentation\\n8. Verify troubleshooting covers common issues",
+            "details": "",
+            "status": "pending",
+            "dependencies": [
+              "18.1"
+            ],
+            "parentTaskId": 18
+          },
+          {
+            "id": 4,
+            "title": "Set up CI/CD with GitHub Actions",
+            "description": "Configure continuous integration and deployment workflows.\\n\\n**Design Reference:** design_docs/alfred/architecture.md\\n**Acceptance Criteria:**\\n- Create .github/workflows/ci.yml for testing\\n- Run tests on push and pull requests\\n- Check code formatting with ruff\\n- Run type checking with mypy\\n- Generate coverage reports\\n- Set up PyPI publishing workflow\\n- Configure dependabot for dependencies\\n\\n**Test Instructions:**\\n1. Push code and verify CI runs\\n2. Check all test steps execute\\n3. Verify coverage report generation\\n4. Test PR checks integration\\n5. Verify ruff formatting check\\n6. Test mypy type checking\\n7. Check PyPI publishing (dry-run)\\n8. Verify dependabot configuration",
+            "details": "",
+            "status": "pending",
+            "dependencies": [
+              "18.1",
+              15
+            ],
+            "parentTaskId": 18
+          }
+        ]
+      },
+      {
+        "id": 19,
+        "title": "Create documentation and API reference",
+        "description": "Create comprehensive documentation for Alfred including API reference, user guides, and developer documentation as specified in design_docs/alfred/PRD.md",
+        "details": "",
+        "testStrategy": "",
+        "status": "pending",
+        "dependencies": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          16,
+          17
+        ],
+        "priority": "low",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create MCP tool reference documentation",
+            "description": "Generate comprehensive tool reference documentation.\\n\\n**Design Reference:** design_docs/alfred/PRD.md lines 356-361\\n**Acceptance Criteria:**\\n- Document all 40 MCP tools with parameters\\n- Include example usage for each tool\\n- Document expected responses\\n- Add error scenarios and handling\\n- Group tools by category\\n- Generate from docstrings where possible\\n\\n**Test Instructions:**\\n1. Verify all 40 tools documented\\n2. Check parameter descriptions complete\\n3. Test example code snippets\\n4. Verify response format documentation\\n5. Check error scenario coverage\\n6. Test navigation and search\\n7. Verify auto-generation from code\\n8. Check markdown formatting",
+            "details": "",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 19
+          },
+          {
+            "id": 2,
+            "title": "Create Linear/Jira setup guides",
+            "description": "Write platform-specific setup documentation.\\n\\n**Design Reference:** design_docs/alfred/PRD.md lines 356-361\\n**Acceptance Criteria:**\\n- Create Linear API key generation guide\\n- Document workspace/team/project setup\\n- Add Jira setup guide (future)\\n- Include permission requirements\\n- Add screenshots and examples\\n- Document common setup issues\\n\\n**Test Instructions:**\\n1. Follow Linear setup guide end-to-end\\n2. Verify API key generation steps\\n3. Test workspace configuration\\n4. Check permission documentation\\n5. Verify screenshot clarity\\n6. Test troubleshooting steps\\n7. Validate example configurations\\n8. Check cross-platform differences",
+            "details": "",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 19
+          },
+          {
+            "id": 3,
+            "title": "Create developer documentation",
+            "description": "Write documentation for extending Alfred.\\n\\n**Design Reference:** design_docs/alfred/PRD.md lines 361-368\\n**Acceptance Criteria:**\\n- Document adapter interface specification\\n- Create guide for adding new platforms\\n- Document AI provider extension\\n- Add prompt customization guide\\n- Include contributing guidelines\\n- Document testing requirements\\n\\n**Test Instructions:**\\n1. Follow adapter creation guide\\n2. Test example adapter implementation\\n3. Verify interface documentation completeness\\n4. Test AI provider addition steps\\n5. Check prompt customization examples\\n6. Verify contributing workflow\\n7. Test documentation build process\\n8. Check code style guidelines",
+            "details": "",
+            "status": "pending",
+            "dependencies": [],
+            "parentTaskId": 19
+          }
+        ]
+      }
+    ],
+    "metadata": {
+      "created": "2025-08-24T05:16:48.582Z",
+      "updated": "2025-08-24T05:54:28.535Z",
+      "description": "Tasks for master context"
+    }
+  }
+}

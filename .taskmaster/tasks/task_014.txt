@@ -1,0 +1,88 @@
+# Task ID: 14
+# Title: Implement export tools
+# Status: pending
+# Dependencies: 1, 2, 6
+# Priority: low
+# Description: Create task export utilities as defined in design_docs/alfred/tools/08-utilities/
+# Details:
+Reference: design_docs/alfred/PRD.md (lines 189-190) & design_docs/alfred/tools/08-utilities/export_tasks.md
+
+Create in src/alfred/tools/export.py:
+- export_tasks - Export to markdown/CSV
+- export_to_markdown - Documentation export
+
+Requirements:
+1. Export tasks in multiple formats
+2. Preserve hierarchy and relationships
+3. Include metadata and custom fields
+4. Support filtered exports
+5. Generate documentation-ready output
+
+# Test Strategy:
+## Test Instructions
+1. Test markdown export
+2. Test CSV export
+3. Test hierarchy preservation
+4. Test filtered exports
+5. Test documentation generation
+
+## Success Criteria
+- [ ] Multiple format support
+- [ ] Data completeness
+- [ ] Hierarchy maintained
+- [ ] Filtering works
+- [ ] Quality output
+
+# Subtasks:
+## 1. Implement export_tasks tool [pending]
+### Dependencies: None
+### Description: Create the export_tasks MCP tool to export tasks in various formats.
+
+**Design Reference:** design_docs/alfred/PRD.md lines 189-190, tools/08-utilities/export_tasks.md
+**Acceptance Criteria:**
+- Tool exports tasks from Linear to CSV/JSON formats
+- Accepts: epic_id (optional), format (csv/json), include_subtasks
+- Includes all task fields: id, title, description, status, priority
+- Supports filtering by status or date range
+- Handles pagination for large datasets
+- Returns file path or inline data
+
+**Test Instructions:**
+1. Mock Linear task query with pagination
+2. Call export_tasks with format=csv
+3. Verify CSV structure and headers
+4. Test JSON export format
+5. Test filtering by epic_id
+6. Test including/excluding subtasks
+7. Verify proper escaping in CSV
+8. Test large dataset pagination
+9. Verify file creation or inline response
+### Details:
+
+
+## 2. Implement export_to_markdown tool [pending]
+### Dependencies: None
+### Description: Create the export_to_markdown MCP tool for documentation generation.
+
+**Design Reference:** design_docs/alfred/PRD.md lines 189-190, tools/09-special-utilities/export_to_markdown.md
+**Acceptance Criteria:**
+- Tool exports tasks as formatted markdown documentation
+- Creates hierarchical structure: Epic → Tasks → Subtasks
+- Includes task details, descriptions, status badges
+- Generates table of contents with links
+- Supports mermaid diagrams for dependencies
+- Creates README-style documentation
+
+**Test Instructions:**
+1. Mock Linear tasks with hierarchy
+2. Call export_to_markdown for epic
+3. Verify markdown structure and formatting
+4. Test TOC generation with anchor links
+5. Test status badge formatting
+6. Test dependency diagram generation
+7. Verify proper markdown escaping
+8. Test with tasks having no subtasks
+9. Verify readability of output
+### Details:
+
+
