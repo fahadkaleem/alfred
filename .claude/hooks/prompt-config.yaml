@@ -1,0 +1,27 @@
+# Claude Code Hook Configuration
+# Add any flag and its corresponding prompt instruction
+# Format: flag: "instruction"
+# Usage: End your prompt with -<flag> to trigger
+
+# Thinking Levels
+t: "Think."
+th: "Think hard."
+thh: "Think harder."
+u: "Ultrathink."
+
+# MCPs
+p: "Use perplexity MCP to research."
+c7: "Use context7 MCP to fetch documentation and code examples."
+
+# Analysis & Debugging
+explain: |
+  Above are the relevant logs - your job is to:
+  - think harder about what these logs say
+  - and give me a simpler & short explanation
+  - DO NOT JUMP TO CONCLUSIONS!! DO NOT MAKE ASSUMPTIONS! QUIET YOUR EGO
+  - AND ASSUME YOU KNOW NOTHING.
+  - then, after you've explained the logs to me, suggest what the next step might be & why
+  - answer in short
+
+clarify: |
+  Your task is to take the code snippet provided and explain it in simple, easy-to-understand language. Break down the code’s functionality, purpose, and key components. Use analogies, examples, and plain terms to make the explanation accessible to someone with minimal coding knowledge. Avoid using technical jargon unless absolutely necessary, and provide clear explanations for any jargon used. The goal is to help the reader understand what the code does and how it works at a high level.

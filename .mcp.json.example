@@ -1,0 +1,27 @@
+{
+  "mcpServers": {
+    "alfred": {
+      "command": "uv",
+      "args": [
+        "--directory",
+        "/Users/mohammedfahadkaleem/Documents/Workspace/alfred-task-manager",
+        "run",
+        "python",
+        "-m",
+        "alfred.server"
+      ],
+      "env": {
+        "PYTHONPATH": "/Users/mohammedfahadkaleem/Documents/Workspace/alfred-task-manager/src",
+        "ALFRED_VERSION": "0.1.0",
+        "ALFRED_LOG_LEVEL": "INFO",
+        "ALFRED_TRANSPORT": "stdio",
+        "ALFRED_WORKSPACE": "/Users/mohammedfahadkaleem/Documents/Workspace/alfred-task-manager",
+        
+        "ANTHROPIC_API_KEY": "your_anthropic_api_key_here",
+        "ALFRED_LINEAR_API_KEY": "your_linear_api_key_here",
+        "ALFRED_JIRA_API_KEY": "your_jira_api_key_here",
+        "ALFRED_JIRA_URL": "https://your-domain.atlassian.net"
+      }
+    }
+  }
+}

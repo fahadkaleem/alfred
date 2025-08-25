@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd /Users/mohammedfahadkaleem/Documents/Workspace/alfred-task-manager && uv run python .claude/hooks/append_prompts.py"
+          }
+        ]
+      }
+    ]
+  }
+}
