@@ -186,23 +186,69 @@ await alfred.fix_dependencies()
 alfred/
 ├── src/alfred/
 │   ├── server.py              # Main MCP server
-│   ├── tools/                 # MCP tool implementations
+│   ├── core/                  # Business logic (pure functions)
+│   │   ├── __init__.py
+│   │   ├── workspace/         # Workspace management logic
+│   │   │   ├── __init__.py
+│   │   │   ├── initialize.py
+│   │   │   ├── info.py
+│   │   │   ├── teams.py
+│   │   │   └── projects.py
+│   │   ├── tasks/             # Task management logic
+│   │   │   ├── __init__.py
+│   │   │   ├── create.py
+│   │   │   ├── update.py
+│   │   │   ├── delete.py
+│   │   │   └── list.py
+│   │   └── ai/                # AI-powered features logic
+│   │       ├── __init__.py
+│   │       ├── parse_prd.py
+│   │       └── analyze.py
+│   ├── tools/                 # MCP tool wrappers (thin decorators)
+│   │   ├── __init__.py        # Auto-discovery
+│   │   ├── workspace/         # Workspace management tools
+│   │   │   ├── __init__.py
+│   │   │   ├── initialize_workspace.py
+│   │   │   ├── get_workspace_info.py
+│   │   │   ├── list_teams.py
+│   │   │   └── list_projects.py
+│   │   ├── tasks/             # Task management tools
+│   │   │   ├── __init__.py
+│   │   │   ├── create_task.py
+│   │   │   ├── update_task.py
+│   │   │   ├── delete_task.py
+│   │   │   └── list_tasks.py
+│   │   └── ai/                # AI-powered tools
+│   │       ├── __init__.py
+│   │       ├── parse_prd.py
+│   │       └── analyze_complexity.py
 │   ├── resources/             # MCP resources
 │   ├── prompts/               # MCP prompts
-│   ├── core/                  # Business logic
 │   ├── adapters/              # Linear/Jira API adapters
 │   │   ├── __init__.py
 │   │   ├── base.py           # Abstract adapter interface
-│   │   ├── linear.py         # Linear API implementation
+│   │   ├── linear_adapter.py # Linear API implementation
 │   │   └── jira.py           # Jira API implementation (future)
 │   ├── ai_services/          # AI provider integration
 │   │   ├── __init__.py
 │   │   ├── providers.py      # Provider management
 │   │   ├── prompts.py        # Prompt templates
 │   │   └── unified.py        # Unified AI interface
+│   ├── config/                # Configuration management
+│   │   ├── __init__.py
+│   │   └── config.py
 │   ├── storage/               # Data persistence
 │   └── utils/                 # Utilities
 ├── tests/                     # Test suite
+│   ├── core/                 # Unit tests for business logic
+│   │   ├── workspace/
+│   │   │   ├── test_initialize.py
+│   │   │   └── test_teams.py
+│   │   └── tasks/
+│   │       ├── test_create.py
+│   │       └── test_update.py
+│   └── integration/          # Integration tests
+│       └── test_workspace_tools.py
 ├── .alfred/                   # Data directory
 │   ├── tasks/
 │   ├── config.json

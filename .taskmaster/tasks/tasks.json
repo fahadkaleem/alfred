@@ -224,7 +224,7 @@
         "description": "Create the first MCP tool to connect to Linear workspace as defined in design_docs/alfred/tools/01-project-setup/initialize_project.md",
         "details": "## Implementation Details\nReference: design_docs/alfred/PRD.md (lines 116-118)\n\nCreate in src/alfred/tools/workspace.py:\n- initialize_workspace tool using FastMCP decorators\n- Connect to Linear API\n- Store workspace configuration\n- Validate API keys\n\nRequirements:\n1. Use @server.tool() decorator from FastMCP\n2. Accept workspace_id, team_id parameters\n3. Validate Linear API key\n4. Store config in .alfred/config.json\n5. Return workspace details\n\n## Configuration to store:\n```json\n{\n  \"platform\": \"linear\",\n  \"workspace_id\": \"xxx\",\n  \"team_id\": \"xxx\",\n  \"active_epic_id\": null,\n  \"last_sync\": \"2024-01-20T10:00:00Z\"\n}\n```",
         "testStrategy": "## Test Instructions\n1. Test with valid Linear API key\n2. Test with invalid API key (should fail gracefully)\n3. Verify config file created correctly\n4. Test workspace switching\n5. Validate stored configuration structure\n\n## Success Criteria\n- [ ] Connects to Linear successfully\n- [ ] Stores configuration locally\n- [ ] Validates API credentials\n- [ ] Returns workspace information\n- [ ] Handles errors gracefully",
-        "status": "in-progress",
+        "status": "done",
         "dependencies": [
           1,
           2
@@ -236,8 +236,8 @@
             "title": "Scaffold FastMCP tool module and entrypoint",
             "description": "Create src/alfred/tools/workspace.py with FastMCP server and initialize_workspace tool stub. Define clear function signature and docstring, and prepare structure for helpers.",
             "dependencies": [],
-            "details": "Implementation steps:\n- File: src/alfred/tools/workspace.py\n- Imports: typing, os, json, datetime, pathlib (Path), logging, requests (or httpx), and FastMCP server from FastMCP.\n- Initialize FastMCP server instance: e.g., from fastmcp import FastMCP; server = FastMCP(app_name=\"alfred\").\n- Define tool stub using @server.tool():\n  def initialize_workspace(workspace_id: str, team_id: str) -> dict: ...\n- Add module-level logger = logging.getLogger(__name__) with INFO default.\n- Prepare helper function placeholders (to be implemented in later subtasks): _get_linear_api_key(), _linear_graphql(), _validate_linear_credentials(), _load_config(), _write_config().\n- Include precise docstring: purpose, parameters, return format, and error behavior.\n- Export in __all__ = [\"initialize_workspace\"].",
-            "status": "pending",
+            "details": "Implementation steps:\n- File: src/alfred/tools/workspace.py\n- Imports: typing, os, json, datetime, pathlib (Path), logging, requests (or httpx), and FastMCP server from FastMCP.\n- Initialize FastMCP server instance: e.g., from fastmcp import FastMCP; server = FastMCP(app_name=\"alfred\").\n- Define tool stub using @server.tool():\n  def initialize_workspace(workspace_id: str, team_id: str) -> dict: ...\n- Add module-level logger = logging.getLogger(__name__) with INFO default.\n- Prepare helper function placeholders (to be implemented in later subtasks): _get_linear_api_key(), _linear_graphql(), _validate_linear_credentials(), _load_config(), _write_config().\n- Include precise docstring: purpose, parameters, return format, and error behavior.\n- Export in __all__ = [\"initialize_workspace\"].\n<info added on 2025-08-25T03:25:52.603Z>\nCompleted: Created src/alfred/tools/workspace.py with proper module structure using register(server) pattern. The module exports 4 tools (initialize_workspace, get_workspace_info, list_teams, list_projects) and successfully registers with the FastMCP server.\n</info added on 2025-08-25T03:25:52.603Z>",
+            "status": "done",
             "testStrategy": "Static checks: run ruff/flake8 and mypy on the stub. Import test: from src.alfred.tools.workspace import initialize_workspace should succeed. Ensure @server.tool decorator is applied."
           },
           {
@@ -247,8 +247,8 @@
             "dependencies": [
               "4.1"
             ],
-            "details": "Implementation steps in src/alfred/tools/workspace.py:\n- _get_linear_api_key() -> str: Read LINEAR_API_KEY from environment; if missing/empty, raise ValueError with actionable message. Do not log key.\n- _linear_graphql(query: str, variables: dict | None = None) -> dict:\n  - Endpoint: https://api.linear.app/graphql\n  - Headers: Authorization: Bearer <LINEAR_API_KEY>, Content-Type: application/json\n  - Use requests.post with timeout=10s.\n  - Implement simple retry (e.g., up to 3 attempts) on 5xx and connection errors with exponential backoff (0.5s, 1s, 2s).\n  - Parse JSON; if response includes errors, raise RuntimeError with sanitized messages.\n- _validate_linear_credentials(team_id: str) -> dict:\n  - Compose a single GraphQL query to validate key and fetch team + organization:\n    query ($teamId: String!) {\n      viewer { id name }\n      team(id: $teamId) { id name organization { id name } }\n    }\n  - Call _linear_graphql; if team is None, raise ValueError(\"Invalid team_id\").\n  - Return dict with keys: viewer_id, viewer_name, team_id, team_name, workspace_id (org id), workspace_name.\n- Error handling: distinguish auth errors (401/403 or errors containing Authentication) and raise a ValueError(\"Invalid Linear API key\").",
-            "status": "pending",
+            "details": "Implementation steps in src/alfred/tools/workspace.py:\n- _get_linear_api_key() -> str: Read LINEAR_API_KEY from environment; if missing/empty, raise ValueError with actionable message. Do not log key.\n- _linear_graphql(query: str, variables: dict | None = None) -> dict:\n  - Endpoint: https://api.linear.app/graphql\n  - Headers: Authorization: Bearer <LINEAR_API_KEY>, Content-Type: application/json\n  - Use requests.post with timeout=10s.\n  - Implement simple retry (e.g., up to 3 attempts) on 5xx and connection errors with exponential backoff (0.5s, 1s, 2s).\n  - Parse JSON; if response includes errors, raise RuntimeError with sanitized messages.\n- _validate_linear_credentials(team_id: str) -> dict:\n  - Compose a single GraphQL query to validate key and fetch team + organization:\n    query ($teamId: String!) {\n      viewer { id name }\n      team(id: $teamId) { id name organization { id name } }\n    }\n  - Call _linear_graphql; if team is None, raise ValueError(\"Invalid team_id\").\n  - Return dict with keys: viewer_id, viewer_name, team_id, team_name, workspace_id (org id), workspace_name.\n- Error handling: distinguish auth errors (401/403 or errors containing Authentication) and raise a ValueError(\"Invalid Linear API key\").\n<info added on 2025-08-25T03:26:13.465Z>\nCompleted using different approach: Instead of implementing raw GraphQL client, we leveraged the existing LinearAdapter class which already uses the linear-api Python library. This adapter handles authentication, error mapping, and all Linear API interactions. The workspace.py tool uses LinearAdapter for validating credentials and fetching team/workspace information.\n</info added on 2025-08-25T03:26:13.465Z>",
+            "status": "done",
             "testStrategy": "Unit test with mocked HTTP: \n- Valid key: respond with viewer and team; expect returned details.\n- Invalid key: 401 or GraphQL errors -> ValueError.\n- Network 5xx: ensure retries then raises after final attempt.\n- Ensure no secrets printed in exceptions/logs."
           },
           {
@@ -258,8 +258,8 @@
             "dependencies": [
               "4.1"
             ],
-            "details": "Implementation steps in src/alfred/tools/workspace.py:\n- Paths: CONFIG_DIR = Path.cwd() / \".alfred\"; CONFIG_PATH = CONFIG_DIR / \"config.json\".\n- _ensure_config_dir(): create directory with exist_ok=True.\n- _validate_config_schema(cfg: dict) -> None: Ensure keys exist: platform(str==\"linear\"), workspace_id(str), team_id(str), active_epic_id(None or str), last_sync(ISO8601 str). Raise ValueError if invalid.\n- _load_config() -> dict | None: Read JSON if exists; validate schema; return dict or None if not found.\n- _atomic_write(path: Path, data: str): write to temp file then replace (Path.with_suffix(\".tmp\")). Ensure permissions 0o600.\n- _write_config(cfg: dict) -> None: _ensure_config_dir(); _validate_config_schema(cfg); if CONFIG_PATH exists and (workspace/team differ), create a timestamped backup: config.<YYYYmmddHHMMSS>.backup.json; then _atomic_write(CONFIG_PATH, json.dumps(cfg, indent=2)).",
-            "status": "pending",
+            "details": "Implementation steps in src/alfred/tools/workspace.py:\n- Paths: CONFIG_DIR = Path.cwd() / \".alfred\"; CONFIG_PATH = CONFIG_DIR / \"config.json\".\n- _ensure_config_dir(): create directory with exist_ok=True.\n- _validate_config_schema(cfg: dict) -> None: Ensure keys exist: platform(str==\"linear\"), workspace_id(str), team_id(str), active_epic_id(None or str), last_sync(ISO8601 str). Raise ValueError if invalid.\n- _load_config() -> dict | None: Read JSON if exists; validate schema; return dict or None if not found.\n- _atomic_write(path: Path, data: str): write to temp file then replace (Path.with_suffix(\".tmp\")). Ensure permissions 0o600.\n- _write_config(cfg: dict) -> None: _ensure_config_dir(); _validate_config_schema(cfg); if CONFIG_PATH exists and (workspace/team differ), create a timestamped backup: config.<YYYYmmddHHMMSS>.backup.json; then _atomic_write(CONFIG_PATH, json.dumps(cfg, indent=2)).\n<info added on 2025-08-25T03:26:33.530Z>\nCompleted using different approach: Instead of implementing custom config persistence, we leveraged the existing config module (src/alfred/config/). This module already provides set_active_workspace() which handles both config.json and workspace.json persistence with proper validation. The workspace.py tool uses this for configuration storage.\n</info added on 2025-08-25T03:26:33.530Z>",
+            "status": "done",
             "testStrategy": "Unit tests for schema and IO:\n- Writes new valid config and reads back identical content.\n- Creates .alfred directory when missing.\n- Atomic write: simulate crash between temp and move by mocking; ensure no partial file left.\n- Backup on switching: write config A, then config B with different workspace/team -> backup exists and new file contains B.\n- Permissions: if platform supports, verify 0o600 on created file."
           },
           {
@@ -271,7 +271,7 @@
               "4.3"
             ],
             "details": "Implementation steps in initialize_workspace:\n- Input validation: ensure non-empty workspace_id and team_id; strip whitespace.\n- Acquire key via _get_linear_api_key().\n- Call _validate_linear_credentials(team_id) to fetch viewer, team, and organization. Confirm that returned workspace_id matches provided workspace_id; if mismatch, raise ValueError with guidance.\n- Build config dict exactly as required:\n  {\n    \"platform\": \"linear\",\n    \"workspace_id\": <workspace_id>,\n    \"team_id\": <team_id>,\n    \"active_epic_id\": None,\n    \"last_sync\": datetime.datetime.utcnow().replace(microsecond=0).isoformat() + \"Z\"\n  }\n- Persist using _write_config(config).\n- Return dict with:\n  {\n    \"status\": \"ok\",\n    \"platform\": \"linear\",\n    \"workspace\": { \"id\": org_id, \"name\": org_name },\n    \"team\": { \"id\": team_id, \"name\": team_name },\n    \"viewer\": { \"id\": viewer_id, \"name\": viewer_name },\n    \"config_path\": str(CONFIG_PATH)\n  }\n- Error handling: catch known ValueError/RuntimeError, log at warning, and re-raise to let FastMCP return a tool error. Do not include secrets in messages. Use the complexity recommendations: clear error boundaries, timeouts, retries (already implemented), and minimal coupling.\n- Add type hints to all functions and ensure the decorator remains @server.tool().",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "End-to-end tool tests (with mocked HTTP):\n- Success path: valid key + matching workspace/team -> returns status ok, fields present, config file written with required schema.\n- Invalid key: expect tool error and no config written.\n- Invalid team_id: expect tool error and no config written.\n- Mismatched workspace_id vs organization id: expect tool error and no config written.\n- Workspace switching: call twice with different team_id/workspace_id; expect backup file created and new config persisted."
           },
           {
@@ -282,7 +282,7 @@
               "4.4"
             ],
             "details": "Implementation steps:\n- Tests in tests/tools/test_workspace.py.\n- Use responses (requests-mock) to stub Linear GraphQL endpoint responses for each scenario.\n- Parametrize tests for different inputs; assert config contents and returned payload structure.\n- Add a small README section or update design_docs/alfred/tools/01-project-setup/initialize_project.md with usage:\n  - Required env: LINEAR_API_KEY\n  - Example call: initialize_workspace(workspace_id=\"org_xxx\", team_id=\"team_xxx\")\n  - Behavior on switching and where config is stored.\n- Add CI hook to run tests for this module.\n- Ensure tests are deterministic and do not require network.\n- Include a manual test checklist for running with a real key (optional, skipped in CI).",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Run pytest locally/CI. Validate:\n- All cases from Task Test Instructions (valid key, invalid key, config file creation, workspace switching, stored structure).\n- 100% branch coverage for error paths in validation and persistence functions."
           },
           {
@@ -290,7 +290,7 @@
             "title": "Create workspace.py with tool scaffold",
             "description": "Set up the workspace tool module with FastMCP decorators and basic structure",
             "details": "Reference: design_docs/alfred/PRD.md (lines 116-118) & design_docs/alfred/tools/01-project-setup/initialize_project.md\n\nImplementation steps:\n- Create src/alfred/tools/workspace.py\n- Import FastMCP server: from alfred.server import server\n- Import config: from alfred.config import get_config, set_config, Config\n- Import Linear adapter: from alfred.adapters.linear_adapter import LinearAdapter\n- Add logging setup\n- Create tool function scaffold:\n  @server.tool(name='initialize_workspace', description='Connect to Linear workspace')\n  async def initialize_workspace(workspace_id: str, team_id: str) -> dict\n- Add input validation\n- Document response structure",
-            "status": "in-progress",
+            "status": "done",
             "dependencies": [],
             "parentTaskId": 4
           }
@@ -1211,7 +1211,7 @@
     ],
     "metadata": {
       "created": "2025-08-24T05:16:48.582Z",
-      "updated": "2025-08-25T02:33:05.022Z",
+      "updated": "2025-08-25T04:44:26.010Z",
       "description": "Tasks for master context"
     }
   }

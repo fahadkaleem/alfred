@@ -10,26 +10,124 @@
 - **Use Context7 MCP** for fetching library documentation and code examples when working with specific frameworks
 - Prefer these tools over web search for more accurate and up-to-date information
 
+## Adding New MCP Tools
+
+### Architecture Pattern
+We use a **one tool per file** pattern with separation of business logic from MCP decorators:
+
+1. **Business Logic** goes in `src/alfred/core/<domain>/<operation>.py`
+   - Pure functions without MCP dependencies
+   - Testable without MCP context
+   - Takes explicit parameters (no server state access)
+
+2. **Tool Wrapper** goes in `src/alfred/tools/<domain>/<tool_name>.py`
+   - Thin wrapper with `@server.tool` decorator
+   - Handles MCP-specific concerns (getting config from server state)
+   - Calls business logic functions
+
+### Step-by-Step Guide for New Tools
+
+#### 1. Create Business Logic
+```python
+# src/alfred/core/tasks/create.py
+from typing import Dict, Any
+from alfred.adapters.linear_adapter import LinearAdapter
+
+async def create_task_logic(
+    title: str,
+    description: str,
+    api_key: str,
+    team_id: str
+) -> Dict[str, Any]:
+    """Pure business logic for task creation."""
+    adapter = LinearAdapter(api_token=api_key)
+    # Implementation here
+    return {"id": task_id, "status": "created"}
+```
+
+#### 2. Create Tool Wrapper
+```python
+# src/alfred/tools/tasks/create_task.py
+from alfred.core.tasks.create import create_task_logic
+from alfred.config import get_config
+
+def register(server) -> int:
+    """Register the create_task tool."""
+    
+    @server.tool
+    async def create_task(title: str, description: str) -> dict:
+        """
+        Create a new task in Linear.
+        
+        Args:
+            title: Task title
+            description: Task description
+        """
+        config = get_config()
+        workspace = config.get_workspace()
+        
+        return await create_task_logic(
+            title=title,
+            description=description,
+            api_key=config.linear_api_key,
+            team_id=workspace.team_id
+        )
+    
+    return 1  # Number of tools registered
+```
+
+#### 3. Create Unit Tests
+```python
+# tests/core/tasks/test_create.py
+import pytest
+from unittest.mock import Mock, patch
+from alfred.core.tasks.create import create_task_logic
+
+@pytest.mark.asyncio
+async def test_create_task_success():
+    with patch('alfred.core.tasks.create.LinearAdapter') as MockAdapter:
+        # Test the pure business logic
+        result = await create_task_logic(
+            title="Test Task",
+            description="Test Description",
+            api_key="test-key",
+            team_id="team-1"
+        )
+        assert result["status"] == "created"
+```
+
+### Directory Structure for New Tools
+
+When adding tools for a new domain (e.g., "reporting"):
+
+1. Create directories:
+   ```
+   src/alfred/core/reporting/
+   src/alfred/tools/reporting/
+   tests/core/reporting/
+   ```
+
+2. Add `__init__.py` files to each directory
+
+3. Follow the one-tool-per-file pattern
+
+### Auto-Discovery
+Tools are automatically discovered if they:
+1. Are in a `.py` file under `src/alfred/tools/`
+2. Have a `register(server)` function
+3. Return the number of tools registered
+
+### Best Practices
+- Keep tool decorators under 20 lines
+- Put complex logic in `core/` modules
+- Use type hints for automatic schema generation
+- Write comprehensive docstrings for tools
+- Test business logic, not decorators
+- Group related tools by domain (workspace, tasks, ai, etc.)
+
 ## Project Structure
 
-Follow the directory structure defined in README.md:
-
-```
-alfred/
-├── src/alfred/
-│   ├── server.py              # Main MCP server
-│   ├── tools/                 # MCP tool implementations
-│   ├── resources/             # MCP resources
-│   ├── prompts/               # MCP prompts
-│   ├── core/                  # Business logic
-│   ├── adapters/              # Linear/Jira API adapters
-│   ├── ai_services/          # AI provider integration
-│   ├── storage/               # Data persistence
-│   └── utils/                 # Utilities
-├── tests/                     # Test suite
-├── .alfred/                   # Data directory
-└── pyproject.toml            # Project configuration
-```
+Follow the directory structure defined in README.md - see README.md for full details.
 
 ## Configuration System
 
