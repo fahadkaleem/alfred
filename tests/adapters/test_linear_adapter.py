@@ -1,15 +1,9 @@
 """Unit tests for Linear adapter."""
 
 import os
-import sys
 from unittest.mock import Mock, MagicMock, patch
 from datetime import datetime
 import pytest
-
-# Add src to path
-sys.path.insert(
-    0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "src")
-)
 
 from alfred.adapters import (
     LinearAdapter,
@@ -42,7 +36,9 @@ class TestLinearAdapter:
 
         # Create adapter with test token
         os.environ["LINEAR_API_KEY"] = "test-token"
-        adapter = LinearAdapter(team_id="test-team", default_project_id="test-project")
+        adapter = LinearAdapter(
+            team_name="test-team", default_project_name="test-project"
+        )
 
         return adapter
 
@@ -75,18 +71,15 @@ class TestLinearAdapter:
         mock_issue.identifier = "TASK-123"
         mock_issue.title = "Test Task"
         mock_issue.description = "Test Description"
-        mock_issue.state = Mock(name="Todo")
+        mock_issue.state = Mock()
+        mock_issue.state.name = "Todo"
         mock_issue.project = Mock(id="project-id")
         mock_issue.parent = None
         mock_issue.url = "https://linear.app/team/issue/TASK-123"
         mock_issue.created_at = datetime.now()
         mock_issue.updated_at = datetime.now()
 
-        mock_result = Mock()
-        mock_result.issue = mock_issue
-
-        adapter.client.issues.create = Mock(return_value=mock_result)
-        adapter.client.issues.get = Mock(return_value=mock_issue)
+        adapter.client.issues.create = Mock(return_value=mock_issue)
 
         # Create task
         task = adapter.create_task(
@@ -120,7 +113,8 @@ class TestLinearAdapter:
         mock_issue1.identifier = "TASK-1"
         mock_issue1.title = "Task 1"
         mock_issue1.description = "Description 1"
-        mock_issue1.state = Mock(name="Todo")
+        mock_issue1.state = Mock()
+        mock_issue1.state.name = "Todo"
         mock_issue1.project = None
         mock_issue1.parent = None
         mock_issue1.url = "https://linear.app/team/issue/TASK-1"
@@ -131,17 +125,17 @@ class TestLinearAdapter:
         mock_issue2.identifier = "TASK-2"
         mock_issue2.title = "Task 2"
         mock_issue2.description = "Description 2"
-        mock_issue2.state = Mock(name="In Progress")
+        mock_issue2.state = Mock()
+        mock_issue2.state.name = "In Progress"
         mock_issue2.project = None
         mock_issue2.parent = None
         mock_issue2.url = "https://linear.app/team/issue/TASK-2"
         mock_issue2.created_at = datetime.now()
         mock_issue2.updated_at = datetime.now()
 
-        mock_result = Mock()
-        mock_result.nodes = [mock_issue1, mock_issue2]
+        mock_issues_dict = {"issue-1-id": mock_issue1, "issue-2-id": mock_issue2}
 
-        adapter.client.issues.list = Mock(return_value=mock_result)
+        adapter.client.issues.get_by_team = Mock(return_value=mock_issues_dict)
 
         # Get tasks
         tasks = adapter.get_tasks(limit=10)
@@ -157,21 +151,18 @@ class TestLinearAdapter:
 
     def test_get_tasks_with_filters(self, adapter):
         """Test task retrieval with filters."""
-        mock_result = Mock()
-        mock_result.nodes = []
+        mock_issues_dict = {}
 
-        adapter.client.issues.list = Mock(return_value=mock_result)
+        adapter.client.issues.get_by_team = Mock(return_value=mock_issues_dict)
 
         # Get tasks with filters
         tasks = adapter.get_tasks(
             epic_id="project-123", status=["Todo", "In Progress"], limit=25
         )
 
-        # Verify the call was made with correct filters
-        adapter.client.issues.list.assert_called_once()
-        call_args = adapter.client.issues.list.call_args
-        assert call_args[1]["first"] == 25
-        assert "filter" in call_args[1]
+        # Verify the call was made
+        adapter.client.issues.get_by_team.assert_called_once()
+        # Note: Filtering is done in Python, not in the GraphQL call
 
     def test_get_task_success(self, adapter):
         """Test successful single task retrieval."""
@@ -179,14 +170,16 @@ class TestLinearAdapter:
         mock_issue.identifier = "TASK-123"
         mock_issue.title = "Test Task"
         mock_issue.description = "Test Description"
-        mock_issue.state = Mock(name="Todo")
+        mock_issue.state = Mock()
+        mock_issue.state.name = "Todo"
         mock_issue.project = None
         mock_issue.parent = None
         mock_issue.url = "https://linear.app/team/issue/TASK-123"
         mock_issue.created_at = datetime.now()
         mock_issue.updated_at = datetime.now()
 
-        adapter.client.issues.get_by_identifier = Mock(return_value=mock_issue)
+        mock_issues_dict = {"issue-123-id": mock_issue}
+        adapter.client.issues.get_all = Mock(return_value=mock_issues_dict)
 
         # Get task
         task = adapter.get_task("TASK-123")
@@ -198,7 +191,8 @@ class TestLinearAdapter:
 
     def test_get_task_not_found(self, adapter):
         """Test task retrieval when task doesn't exist."""
-        adapter.client.issues.get_by_identifier = Mock(return_value=None)
+        mock_issues_dict = {}  # Empty dict means no issues found
+        adapter.client.issues.get_all = Mock(return_value=mock_issues_dict)
 
         with pytest.raises(NotFoundError, match="Task INVALID-ID not found"):
             adapter.get_task("INVALID-ID")
@@ -215,19 +209,17 @@ class TestLinearAdapter:
         mock_updated.identifier = "TASK-123"
         mock_updated.title = "Updated Title"
         mock_updated.description = "Updated Description"
-        mock_updated.state = Mock(name="In Progress")
+        mock_updated.state = Mock()
+        mock_updated.state.name = "In Progress"
         mock_updated.project = None
         mock_updated.parent = None
         mock_updated.url = "https://linear.app/team/issue/TASK-123"
         mock_updated.created_at = datetime.now()
         mock_updated.updated_at = datetime.now()
 
-        mock_result = Mock()
-        mock_result.issue = mock_updated
-
-        adapter.client.issues.get_by_identifier = Mock(return_value=mock_issue)
-        adapter.client.issues.update = Mock(return_value=mock_result)
-        adapter.client.issues.get = Mock(return_value=mock_updated)
+        mock_issues_dict = {"issue-id": mock_issue}
+        adapter.client.issues.get_all = Mock(return_value=mock_issues_dict)
+        adapter.client.issues.update = Mock(return_value=mock_updated)
 
         # Update task
         task = adapter.update_task(
@@ -240,7 +232,8 @@ class TestLinearAdapter:
 
     def test_update_task_not_found(self, adapter):
         """Test task update when task doesn't exist."""
-        adapter.client.issues.get_by_identifier = Mock(return_value=None)
+        mock_issues_dict = {}  # Empty dict means no issues found
+        adapter.client.issues.get_all = Mock(return_value=mock_issues_dict)
 
         with pytest.raises(NotFoundError, match="Task INVALID-ID not found"):
             adapter.update_task("INVALID-ID", {"title": "New Title"})
@@ -259,19 +252,17 @@ class TestLinearAdapter:
         mock_subtask.identifier = "TASK-101"
         mock_subtask.title = "Subtask"
         mock_subtask.description = "Subtask Description"
-        mock_subtask.state = Mock(name="Todo")
+        mock_subtask.state = Mock()
+        mock_subtask.state.name = "Todo"
         mock_subtask.project = Mock(id="project-id")
         mock_subtask.parent = Mock(id="parent-id")
         mock_subtask.url = "https://linear.app/team/issue/TASK-101"
         mock_subtask.created_at = datetime.now()
         mock_subtask.updated_at = datetime.now()
 
-        mock_result = Mock()
-        mock_result.issue = mock_subtask
-
-        adapter.client.issues.get_by_identifier = Mock(return_value=mock_parent)
-        adapter.client.issues.create = Mock(return_value=mock_result)
-        adapter.client.issues.get = Mock(return_value=mock_subtask)
+        mock_issues_dict = {"parent-id": mock_parent}
+        adapter.client.issues.get_all = Mock(return_value=mock_issues_dict)
+        adapter.client.issues.create = Mock(return_value=mock_subtask)
 
         # Create subtask
         task = adapter.create_subtask(
@@ -285,7 +276,8 @@ class TestLinearAdapter:
 
     def test_create_subtask_parent_not_found(self, adapter):
         """Test subtask creation when parent doesn't exist."""
-        adapter.client.issues.get_by_identifier = Mock(return_value=None)
+        mock_issues_dict = {}  # Empty dict means no issues found
+        adapter.client.issues.get_all = Mock(return_value=mock_issues_dict)
 
         with pytest.raises(NotFoundError, match="Parent task INVALID-ID not found"):
             adapter.create_subtask("INVALID-ID", "Subtask")
@@ -294,12 +286,11 @@ class TestLinearAdapter:
         """Test successful task deletion."""
         mock_issue = Mock()
         mock_issue.id = "issue-id"
+        mock_issue.identifier = "TASK-123"
 
-        mock_result = Mock()
-        mock_result.success = True
-
-        adapter.client.issues.get_by_identifier = Mock(return_value=mock_issue)
-        adapter.client.issues.delete = Mock(return_value=mock_result)
+        mock_issues_dict = {"issue-id": mock_issue}
+        adapter.client.issues.get_all = Mock(return_value=mock_issues_dict)
+        adapter.client.issues.delete = Mock(return_value=True)
 
         # Delete task
         result = adapter.delete_task("TASK-123")
@@ -310,7 +301,8 @@ class TestLinearAdapter:
 
     def test_delete_task_not_found(self, adapter):
         """Test task deletion when task doesn't exist."""
-        adapter.client.issues.get_by_identifier = Mock(return_value=None)
+        mock_issues_dict = {}  # Empty dict means no issues found
+        adapter.client.issues.get_all = Mock(return_value=mock_issues_dict)
 
         with pytest.raises(NotFoundError, match="Task INVALID-ID not found"):
             adapter.delete_task("INVALID-ID")
@@ -325,11 +317,27 @@ class TestLinearAdapter:
         mock_project.created_at = datetime.now()
         mock_project.updated_at = datetime.now()
 
-        mock_result = Mock()
-        mock_result.project = mock_project
+        # Mock teams for team lookup
+        mock_team = Mock()
+        mock_team.name = "test-team"
+        mock_teams_dict = {"team-id": mock_team}
+        adapter.client.teams.get_all = Mock(return_value=mock_teams_dict)
 
-        adapter.client.projects.create = Mock(return_value=mock_result)
-        adapter.client.projects.get = Mock(return_value=mock_project)
+        # Mock GraphQL response
+        graphql_response = {
+            "projectCreate": {
+                "project": {
+                    "id": "project-id",
+                    "name": "Test Epic",
+                    "description": "Epic Description",
+                    "url": "https://linear.app/team/project/project-id",
+                    "createdAt": mock_project.created_at.isoformat(),
+                    "updatedAt": mock_project.updated_at.isoformat(),
+                },
+                "success": True,
+            }
+        }
+        adapter.client.execute_graphql = Mock(return_value=graphql_response)
 
         # Create epic
         epic = adapter.create_epic(name="Test Epic", description="Epic Description")
@@ -362,10 +370,9 @@ class TestLinearAdapter:
         mock_project2.created_at = datetime.now()
         mock_project2.updated_at = datetime.now()
 
-        mock_result = Mock()
-        mock_result.nodes = [mock_project1, mock_project2]
+        mock_projects_dict = {"project-1": mock_project1, "project-2": mock_project2}
 
-        adapter.client.projects.list = Mock(return_value=mock_result)
+        adapter.client.projects.get_all = Mock(return_value=mock_projects_dict)
 
         # Get epics
         epics = adapter.get_epics(limit=10)
@@ -385,24 +392,28 @@ class TestLinearAdapter:
         mock_depends_on = Mock()
         mock_depends_on.id = "depends-on-id"
 
-        mock_result = Mock()
-        mock_result.success = True
+        mock_task.identifier = "TASK-123"
+        mock_depends_on.identifier = "TASK-100"
 
-        adapter.client.issues.get_by_identifier = Mock(
-            side_effect=[mock_task, mock_depends_on]
-        )
-        adapter.client.issue_relations.create = Mock(return_value=mock_result)
+        mock_issues_dict = {"task-id": mock_task, "depends-on-id": mock_depends_on}
+
+        adapter.client.issues.get_all = Mock(return_value=mock_issues_dict)
+
+        # Mock GraphQL response
+        graphql_response = {"issueRelationCreate": {"success": True}}
+        adapter.client.execute_graphql = Mock(return_value=graphql_response)
 
         # Link tasks
         result = adapter.link_tasks("TASK-123", "TASK-100")
 
         # Verify result
         assert result is True
-        adapter.client.issue_relations.create.assert_called_once()
+        adapter.client.execute_graphql.assert_called_once()
 
     def test_link_tasks_not_found(self, adapter):
         """Test task linking when one task doesn't exist."""
-        adapter.client.issues.get_by_identifier = Mock(return_value=None)
+        mock_issues_dict = {}  # Empty dict means no issues found
+        adapter.client.issues.get_all = Mock(return_value=mock_issues_dict)
 
         with pytest.raises(NotFoundError, match="Task TASK-123 not found"):
             adapter.link_tasks("TASK-123", "TASK-100")

@@ -108,8 +108,8 @@ def write_config_file(config_data: Dict[str, Any]) -> None:
     # Ensure directory exists
     ensure_config_dir()
 
-    # Filter out None values and empty strings
-    filtered_data = {k: v for k, v in config_data.items() if v is not None and v != ""}
+    # Filter out None values only (Pydantic handles validation)
+    filtered_data = {k: v for k, v in config_data.items() if v is not None}
 
     # Write to temporary file first (atomic write)
     try:

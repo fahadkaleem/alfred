@@ -4,7 +4,7 @@ import os
 from typing import Dict, List, Optional, Any, Union
 from datetime import datetime
 
-from linear_api import (
+from alfred.clients.linear import (
     LinearClient,
     LinearIssueInput,
     LinearIssueUpdateInput,

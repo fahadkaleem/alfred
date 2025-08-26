@@ -2,10 +2,8 @@
 
 import os
 import logging
-from typing import Optional, Dict, Any, Literal
+from typing import Optional
 from pathlib import Path
-from dataclasses import asdict
-from pydantic.dataclasses import dataclass
 
 logger = logging.getLogger("alfred.config")
 
@@ -20,66 +18,6 @@ class ConfigValidationError(ConfigError):
     """Exception raised when configuration validation fails."""
 
     pass
-
-
-@dataclass
-class Config:
-    """Configuration data model for Alfred."""
-
-    # API Keys
-    linear_api_key: Optional[str] = None
-    anthropic_api_key: Optional[str] = None
-    jira_api_key: Optional[str] = None
-    jira_url: Optional[str] = None
-    jira_email: Optional[str] = None
-
-    # Additional AI Provider Keys
-    openai_api_key: Optional[str] = None
-    gemini_api_key: Optional[str] = None
-
-    # Workspace Configuration
-    workspace_id: Optional[str] = None
-    team_id: Optional[str] = None
-    active_epic_id: Optional[str] = None
-
-    # Platform Selection
-    platform: Literal["linear", "jira"] = "linear"
-
-    # AI Configuration
-    ai_provider: Literal["anthropic", "openai", "gemini"] = "anthropic"
-    claude_model: str = "claude-3-5-sonnet-20241022"
-    openai_model: str = "gpt-4-turbo-preview"
-    gemini_model: str = "gemini-pro"
-    max_tokens: int = 4096
-    temperature: float = 0.7
-
-    # AI Advanced Settings
-    request_timeout: int = 60  # seconds
-    max_retries: int = 3
-    rate_limit_rpm: int = 50  # requests per minute
-    chunk_overlap_tokens: int = 200
-    max_context_percentage: float = 0.6
-
-    # Behavior Configuration
-    auto_decompose_threshold: int = 5
-    default_subtask_count: int = 3
-
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert config to dictionary, excluding None values."""
-        data = asdict(self)
-        return {k: v for k, v in data.items() if v is not None and v != ""}
-
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "Config":
-        """Create config from dictionary, ignoring unknown keys."""
-        # Filter only known fields
-        known_fields = {f.name for f in cls.__dataclass_fields__.values()}
-        filtered_data = {k: v for k, v in data.items() if k in known_fields}
-        # Convert empty strings to None
-        for key, value in filtered_data.items():
-            if value == "":
-                filtered_data[key] = None
-        return cls(**filtered_data)
 
 
 # Environment variable mapping

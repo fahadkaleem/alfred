@@ -1,8 +1,9 @@
 """Business logic for team listing."""
 
-from typing import Dict, Any, List
+from typing import Dict, Any
 from alfred.adapters.linear_adapter import LinearAdapter
 from alfred.adapters.base import AuthError, APIConnectionError
+from alfred.models.workspace import TeamsListResponse, TeamInfo
 from alfred.utils import get_logger
 
 logger = get_logger("alfred.core.workspace.teams")
@@ -31,23 +32,22 @@ async def list_teams_logic(api_key: str) -> Dict[str, Any]:
         adapter = LinearAdapter(api_token=api_key)
         teams = adapter.client.teams.get_all()
 
-        # Format teams for response
-        team_list: List[Dict[str, Any]] = []
-        for tid, team in teams.items():
-            team_info = {
-                "id": team.id if hasattr(team, "id") else tid,
-                "name": team.name if hasattr(team, "name") else "Unknown",
-            }
-
-            # Add optional fields if available
-            if hasattr(team, "description"):
-                team_info["description"] = team.description
-            if hasattr(team, "key"):
-                team_info["key"] = team.key
-
+        # Linear API returns Dict[str, LinearTeam] where LinearTeam is a Pydantic model
+        # We can directly access the attributes without defensive checks
+        team_list = []
+        for team_id, team in teams.items():
+            # LinearTeam has: id, name, key, description (all properly typed)
+            team_info = TeamInfo(
+                id=team.id,
+                name=team.name,
+                description=team.description,  # Can be None, that's fine
+                key=team.key,  # Can be None, that's fine
+            )
             team_list.append(team_info)
 
-        return {"status": "ok", "teams": team_list, "count": len(team_list)}
+        response = TeamsListResponse(status="ok", teams=team_list, count=len(team_list))
+        # Serialize excluding None values for clean API responses
+        return response.model_dump(exclude_none=True)
 
     except Exception as e:
         logger.error(f"Failed to list teams: {e}")

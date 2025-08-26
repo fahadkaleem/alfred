@@ -1,8 +1,9 @@
 """Business logic for project/epic listing."""
 
-from typing import Dict, Any, List
+from typing import Dict, Any
 from alfred.adapters.linear_adapter import LinearAdapter
 from alfred.adapters.base import AuthError, APIConnectionError
+from alfred.models.workspace import ProjectsListResponse, ProjectInfo
 from alfred.utils import get_logger
 
 logger = get_logger("alfred.core.workspace.projects")
@@ -30,26 +31,26 @@ async def list_projects_logic(api_key: str) -> Dict[str, Any]:
     try:
         adapter = LinearAdapter(api_token=api_key)
 
-        # Get projects/epics
+        # Get projects/epics - adapter returns List[EpicDict]
         projects = adapter.get_epics(limit=100)
 
-        # Format projects for response
-        project_list: List[Dict[str, Any]] = []
+        # Convert to Pydantic models
+        project_list = []
         for project in projects:
-            project_info = {
-                "id": project.get("id"),
-                "name": project.get("name"),
-            }
-
-            # Add optional fields
-            if project.get("description"):
-                project_info["description"] = project.get("description")
-            if project.get("url"):
-                project_info["url"] = project.get("url")
-
+            # EpicDict from adapter has: id, name, description, url (all can be None)
+            project_info = ProjectInfo(
+                id=project["id"],
+                name=project["name"],
+                description=project.get("description"),
+                url=project.get("url"),
+            )
             project_list.append(project_info)
 
-        return {"status": "ok", "projects": project_list, "count": len(project_list)}
+        response = ProjectsListResponse(
+            status="ok", projects=project_list, count=len(project_list)
+        )
+        # Serialize excluding None values for clean API responses
+        return response.model_dump(exclude_none=True)
 
     except AuthError:
         raise

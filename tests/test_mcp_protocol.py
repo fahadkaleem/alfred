@@ -2,13 +2,10 @@
 """Test MCP protocol communication with the Alfred server."""
 
 import json
-import subprocess
-import sys
-import time
 import os
-
-# Add src to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
+import sys
+import subprocess
+import time
 
 
 def send_json_rpc(proc, request):

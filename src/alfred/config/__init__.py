@@ -11,7 +11,8 @@ import logging
 from typing import Optional, Dict, Any
 from pathlib import Path
 
-from .settings import Config, ConfigError, ConfigValidationError, load_env
+from alfred.models.config import Config
+from .settings import ConfigError, ConfigValidationError, load_env
 from .storage import (
     ensure_config_dir,
     read_config_file,
@@ -48,7 +49,7 @@ def get_config(refresh: bool = False) -> Config:
         merged_config = merge_env_overrides(file_config)
 
         # Create Config from merged data
-        _config_cache = Config.from_dict(merged_config)
+        _config_cache = Config(**merged_config)
 
     return _config_cache
 
@@ -62,7 +63,7 @@ def set_config(config: Config) -> None:
     global _config_cache
 
     # Write to file
-    write_config_file(config.to_dict())
+    write_config_file(config.model_dump(exclude_none=True))
 
     # Update cache
     _config_cache = config

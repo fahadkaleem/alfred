@@ -3,18 +3,13 @@
 
 import asyncio
 import os
-import sys
 from pathlib import Path
-
-# Add src to path
-sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 from dotenv import load_dotenv
 from alfred.ai_services import (
     AIService,
     AIProvider,
-    get_config,
-    get_provider,
+    create_provider,
     AuthenticationError,
 )
 
@@ -36,7 +31,7 @@ async def test_anthropic_integration():
     try:
         # Test 1: Provider initialization
         print("\n🧪 Test 1: Initializing Anthropic provider...")
-        provider = get_provider(AIProvider.ANTHROPIC)
+        provider = create_provider(AIProvider.ANTHROPIC)
         print(f"✅ Provider initialized: {provider.provider_name.value}")
         print(f"   Model: {provider.model}")
 

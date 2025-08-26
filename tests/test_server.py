@@ -1,18 +1,17 @@
 #!/usr/bin/env python
 """Test script to verify the Alfred MCP server."""
 
-import sys
-import os
 import json
 import asyncio
-
-# Add src to path
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(__file__)), "src"))
+import os
+import sys
+import pytest
 
 from alfred.server import create_server
 from alfred.config import get_config
 
 
+@pytest.mark.asyncio
 async def test_server():
     """Test the server creation and basic functionality."""
     print("Testing Alfred MCP Server...")
@@ -34,10 +33,10 @@ async def test_server():
     # Test 3: Server state
     print("\n3. Testing server state...")
     assert "session_manager" in server.state
-    assert "settings" in server.state
+    assert "config" in server.state
     assert "logger" in server.state
     print("   ✓ Session manager initialized")
-    print("   ✓ Settings attached")
+    print("   ✓ Config attached")
     print("   ✓ Logger configured")
 
     # Test 4: Tool registration

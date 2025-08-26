@@ -3,6 +3,7 @@
 from typing import Dict, Any
 from alfred.adapters.linear_adapter import LinearAdapter
 from alfred.adapters.base import AuthError, ValidationError, APIConnectionError
+from alfred.models.workspace import WorkspaceInitResponse, WorkspaceInfo, TeamInfo
 from alfred.config import set_active_workspace
 from alfred.utils import get_logger
 
@@ -55,18 +56,11 @@ async def initialize_workspace_logic(
         workspace_name = workspace_id  # Default to ID if we can't get name
 
         for tid, team in teams.items():
-            if team.id == team_id or tid == team_id:
+            # LinearTeam is a Pydantic model with id and name attributes
+            if team.id == team_id:
                 team_found = True
                 team_name = team.name
-
-                # Try to get organization/workspace name
-                if hasattr(team, "organization"):
-                    org = team.organization
-                    if hasattr(org, "id") and org.id == workspace_id:
-                        if hasattr(org, "name"):
-                            workspace_name = org.name
-                    # Note: Some Linear setups might not expose org ID
-                    # In that case, we trust the user-provided workspace_id
+                # Workspace name is not exposed by Linear API, use the ID
                 break
 
         if not team_found:
@@ -103,12 +97,13 @@ async def initialize_workspace_logic(
         logger.error(f"Failed to save workspace configuration: {e}")
         raise ValidationError(f"Failed to save configuration: {e}")
 
-    # Return success response
-    return {
-        "status": "ok",
-        "message": "Workspace initialized successfully",
-        "platform": "linear",
-        "workspace": {"id": workspace_id, "name": workspace_name},
-        "team": {"id": team_id, "name": team_name},
-        "config_path": ".alfred/config.json",
-    }
+    # Return success response using Pydantic
+    response = WorkspaceInitResponse(
+        status="ok",
+        message="Workspace initialized successfully",
+        platform="linear",
+        workspace=WorkspaceInfo(id=workspace_id, name=workspace_name),
+        team=TeamInfo(id=team_id, name=team_name),
+        config_path=".alfred/config.json",
+    )
+    return response.model_dump()

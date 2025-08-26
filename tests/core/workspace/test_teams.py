@@ -10,7 +10,7 @@ from alfred.adapters.base import AuthError, APIConnectionError
 async def test_list_teams_success():
     """Test successful teams listing."""
     with patch("alfred.core.workspace.teams.LinearAdapter") as MockAdapter:
-        # Setup mock teams
+        # Setup mock teams - LinearTeam always has these attributes
         mock_team1 = Mock()
         mock_team1.id = "team-1"
         mock_team1.name = "Engineering"
@@ -20,7 +20,7 @@ async def test_list_teams_success():
         mock_team2 = Mock()
         mock_team2.id = "team-2"
         mock_team2.name = "Product"
-        mock_team2.description = None
+        mock_team2.description = None  # LinearTeam has the attribute, value is None
         mock_team2.key = "PROD"
 
         mock_teams = {"team-1": mock_team1, "team-2": mock_team2}
@@ -44,7 +44,7 @@ async def test_list_teams_success():
         # Check second team
         team2 = next(t for t in result["teams"] if t["id"] == "team-2")
         assert team2["name"] == "Product"
-        assert team2["description"] is None  # None value is included
+        assert "description" not in team2  # None values are excluded
         assert team2["key"] == "PROD"
 
         # Verify LinearAdapter was called correctly
@@ -105,13 +105,13 @@ async def test_list_teams_empty_list():
 async def test_list_teams_with_minimal_fields():
     """Test handling teams with minimal fields."""
     with patch("alfred.core.workspace.teams.LinearAdapter") as MockAdapter:
-        # Setup mock team with only required fields
+        # Setup mock team - LinearTeam always has these attributes
+        # but they can be None
         mock_team = Mock()
         mock_team.id = "team-min"
         mock_team.name = "Minimal Team"
-        # No description or key attributes
-        del mock_team.description
-        del mock_team.key
+        mock_team.description = None  # LinearTeam has the attribute, value is None
+        mock_team.key = None  # LinearTeam has the attribute, value is None
 
         mock_teams = {"team-min": mock_team}
         MockAdapter.return_value.client.teams.get_all.return_value = mock_teams

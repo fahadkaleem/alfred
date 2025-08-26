@@ -2,6 +2,7 @@
 
 from typing import Dict, Any
 from alfred.adapters.linear_adapter import LinearAdapter
+from alfred.models.workspace import WorkspaceStatusResponse, WorkspaceInfo, TeamInfo
 from alfred.config import current_workspace, get_config
 from alfred.utils import get_logger
 
@@ -19,11 +20,12 @@ async def get_workspace_info_logic() -> Dict[str, Any]:
 
     # Check if workspace is configured
     if not workspace_info.get("workspace_id") or not workspace_info.get("team_id"):
-        return {
-            "status": "not_configured",
-            "message": "No workspace configured. Use initialize_workspace to set up.",
-            "platform": workspace_info.get("platform", "linear"),
-        }
+        response = WorkspaceStatusResponse(
+            status="not_configured",
+            message="No workspace configured. Use initialize_workspace to set up.",
+            platform=workspace_info.get("platform", "linear"),
+        )
+        return response.model_dump(exclude_unset=True)
 
     # Check connection status
     has_api_key = False
@@ -47,19 +49,20 @@ async def get_workspace_info_logic() -> Dict[str, Any]:
             logger.debug(f"Connection test failed: {e}")
             connection_status = "connection_failed"
 
-    return {
-        "status": "configured",
-        "connection_status": connection_status,
-        "platform": workspace_info.get("platform"),
-        "workspace": {
-            "id": workspace_info.get("workspace_id"),
-            "name": workspace_info.get("workspace_id"),  # Would need API call for name
-        },
-        "team": {
-            "id": workspace_info.get("team_id"),
-            "name": workspace_info.get("team_id"),  # Would need API call for name
-        },
-        "active_epic_id": workspace_info.get("active_epic_id"),
-        "has_api_key": has_api_key,
-        "has_ai_config": workspace_info.get("has_ai_config", False),
-    }
+    response = WorkspaceStatusResponse(
+        status="configured",
+        connection_status=connection_status,
+        platform=workspace_info.get("platform"),
+        workspace=WorkspaceInfo(
+            id=workspace_info.get("workspace_id"),
+            name=workspace_info.get("workspace_id"),  # Would need API call for name
+        ),
+        team=TeamInfo(
+            id=workspace_info.get("team_id"),
+            name=workspace_info.get("team_id"),  # Would need API call for name
+        ),
+        active_epic_id=workspace_info.get("active_epic_id"),
+        has_api_key=has_api_key,
+        has_ai_config=workspace_info.get("has_ai_config", False),
+    )
+    return response.model_dump(exclude_unset=True)

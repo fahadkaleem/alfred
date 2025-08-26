@@ -5,11 +5,6 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from typing import Dict, List, Any
 
-import sys
-import os
-
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
-
 from alfred.ai_services import (
     AIService,
     AIProvider,
