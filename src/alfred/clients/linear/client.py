@@ -15,6 +15,7 @@ from .managers.issue_manager import IssueManager
 from .managers.project_manager import ProjectManager
 from .managers.team_manager import TeamManager
 from .managers.user_manager import UserManager
+from .managers.workflow_manager import WorkflowStateManager
 from .schema_validator import validate_model
 from .utils.api import call_linear_api
 
@@ -86,6 +87,7 @@ class LinearClient:
         self.projects = ProjectManager(self)
         self.teams = TeamManager(self)
         self.users = UserManager(self)
+        self.workflow_states = WorkflowStateManager(self)
 
         # Configure connection unwrapping based on initial setting
         if not auto_unwrap_connections:

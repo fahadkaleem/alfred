@@ -11,6 +11,15 @@ from .workspace import (
 )
 
 from .config import Config, Platform, AIProvider
+from .tasks import (
+    AlfredTask,
+    AlfredTaskStatus,
+    TaskListResult,
+    WorkspaceConfig,
+    map_status_linear_to_alfred,
+    map_status_alfred_to_linear,
+    to_alfred_task,
+)
 
 __all__ = [
     # Workspace models
@@ -25,4 +34,12 @@ __all__ = [
     "Config",
     "Platform",
     "AIProvider",
+    # Task models
+    "AlfredTask",
+    "AlfredTaskStatus", 
+    "TaskListResult",
+    "WorkspaceConfig",
+    "map_status_linear_to_alfred",
+    "map_status_alfred_to_linear",
+    "to_alfred_task",
 ]

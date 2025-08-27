@@ -25,3 +25,17 @@ explain: |
 
 clarify: |
   Your task is to take the code snippet provided and explain it in simple, easy-to-understand language. Break down the code’s functionality, purpose, and key components. Use analogies, examples, and plain terms to make the explanation accessible to someone with minimal coding knowledge. Avoid using technical jargon unless absolutely necessary, and provide clear explanations for any jargon used. The goal is to help the reader understand what the code does and how it works at a high level.
+
+implement: |
+  Your task is to implement the code in a very clean and readable way. You will need to use best coding practices
+  - Avoid using any external libraries or frameworks without asking first
+  - Avoid adding comments to the code unless absolutely necessary
+  - Avoid defensive programming
+  - Avoid backwards compatibility
+  - Avoid using emojis
+  - Check if helper methods are available in the codebase and use them if possible
+  - Remember SOLID principles
+  - Remember DRY principles
+  - Remember KISS principles
+  - Remember YAGNI principles
+  - Always use pydantic

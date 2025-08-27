@@ -1,0 +1,127 @@
+{
+  "team_id": "c9e2a683-598a-4a34-83bf-5058187bccf3",
+  "team_name": "Alfred",
+  "states": [
+    {
+      "id": "98bc2869-3c75-4cf3-b481-536c7eee4d1f",
+      "name": "Backlog",
+      "type": "backlog",
+      "position": 0.0,
+      "color": "#bec2c8",
+      "description": null,
+      "team_id": "c9e2a683-598a-4a34-83bf-5058187bccf3",
+      "team_name": "Alfred"
+    },
+    {
+      "id": "df9b9ffd-810d-4fc1-8d4e-a056ad26f983",
+      "name": "Todo",
+      "type": "unstarted",
+      "position": 1.0,
+      "color": "#e2e2e2",
+      "description": null,
+      "team_id": "c9e2a683-598a-4a34-83bf-5058187bccf3",
+      "team_name": "Alfred"
+    },
+    {
+      "id": "7f9ae9c5-4986-457a-b103-c2e7f02154f1",
+      "name": "In Progress",
+      "type": "started",
+      "position": 2.0,
+      "color": "#f2c94c",
+      "description": null,
+      "team_id": "c9e2a683-598a-4a34-83bf-5058187bccf3",
+      "team_name": "Alfred"
+    },
+    {
+      "id": "b73b51c0-1ed8-497f-a54a-3314f7fc603c",
+      "name": "Done",
+      "type": "completed",
+      "position": 3.0,
+      "color": "#5e6ad2",
+      "description": null,
+      "team_id": "c9e2a683-598a-4a34-83bf-5058187bccf3",
+      "team_name": "Alfred"
+    },
+    {
+      "id": "f5556c1d-a0c9-4b8f-a4b2-086da422e0e2",
+      "name": "Canceled",
+      "type": "canceled",
+      "position": 4.0,
+      "color": "#95a2b3",
+      "description": null,
+      "team_id": "c9e2a683-598a-4a34-83bf-5058187bccf3",
+      "team_name": "Alfred"
+    },
+    {
+      "id": "7baaa8e4-f9f6-43d3-8def-3eb6d6685040",
+      "name": "Duplicate",
+      "type": "canceled",
+      "position": 5.0,
+      "color": "#95a2b3",
+      "description": null,
+      "team_id": "c9e2a683-598a-4a34-83bf-5058187bccf3",
+      "team_name": "Alfred"
+    },
+    {
+      "id": "78577e44-4e84-42da-807e-29f9de7caff1",
+      "name": "Planning",
+      "type": "unstarted",
+      "position": 1001.0,
+      "color": "#94A3B8",
+      "description": "Task is being planned and requirements are being defined",
+      "team_id": "c9e2a683-598a-4a34-83bf-5058187bccf3",
+      "team_name": "Alfred"
+    },
+    {
+      "id": "2f6514c4-5f22-46a2-af8d-24c143718a5d",
+      "name": "Ready to Merge",
+      "type": "started",
+      "position": 1002.0,
+      "color": "#10B981",
+      "description": "All checks passed, ready for PR",
+      "team_id": "c9e2a683-598a-4a34-83bf-5058187bccf3",
+      "team_name": "Alfred"
+    },
+    {
+      "id": "d9128013-d4f9-486a-b47e-170843803eac",
+      "name": "Testing",
+      "type": "started",
+      "position": 1002.0,
+      "color": "#F59E0B",
+      "description": "Code is being tested",
+      "team_id": "c9e2a683-598a-4a34-83bf-5058187bccf3",
+      "team_name": "Alfred"
+    },
+    {
+      "id": "c4b1d0be-72e6-48e6-b661-263588a4446d",
+      "name": "Code Review",
+      "type": "started",
+      "position": 1002.0,
+      "color": "#8B5CF6",
+      "description": "Code is ready for review",
+      "team_id": "c9e2a683-598a-4a34-83bf-5058187bccf3",
+      "team_name": "Alfred"
+    },
+    {
+      "id": "38579681-cb21-41fc-b5a5-9b652d8eddf0",
+      "name": "Development",
+      "type": "started",
+      "position": 1002.0,
+      "color": "#3B82F6",
+      "description": "Task is being actively developed",
+      "team_id": "c9e2a683-598a-4a34-83bf-5058187bccf3",
+      "team_name": "Alfred"
+    },
+    {
+      "id": "b3c48002-40c6-4a4c-8af5-54dd4a5bd788",
+      "name": "In Review",
+      "type": "started",
+      "position": 1002.0,
+      "color": "#0f783c",
+      "description": "Pull request is being reviewed",
+      "team_id": "c9e2a683-598a-4a34-83bf-5058187bccf3",
+      "team_name": "Alfred"
+    }
+  ],
+  "discovered_at": "2025-08-27 08:26:55.636486"
+}

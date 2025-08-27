@@ -2,7 +2,6 @@
 
 import os
 from typing import Dict, List, Optional, Any, Union
-from datetime import datetime
 
 from alfred.clients.linear import (
     LinearClient,
@@ -634,6 +633,60 @@ class LinearAdapter(TaskAdapter):
                 raise NotFoundError("One or both tasks not found")
             elif "circular" in error_str.lower():
                 raise ValidationError(f"Circular dependency detected: {e}")
+            elif "network" in error_str.lower() or "connection" in error_str.lower():
+                raise APIConnectionError(f"Network error: {e}")
+            else:
+                raise APIResponseError(f"Linear API error: {e}")
+
+    def get_workflow_states(self, team_id: Optional[str] = None) -> Dict[str, Any]:
+        """Get workflow states for a team using the workflow manager.
+
+        This method provides backward compatibility while using the new
+        workflow state manager for proper architecture.
+
+        Args:
+            team_id: Optional team ID. If not provided, uses the configured team.
+
+        Returns:
+            Dictionary with workflow states and metadata for backward compatibility.
+        """
+        try:
+            # Determine team ID if not provided
+            if not team_id:
+                if self.team_name:
+                    teams = self.client.teams.get_all()
+                    for tid, team in teams.items():
+                        if team.name == self.team_name:
+                            team_id = tid
+                            break
+                
+                if not team_id:
+                    # Use first available team as fallback
+                    teams = self.client.teams.get_all()
+                    team_id = list(teams.keys())[0] if teams else None
+                    
+                if not team_id:
+                    raise APIResponseError("No teams found to discover workflow states")
+
+            # Use the workflow manager to get states
+            team_states = self.client.workflow_states.discover_team_states(team_id)
+            
+            # Convert to the expected format for backward compatibility
+            return {
+                "team_id": team_states.team_id,
+                "team_name": team_states.team_name,
+                "states": [state.model_dump() for state in team_states.states],
+                "state_names": team_states.state_names,
+                "discovered_at": team_states.discovered_at.isoformat(),
+                "alfred_mappings": team_states.alfred_mappings
+            }
+            
+        except Exception as e:
+            error_str = str(e)
+            if "401" in error_str or "unauthorized" in error_str.lower():
+                raise AuthError(f"Authentication failed: {e}")
+            elif "not found" in error_str.lower() or "404" in error_str:
+                raise NotFoundError(f"Team {team_id or self.team_name} not found")
             elif "network" in error_str.lower() or "connection" in error_str.lower():
                 raise APIConnectionError(f"Network error: {e}")
             else:
