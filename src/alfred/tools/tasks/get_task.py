@@ -12,9 +12,9 @@ def register(server) -> int:
         """
         Fetch a single task by ID.
 
-        This tool retrieves a specific task from Linear by its ID and returns complete 
-        task details mapped to Alfred's standardized format. It provides comprehensive 
-        task information including status, description, epic assignment, and all 
+        This tool retrieves a specific task from Linear by its ID and returns complete
+        task details mapped to Alfred's standardized format. It provides comprehensive
+        task information including status, description, epic assignment, and all
         associated metadata.
 
         Key features:
@@ -38,17 +38,17 @@ def register(server) -> int:
 
         Usage Guidance and Task ID Requirements:
 
-        IMPORTANT: Task IDs in Linear follow specific naming conventions (e.g., "AUTH-123", 
-        "PROJ-456"). They are case-sensitive and must match exactly. Use discovery tools like 
+        IMPORTANT: Task IDs in Linear follow specific naming conventions (e.g., "AUTH-123",
+        "PROJ-456"). They are case-sensitive and must match exactly. Use discovery tools like
         get_tasks or list_projects if you need to find task IDs.
 
-        CRITICAL: This tool returns comprehensive task data including potentially sensitive 
-        information like assignee details, internal notes, and project context. Ensure you 
+        CRITICAL: This tool returns comprehensive task data including potentially sensitive
+        information like assignee details, internal notes, and project context. Ensure you
         have appropriate access permissions for the requested task.
 
         Task ID Format Requirements:
         - Must be complete Linear task identifier (e.g., "AUTH-123", not "123" or "auth-123")
-        - Case-sensitive - "AUTH-123" is different from "auth-123"  
+        - Case-sensitive - "AUTH-123" is different from "auth-123"
         - Must exist in your accessible workspace/team context
         - Cannot be partial matches - exact ID required
 
@@ -66,10 +66,10 @@ def register(server) -> int:
         - Linear API issues: Returns error with Linear's specific error message
 
         Args:
-            task_id: Linear task/issue ID to retrieve. Must be complete, exact task identifier 
-                following Linear's naming convention. Examples: "AUTH-123", "PROJ-456", "LOGIN-789". 
-                Case-sensitive and must match exactly - no partial matching or search capability. 
-                Task must exist in your accessible workspace/team. Use get_tasks or project 
+            task_id: Linear task/issue ID to retrieve. Must be complete, exact task identifier
+                following Linear's naming convention. Examples: "AUTH-123", "PROJ-456", "LOGIN-789".
+                Case-sensitive and must match exactly - no partial matching or search capability.
+                Task must exist in your accessible workspace/team. Use get_tasks or project
                 management tools to discover task IDs if unknown.
 
         Returns:
@@ -79,9 +79,6 @@ def register(server) -> int:
         """
         config = get_config()
 
-        return get_task_logic(
-            api_key=config.linear_api_key,
-            task_id=task_id
-        )
+        return get_task_logic(api_key=config.linear_api_key, task_id=task_id)
 
     return 1

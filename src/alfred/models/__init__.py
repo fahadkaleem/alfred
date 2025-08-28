@@ -36,7 +36,7 @@ __all__ = [
     "AIProvider",
     # Task models
     "AlfredTask",
-    "AlfredTaskStatus", 
+    "AlfredTaskStatus",
     "TaskListResult",
     "WorkspaceConfig",
     "map_status_linear_to_alfred",

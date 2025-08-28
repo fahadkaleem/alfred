@@ -11,7 +11,7 @@ def load_workspace_config() -> WorkspaceConfig:
     return WorkspaceConfig(
         api_key=config.linear_api_key,
         workspace_id=config.workspace_id,
-        team_id=config.team_id
+        team_id=config.team_id,
     )
 
 

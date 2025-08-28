@@ -15,20 +15,20 @@ def register(server) -> int:
         epic_id: Optional[str] = None,
         assignee_id: Optional[str] = None,
         labels: Optional[List[str]] = None,
-        priority: Optional[str] = None
+        priority: Optional[str] = None,
     ) -> dict:
         """
         Create a new task in Linear.
 
-        This tool creates a new task in Linear with specified details and returns the 
-        created task mapped to Alfred's standardized format. It handles task creation 
-        with optional epic assignment, descriptions, and future extensibility for labels 
+        This tool creates a new task in Linear with specified details and returns the
+        created task mapped to Alfred's standardized format. It handles task creation
+        with optional epic assignment, descriptions, and future extensibility for labels
         and priorities.
 
         Key features:
         - Creates tasks with Linear API integration and immediate persistence
         - Automatic task ID generation following Linear's naming conventions
-        - Epic/project assignment for organized task management  
+        - Epic/project assignment for organized task management
         - Extensible design for future label and priority support
         - Returns complete created task object for verification and reference
 
@@ -46,11 +46,11 @@ def register(server) -> int:
 
         Usage Guidance and Task Creation Best Practices:
 
-        IMPORTANT: Tasks are created with Linear's default status ("todo") which maps to Alfred's 
-        "pending" status. Use update_task_status immediately after creation if you need a different 
+        IMPORTANT: Tasks are created with Linear's default status ("todo") which maps to Alfred's
+        "pending" status. Use update_task_status immediately after creation if you need a different
         initial status.
 
-        CRITICAL: The title parameter is the only required field. However, providing a clear 
+        CRITICAL: The title parameter is the only required field. However, providing a clear
         description significantly improves task usefulness and reduces ambiguity for team members.
 
         Epic Assignment Guidelines:
@@ -61,7 +61,7 @@ def register(server) -> int:
 
         Field Limitations (Current Implementation):
         - assignee_id: Parameter accepted but assignment not yet implemented
-        - labels: Parameter accepted but label assignment not yet implemented  
+        - labels: Parameter accepted but label assignment not yet implemented
         - priority: Parameter accepted but priority setting not yet implemented
         - These fields are preserved for future versions - they won't cause errors
 
@@ -72,29 +72,29 @@ def register(server) -> int:
         - Create atomic tasks that can be completed in reasonable timeframes
 
         Args:
-            title: Task title that clearly describes the work to be done. Should be concise but 
-                specific enough to understand the scope. Examples: "Implement user login validation", 
-                "Fix password reset email template", "Add error handling for API timeouts". Avoid 
-                vague titles like "Fix stuff" or "Update code". Maximum length follows Linear's 
+            title: Task title that clearly describes the work to be done. Should be concise but
+                specific enough to understand the scope. Examples: "Implement user login validation",
+                "Fix password reset email template", "Add error handling for API timeouts". Avoid
+                vague titles like "Fix stuff" or "Update code". Maximum length follows Linear's
                 limits (typically 255 characters).
-            description: Detailed description of the task including technical requirements, acceptance 
-                criteria, or implementation notes. Supports markdown formatting. Include context that 
-                helps team members understand the work without additional research. Default: empty string. 
+            description: Detailed description of the task including technical requirements, acceptance
+                criteria, or implementation notes. Supports markdown formatting. Include context that
+                helps team members understand the work without additional research. Default: empty string.
                 Can be updated later using update_task tool.
-            epic_id: Linear project/epic ID to assign this task to. Must be a valid project ID accessible 
-                to your team. Use list_projects tool to discover available epic IDs. Format example: 
-                "PROJ_abc123def". Default: task goes to team's default backlog. Invalid epic IDs will 
+            epic_id: Linear project/epic ID to assign this task to. Must be a valid project ID accessible
+                to your team. Use list_projects tool to discover available epic IDs. Format example:
+                "PROJ_abc123def". Default: task goes to team's default backlog. Invalid epic IDs will
                 cause task creation to fail.
-            assignee_id: User ID to assign task to. Currently accepted but assignment not yet implemented 
-                in Linear integration. Parameter preserved for future versions. Default: null (unassigned). 
+            assignee_id: User ID to assign task to. Currently accepted but assignment not yet implemented
+                in Linear integration. Parameter preserved for future versions. Default: null (unassigned).
                 Use Linear web interface for assignment until API integration is complete.
-            labels: Array of label names to apply to task. Currently accepted but labels not yet applied 
-                in Linear integration. Parameter preserved for future versions. Default: empty list. 
-                Example: ["bug", "frontend", "high-priority"]. Use Linear web interface for labeling 
+            labels: Array of label names to apply to task. Currently accepted but labels not yet applied
+                in Linear integration. Parameter preserved for future versions. Default: empty list.
+                Example: ["bug", "frontend", "high-priority"]. Use Linear web interface for labeling
                 until API integration is complete.
-            priority: Task priority level. Currently accepted but priority not yet set in Linear integration. 
-                Parameter preserved for future versions. Valid values: "low", "medium", "high", "urgent". 
-                Default: null (Linear default). Use Linear web interface for priority setting until API 
+            priority: Task priority level. Currently accepted but priority not yet set in Linear integration.
+                Parameter preserved for future versions. Valid values: "low", "medium", "high", "urgent".
+                Default: null (Linear default). Use Linear web interface for priority setting until API
                 integration is complete.
 
         Returns:
@@ -109,7 +109,7 @@ def register(server) -> int:
             epic_id=epic_id,
             assignee_id=assignee_id,
             labels=labels,
-            priority=priority
+            priority=priority,
         )
 
     return 1

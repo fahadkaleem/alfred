@@ -1161,8 +1161,10 @@ class IssueManager(BaseManager[LinearIssue]):
         if issue.assigneeId is not None:
             input_vars["assigneeId"] = issue.assigneeId
 
-        # Convert projectName to projectId if provided
-        if issue.projectName is not None:
+        # Handle project - use projectId directly if provided, otherwise convert projectName
+        if issue.projectId is not None:
+            input_vars["projectId"] = issue.projectId
+        elif issue.projectName is not None:
             project_id = self.client.projects.get_id_by_name(issue.projectName, team_id)
             input_vars["projectId"] = project_id
 

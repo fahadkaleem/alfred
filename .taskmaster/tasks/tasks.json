@@ -302,7 +302,7 @@
         "description": "Create the AI-powered tool to parse specifications and generate tasks as defined in design_docs/alfred/tools/02-task-creation/create_tasks_from_spec.md",
         "details": "## Implementation Details\nReference: design_docs/alfred/PRD.md (lines 167-168)\n\nCreate in src/alfred/tools/task_creation.py:\n- create_tasks_from_spec tool\n- Parse PRD/specification documents\n- Use AI to generate tasks\n- Create tasks in Linear\n\nRequirements:\n1. Accept spec_content and num_tasks parameters\n2. Use Anthropic AI to analyze specification\n3. Generate structured task list\n4. Create epic in Linear if needed\n5. Batch create tasks via Linear API\n6. Handle large specifications (chunking)\n\n## AI Prompt Structure:\n- Extract key requirements\n- Generate actionable tasks\n- Assign priorities\n- Suggest dependencies\n- Create clear descriptions",
         "testStrategy": "## Test Instructions\n1. Test with sample PRD document\n2. Verify AI generates appropriate tasks\n3. Test task creation in Linear\n4. Validate epic creation if needed\n5. Test with various spec formats (MD, TXT)\n6. Test error handling for API failures\n\n## Success Criteria\n- [ ] Parses specifications correctly\n- [ ] AI generates quality tasks\n- [ ] Tasks created in Linear\n- [ ] Handles large documents\n- [ ] Maintains task relationships",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           1,
           2,
@@ -317,7 +317,7 @@
             "description": "Create reusable schemas and helper functions to parse spec content, chunk large inputs, normalize AI outputs, and merge results. These utilities will be used by the tool and the AI orchestration layer.",
             "dependencies": [],
             "details": "Implement in src/alfred/tools/_task_creation_utils.py:\n- Pydantic models:\n  - TaskSuggestion { title:str, description:str, priority:Literal['P0','P1','P2','P3'], labels:List[str]=[], dependencies:List[str]=[], estimate:Optional[int], acceptance_criteria:List[str]=[] }\n  - EpicSuggestion { title:str, description:str, create_epic:bool }\n  - GenerationResult { epic:Optional[EpicSuggestion], tasks:List[TaskSuggestion] }\n- Chunking utilities:\n  - estimate_tokens(text:str) -> int: use anthropic counting if available (from ai client) else heuristic len(text)/4.\n  - chunk_markdown(text:str, target_tokens:int=3000, overlap_tokens:int=200) -> List[str]: split by headings/paragraphs; ensure overlap for context continuity; support MD and TXT.\n- Parsing and normalization:\n  - safe_extract_json(text:str) -> dict: extract JSON from plain text or code-fenced blocks; strip trailing commas; guard against JSON5 features.\n  - parse_ai_response(payload:Union[str,dict]) -> GenerationResult: validate via Pydantic; coerce priorities to P0-P3; ensure descriptions present; backfill acceptance criteria.\n- Merging/deduplication:\n  - merge_task_candidates(candidates:List[TaskSuggestion], limit:int, complexity:Optional[dict]) -> List[TaskSuggestion]: normalize titles (lowercase, strip punctuation), deduplicate by normalized title, weight by AI-provided priority and complexity recommendations, then truncate to 'limit'.\n- Priority mappings & helpers:\n  - map_priority_to_linear(priority:str) -> int: e.g., P0->3, P1->2, P2->1, P3->0 (adjust if your Linear config differs).\n  - load_complexity_report(path:str='.alfred/reports/complexity.json') -> Optional[dict]: used to nudge priorities and estimates if present.\nUpdate src/alfred/tools/task_creation.py to import these utilities for later subtasks.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests in tests/tools/test_task_creation_utils.py:\n- chunk_markdown splits long MD (>50k chars) into chunks under the token target with overlaps.\n- safe_extract_json parses JSON within code fences and fixes minor format issues.\n- parse_ai_response validates and normalizes priority values; raises on invalid schema.\n- merge_task_candidates deduplicates near-identical titles, respects limit, and boosts high-complexity items when complexity_report is provided."
           },
           {
@@ -328,7 +328,7 @@
               "5.1"
             ],
             "details": "Implementation:\n- Add/create prompt template in src/alfred/ai_services/prompts.py:\n  - create_tasks_from_spec_prompt(system): instruct as senior PM; require strict JSON with schemas for EpicSuggestion and TaskSuggestion; include sections: extract key requirements, generate actionable tasks, assign priorities, suggest dependencies, write clear descriptions and acceptance criteria.\n  - Include explicit JSON schema example and a note: 'Respond ONLY with JSON'.\n- In src/alfred/tools/task_creation_ai.py (new) or within task_creation.py if preferred, implement:\n  - async def generate_task_plan(spec_content:str, num_tasks:int, anthropic_client, complexity:Optional[dict]) -> GenerationResult\n    Steps:\n    1) Use chunk_markdown to split spec_content.\n    2) For each chunk, call anthropic_client.complete/messages with the prompt; parse each response via parse_ai_response.\n    3) Aggregate all TaskSuggestion lists; union any EpicSuggestion flags (if any chunk proposes create_epic=True, carry forward the most complete epic info).\n    4) If multiple chunks, run a synthesis call: provide the aggregated candidates and ask the model to consolidate, deduplicate, and rank to 'num_tasks'.\n    5) Validate final JSON with Pydantic and return GenerationResult.\n- Robustness:\n  - Implement retry with exponential backoff (e.g., tenacity) for rate limits (HTTP 429) and transient errors.\n  - Add guardrail: if model returns non-JSON, use safe_extract_json; if parsing fails, re-prompt with 'You returned invalid JSON, here is the error... please fix'.\n  - Track token usage via the Anthropic client if available and log with debug level.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Tests in tests/tools/test_task_creation_ai.py with mocked Anthropic client:\n- Single-chunk spec returns valid GenerationResult with <= num_tasks.\n- Multi-chunk spec triggers synthesis and deduplication.\n- Invalid JSON on first try gets corrected via re-prompt.\n- Rate limit errors trigger retries with backoff.\n- Complexity report nudges priorities upward for complex areas."
           },
           {
@@ -340,7 +340,7 @@
               "5.2"
             ],
             "details": "Implementation in src/alfred/tools/_linear_task_creation.py (new helper) using existing Linear client/adapter if available (e.g., src/alfred/integrations/linear_client.py):\n- Config: read Linear API key, team ID, and workspace from alfred config (see tasks 4/7). Validate presence; surface clear errors if missing.\n- Epic helpers:\n  - async def ensure_epic_if_needed(epic:Optional[EpicSuggestion], team_id:str) -> Optional[dict]:\n    - If epic is None or epic.create_epic is False, return None.\n    - Search by title; if not found, create the epic (Project or Issue with parent type depending on your Linear setup). Return {id,title,url}.\n- Task creation:\n  - def task_to_issue_input(t:TaskSuggestion, team_id:str, epic_id:Optional[str]) -> dict: map fields, including priority via map_priority_to_linear, labels, estimate, and parent=epic_id if present.\n  - async def batch_create_tasks(tasks:List[TaskSuggestion], team_id:str, epic_id:Optional[str]) -> List[dict]:\n    - Create in batches of 10-20 with asyncio.Semaphore to limit concurrency.\n    - On partial failures, retry failed items individually; collect errors for reporting.\n    - Return list of created issues: {id, title, url, priority} preserving order.\n- Error handling: classify Linear errors (auth, validation, rate limit) and apply retries/backoff for transient ones; fail gracefully with actionable messages.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Tests in tests/tools/test_linear_task_creation.py with mocked Linear API:\n- ensure_epic_if_needed creates epic when requested and returns existing when title matches.\n- batch_create_tasks creates all tasks; verify priority mapping and epic association.\n- Partial failure retries: simulate one failure in a batch and ensure it is retried and reported.\n- Auth error surfaces a clear exception; missing config yields a helpful message."
           },
           {
@@ -353,7 +353,7 @@
               "5.3"
             ],
             "details": "Implementation in src/alfred/tools/task_creation.py:\n- Define the MCP tool:\n  - from fastmcp import server\n  - @server.tool(name='create_tasks_from_spec', description='Analyze a PRD/spec and create tasks in Linear')\n  - async def create_tasks_from_spec(spec_content:str, num_tasks:int) -> dict\n- Orchestration steps:\n  1) Validate inputs (non-empty spec_content, 1<=num_tasks<=100).\n  2) Optionally load complexity report from .alfred/reports/complexity.json.\n  3) Initialize Anthropic client via ai_services.anthropic_client and call generate_task_plan(spec_content, num_tasks, client, complexity).\n  4) If the plan suggests an epic, call ensure_epic_if_needed to create or fetch epic.\n  5) Call batch_create_tasks to create Linear issues; capture mapping from TaskSuggestion.title -> created issue id/url/priority.\n  6) Build and return a structured response: {\n       'epic': {id,title,url} | None,\n       'tasks': [{id,title,url,priority,dependencies: original textual deps}],\n       'summary': { 'requested': num_tasks, 'created': len(tasks), 'skipped': num_tasks-len(tasks), 'teamId': team_id }\n     }\n- Logging & observability: log token usage (if available), chunk counts, and Linear operation timings at debug level.\n- Do not add extra input parameters; read optional context (complexity report) implicitly if present.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Integration-style test in tests/tools/test_create_tasks_from_spec_tool.py with mocked Anthropic and Linear:\n- Happy path: returns epic and the requested number of tasks with URLs.\n- No-epic path: plan sets create_epic=False and epic remains None.\n- Validation: empty spec_content or invalid num_tasks returns descriptive error.\n- Large spec triggers chunking and still returns successfully."
           },
           {
@@ -367,7 +367,7 @@
               "5.4"
             ],
             "details": "Implementation:\n- Dependency linking:\n  - After tasks are created in the tool flow, resolve TaskSuggestion.dependencies by mapping textual references to created issues (match by normalized title; additionally support ordinal references like '#1' or 'T1' based on order). Create relations via Linear (issueRelationCreate) as 'blocks/blockedBy'. Handle missing matches by skipping and recording a warning in the response 'summary'.\n- Large-spec hardening:\n  - Ensure chunk_markdown enforces strict token ceilings (e.g., <= 3500 tokens per chunk for Claude 3 Haiku/Sonnet compatibility); adjust overlap dynamically when input is extremely large.\n  - Add guard for total chunks > 50: switch to two-pass map-reduce (outline first, then detail only top sections) to control cost.\n- Error handling:\n  - Centralize retries/backoff for both Anthropic and Linear; set sane max retries (e.g., 3) and jitter.\n  - Return partial successes with a 'errors' array in the tool response.\n- Update tool response to include dependency link results per task: dependencies_resolved: [{'from':taskId,'to':depId}].",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "End-to-end tests in tests/e2e/test_create_tasks_from_spec_e2e.py with mocks and sample PRDs:\n- Markdown and plain text specs both work.\n- Very large spec (>200k chars) triggers two-pass map-reduce and completes within limits.\n- Dependency suggestions result in Linear relations being created; unresolved dependencies are reported but do not fail the run.\n- Simulate Linear and Anthropic transient failures to verify retries and partial success reporting."
           }
         ]
@@ -1211,7 +1211,7 @@
     ],
     "metadata": {
       "created": "2025-08-24T05:16:48.582Z",
-      "updated": "2025-08-26T02:44:34.431Z",
+      "updated": "2025-08-27T21:38:55.477Z",
       "description": "Tasks for master context"
     }
   }

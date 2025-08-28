@@ -170,7 +170,7 @@ class LinearAdapter(TaskAdapter):
         Args:
             title: Task title
             description: Task description
-            epic_id: Project ID to add the task to (not used directly as we use project name)
+            epic_id: Project ID to add the task to
 
         Returns:
             Created task as TaskDict
@@ -184,8 +184,9 @@ class LinearAdapter(TaskAdapter):
                 title=title,
                 description=description or "",
                 teamName=self.team_name,
-                projectName=self.default_project_name,
                 priority=LinearPriority.MEDIUM,
+                projectId=epic_id if epic_id else None,
+                projectName=self.default_project_name if not epic_id else None,
             )
 
             # Create issue in Linear
@@ -659,18 +660,18 @@ class LinearAdapter(TaskAdapter):
                         if team.name == self.team_name:
                             team_id = tid
                             break
-                
+
                 if not team_id:
                     # Use first available team as fallback
                     teams = self.client.teams.get_all()
                     team_id = list(teams.keys())[0] if teams else None
-                    
+
                 if not team_id:
                     raise APIResponseError("No teams found to discover workflow states")
 
             # Use the workflow manager to get states
             team_states = self.client.workflow_states.discover_team_states(team_id)
-            
+
             # Convert to the expected format for backward compatibility
             return {
                 "team_id": team_states.team_id,
@@ -678,9 +679,9 @@ class LinearAdapter(TaskAdapter):
                 "states": [state.model_dump() for state in team_states.states],
                 "state_names": team_states.state_names,
                 "discovered_at": team_states.discovered_at.isoformat(),
-                "alfred_mappings": team_states.alfred_mappings
+                "alfred_mappings": team_states.alfred_mappings,
             }
-            
+
         except Exception as e:
             error_str = str(e)
             if "401" in error_str or "unauthorized" in error_str.lower():

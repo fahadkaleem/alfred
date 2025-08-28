@@ -336,6 +336,7 @@ class LinearIssueInput(LinearModel):
     stateName: Optional[str] = None
     assigneeId: Optional[str] = None
     projectName: Optional[str] = None
+    projectId: Optional[str] = None
     labelIds: Optional[List[str]] = None
     dueDate: Optional[datetime] = None
     parentId: Optional[str] = None

@@ -13,8 +13,8 @@ def register(server) -> int:
         """
         Change a task's status with Alfred to Linear status mapping.
 
-        This tool updates a task's status in Linear, automatically mapping Alfred status 
-        values to the corresponding Linear workflow states. It provides input validation 
+        This tool updates a task's status in Linear, automatically mapping Alfred status
+        values to the corresponding Linear workflow states. It provides input validation
         and detailed error reporting for invalid operations.
 
         Key features:
@@ -38,8 +38,8 @@ def register(server) -> int:
 
         Usage Guidance and Workflow Context:
 
-        IMPORTANT: Alfred enforces strict input validation. Only these 4 status values are 
-        accepted: "pending", "in_progress", "done", "cancelled". Any other values will return 
+        IMPORTANT: Alfred enforces strict input validation. Only these 4 status values are
+        accepted: "pending", "in_progress", "done", "cancelled". Any other values will return
         a detailed error explaining valid options.
 
         CRITICAL WORKFLOW CONSIDERATIONS:
@@ -66,13 +66,13 @@ def register(server) -> int:
         - Linear API errors: Returns error with Linear's specific error message
 
         Args:
-            task_id: Linear task/issue ID to update. Must be a valid existing task ID in your 
-                workspace. Format examples: "AUTH-123", "PROJ-456", "LOGIN-789". Task IDs are 
-                case-sensitive and must match exactly. Use get_tasks or list_projects to discover 
+            task_id: Linear task/issue ID to update. Must be a valid existing task ID in your
+                workspace. Format examples: "AUTH-123", "PROJ-456", "LOGIN-789". Task IDs are
+                case-sensitive and must match exactly. Use get_tasks or list_projects to discover
                 valid task IDs if unsure.
-            status: New Alfred status to assign to the task. Must be exactly one of: "pending", 
-                "in_progress", "done", "cancelled". Case-sensitive - use lowercase only. Invalid 
-                values return detailed error with list of valid statuses. Status is automatically 
+            status: New Alfred status to assign to the task. Must be exactly one of: "pending",
+                "in_progress", "done", "cancelled". Case-sensitive - use lowercase only. Invalid
+                values return detailed error with list of valid statuses. Status is automatically
                 mapped to corresponding Linear workflow state.
 
         Returns:
@@ -84,18 +84,16 @@ def register(server) -> int:
         # Validate status first
         if status not in VALID_ALFRED_STATUSES:
             return {
-                'error': 'invalid_status',
-                'message': f'Status must be one of: {VALID_ALFRED_STATUSES}',
-                'provided': status,
-                'valid_statuses': VALID_ALFRED_STATUSES
+                "error": "invalid_status",
+                "message": f"Status must be one of: {VALID_ALFRED_STATUSES}",
+                "provided": status,
+                "valid_statuses": VALID_ALFRED_STATUSES,
             }
-        
+
         config = get_config()
 
         return update_task_status_logic(
-            api_key=config.linear_api_key,
-            task_id=task_id,
-            status=status
+            api_key=config.linear_api_key, task_id=task_id, status=status
         )
 
     return 1

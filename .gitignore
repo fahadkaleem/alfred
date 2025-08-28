@@ -31,7 +31,8 @@ node_modules/
 # OS specific
 .DS_Store
 
+/examplecode/
+
 # Task files
 # tasks.json
 # tasks/ 
-/examplecode/

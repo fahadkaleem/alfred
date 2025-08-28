@@ -4,37 +4,40 @@ from datetime import datetime
 from typing import Dict, List, Optional, Literal, Any
 from pydantic import BaseModel
 
-AlfredTaskStatus = Literal['pending', 'in_progress', 'done', 'cancelled']
+AlfredTaskStatus = Literal["pending", "in_progress", "done", "cancelled"]
 
 
 class WorkspaceConfig(BaseModel):
     """Workspace configuration model."""
+
     api_key: str
     workspace_id: Optional[str] = None
     team_id: Optional[str] = None
 
+
 # Supported Alfred statuses (hardcoded for now, will be dynamic in future)
-VALID_ALFRED_STATUSES = ['pending', 'in_progress', 'done', 'cancelled']
+VALID_ALFRED_STATUSES = ["pending", "in_progress", "done", "cancelled"]
 
 # Simple normalized mappings - all comparisons done in lowercase
 STATUS_LINEAR_TO_ALFRED = {
-    'backlog': 'pending',
-    'todo': 'pending',
-    'in progress': 'in_progress',
-    'done': 'done',
-    'canceled': 'cancelled'
+    "backlog": "pending",
+    "todo": "pending",
+    "in progress": "in_progress",
+    "done": "done",
+    "canceled": "cancelled",
 }
 
 STATUS_ALFRED_TO_LINEAR = {
-    'pending': 'Backlog',
-    'in_progress': 'In Progress', 
-    'done': 'Done',
-    'cancelled': 'Canceled'
+    "pending": "Backlog",
+    "in_progress": "In Progress",
+    "done": "Done",
+    "cancelled": "Canceled",
 }
 
 
 class AlfredTask(BaseModel):
     """Structured task response model."""
+
     id: str
     title: str
     description: Optional[str] = None
@@ -50,6 +53,7 @@ class AlfredTask(BaseModel):
 
 class TaskListResult(BaseModel):
     """Paginated task list response."""
+
     items: List[AlfredTask]
     page: int
     per_page: int
@@ -77,15 +81,23 @@ def map_status_alfred_to_linear(status: str) -> str:
 def to_alfred_task(task: Dict[str, Any]) -> AlfredTask:
     """Convert TaskDict to AlfredTask."""
     return AlfredTask(
-        id=task.get('id', ''),
-        title=task.get('title', ''),
-        description=task.get('description'),
-        status=map_status_linear_to_alfred(task.get('status', 'todo')),
-        epic_id=task.get('epic_id'),
+        id=task.get("id", ""),
+        title=task.get("title", ""),
+        description=task.get("description"),
+        status=map_status_linear_to_alfred(task.get("status", "todo")),
+        epic_id=task.get("epic_id"),
         assignee_id=None,
         labels=[],
         priority=None,
-        created_at=datetime.fromisoformat(task.get('created_at', '').replace('Z', '+00:00')) if task.get('created_at') else datetime.now(),
-        updated_at=datetime.fromisoformat(task.get('updated_at', '').replace('Z', '+00:00')) if task.get('updated_at') else datetime.now(),
-        url=task.get('url')
+        created_at=datetime.fromisoformat(
+            task.get("created_at", "").replace("Z", "+00:00")
+        )
+        if task.get("created_at")
+        else datetime.now(),
+        updated_at=datetime.fromisoformat(
+            task.get("updated_at", "").replace("Z", "+00:00")
+        )
+        if task.get("updated_at")
+        else datetime.now(),
+        url=task.get("url"),
     )

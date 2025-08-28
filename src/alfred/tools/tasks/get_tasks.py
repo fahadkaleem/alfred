@@ -13,13 +13,13 @@ def register(server) -> int:
         status: Optional[str] = None,
         epic_id: Optional[str] = None,
         page: int = 1,
-        per_page: int = 50
+        per_page: int = 50,
     ) -> dict:
         """
         List tasks with optional filters (status, epic) and pagination.
 
-        This tool retrieves tasks from Linear with filtering capabilities and structured 
-        pagination support. Tasks are automatically mapped from Linear's data model to 
+        This tool retrieves tasks from Linear with filtering capabilities and structured
+        pagination support. Tasks are automatically mapped from Linear's data model to
         Alfred's standardized task format.
 
         Key features:
@@ -42,11 +42,11 @@ def register(server) -> int:
 
         Usage Guidance:
 
-        IMPORTANT: This tool automatically maps Linear status names to Alfred's standardized 
-        format. You should always filter by Alfred status names (pending, in_progress, done, 
+        IMPORTANT: This tool automatically maps Linear status names to Alfred's standardized
+        format. You should always filter by Alfred status names (pending, in_progress, done,
         cancelled), never by Linear's internal names.
 
-        CRITICAL: The per_page parameter has a maximum limit of 100 items. For large datasets, 
+        CRITICAL: The per_page parameter has a maximum limit of 100 items. For large datasets,
         use pagination rather than requesting all items at once to avoid timeouts.
 
         When using status filtering:
@@ -67,23 +67,23 @@ def register(server) -> int:
 
         Status Mapping:
         - Linear: backlog/todo → Alfred: pending
-        - Linear: in_progress → Alfred: in_progress  
+        - Linear: in_progress → Alfred: in_progress
         - Linear: done → Alfred: done
         - Linear: canceled → Alfred: cancelled
 
         Args:
-            status: Comma-separated list of Alfred task statuses to filter by. Valid values: 
-                "pending", "in_progress", "done", "cancelled". Example: "pending,in_progress" 
-                returns tasks in either status. Default: returns all statuses. Case-insensitive 
+            status: Comma-separated list of Alfred task statuses to filter by. Valid values:
+                "pending", "in_progress", "done", "cancelled". Example: "pending,in_progress"
+                returns tasks in either status. Default: returns all statuses. Case-insensitive
                 but lowercase recommended. Invalid status names in the list are silently ignored.
-            epic_id: Filter by specific Linear project/epic ID. Must be a valid epic ID from 
-                your workspace. Use list_projects tool to discover available epic IDs. 
+            epic_id: Filter by specific Linear project/epic ID. Must be a valid epic ID from
+                your workspace. Use list_projects tool to discover available epic IDs.
                 Default: returns tasks from all epics. Empty string is treated as no filter.
-            page: Page number for pagination, starting at 1. Must be positive integer. 
-                Default: 1. Use with has_next response field to determine if more pages exist. 
+            page: Page number for pagination, starting at 1. Must be positive integer.
+                Default: 1. Use with has_next response field to determine if more pages exist.
                 Pages beyond available data return empty results without error.
-            per_page: Number of items per page, between 1-100. Default: 50. Higher values may 
-                cause slower response times. Consider using 25 for faster responses or 100 for 
+            per_page: Number of items per page, between 1-100. Default: 50. Higher values may
+                cause slower response times. Consider using 25 for faster responses or 100 for
                 fewer API calls when processing large datasets.
 
         Returns:
@@ -102,7 +102,7 @@ def register(server) -> int:
             status=status,
             epic_id=epic_id,
             page=page,
-            per_page=per_page
+            per_page=per_page,
         )
 
     return 1

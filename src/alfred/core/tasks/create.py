@@ -12,17 +12,13 @@ def create_task_logic(
     epic_id: Optional[str] = None,
     assignee_id: Optional[str] = None,
     labels: Optional[List[str]] = None,
-    priority: Optional[str] = None
+    priority: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Create new task in Linear."""
-    
+
     adapter = LinearAdapter(api_token=api_key)
-    
-    task = adapter.create_task(
-        title=title,
-        description=description,
-        epic_id=epic_id
-    )
-    
+
+    task = adapter.create_task(title=title, description=description, epic_id=epic_id)
+
     alfred_task = to_alfred_task(task)
     return alfred_task.model_dump()
