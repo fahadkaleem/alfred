@@ -68,7 +68,7 @@ class LinearAdapter(TaskAdapter):
         """
         try:
             task: TaskDict = {
-                "id": issue.identifier,
+                "id": issue.identifier if issue.identifier else issue.id,
                 "title": issue.title,
                 "description": issue.description,
                 "status": issue.state.name
@@ -306,12 +306,13 @@ class LinearAdapter(TaskAdapter):
             Updated task as TaskDict
         """
         try:
-            # Find the issue by identifier
+            # Find the issue by identifier or ID
             all_issues = self.client.issues.get_all()
             target_issue = None
 
             for issue_id, issue in all_issues.items():
-                if issue.identifier == task_id:
+                # Check both identifier (like "AL-146") and UUID
+                if issue.identifier == task_id or issue.id == task_id:
                     target_issue = issue
                     break
 
@@ -468,61 +469,13 @@ class LinearAdapter(TaskAdapter):
             raise ValidationError("Epic name cannot be empty")
 
         try:
-            # Create project in Linear
-            # Note: The linear-api library doesn't directly expose project creation
-            # We'll need to use GraphQL directly for this
-            query = """
-            mutation CreateProject($name: String!, $description: String, $teamIds: [String!]!) {
-                projectCreate(input: {name: $name, description: $description, teamIds: $teamIds}) {
-                    project {
-                        id
-                        name
-                        description
-                        url
-                        createdAt
-                        updatedAt
-                    }
-                    success
-                }
-            }
-            """
+            # Use LinearClient's ProjectManager to create the project
+            project = self.client.projects.create(
+                name=name.strip(), team_name=self.team_name, description=description
+            )
 
-            # Get team ID first
-            teams = self.client.teams.get_all()
-            team_id = None
-            for tid, team in teams.items():
-                if team.name == self.team_name:
-                    team_id = tid
-                    break
-
-            if not team_id:
-                # Use first available team
-                team_id = list(teams.keys())[0] if teams else None
-
-            if not team_id:
-                raise APIResponseError("No teams found")
-
-            variables = {
-                "name": name,
-                "description": description or "",
-                "teamIds": [team_id],
-            }
-
-            result = self.client.execute_graphql(query, variables)
-
-            if not result or not result.get("projectCreate", {}).get("success"):
-                raise APIResponseError("Failed to create project in Linear")
-
-            project = result["projectCreate"]["project"]
-
-            return {
-                "id": project["id"],
-                "name": project["name"],
-                "description": project.get("description"),
-                "url": project.get("url"),
-                "created_at": project.get("createdAt"),
-                "updated_at": project.get("updatedAt"),
-            }
+            # Transform LinearProject to EpicDict
+            return self._map_linear_project_to_epic(project)
 
         except ValidationError:
             raise
@@ -688,6 +641,114 @@ class LinearAdapter(TaskAdapter):
                 raise AuthError(f"Authentication failed: {e}")
             elif "not found" in error_str.lower() or "404" in error_str:
                 raise NotFoundError(f"Team {team_id or self.team_name} not found")
+            elif "network" in error_str.lower() or "connection" in error_str.lower():
+                raise APIConnectionError(f"Network error: {e}")
+            else:
+                raise APIResponseError(f"Linear API error: {e}")
+
+    def rename_epic(self, epic_id: str, new_name: str) -> EpicDict:
+        """Rename an epic (project in Linear).
+
+        Args:
+            epic_id: Epic/project ID
+            new_name: New name for the epic
+
+        Returns:
+            Updated epic as EpicDict
+        """
+        if not epic_id:
+            raise ValidationError("Epic ID cannot be empty")
+
+        if not new_name or not new_name.strip():
+            raise ValidationError("Epic name cannot be empty")
+
+        try:
+            # Use LinearClient's ProjectManager to update the project name
+            project = self.client.projects.update(
+                project_id=epic_id.strip(), name=new_name.strip()
+            )
+
+            # Transform LinearProject to EpicDict
+            return self._map_linear_project_to_epic(project)
+
+        except ValidationError:
+            raise
+        except Exception as e:
+            error_str = str(e)
+            if "401" in error_str or "unauthorized" in error_str.lower():
+                raise AuthError(f"Authentication failed: {e}")
+            elif (
+                "duplicate" in error_str.lower()
+                or "already exists" in error_str.lower()
+            ):
+                raise ValidationError(
+                    f"An epic with the name '{new_name}' already exists"
+                )
+            elif "network" in error_str.lower() or "connection" in error_str.lower():
+                raise APIConnectionError(f"Network error: {e}")
+            else:
+                raise APIResponseError(f"Linear API error: {e}")
+
+    def delete_epic(self, epic_id: str) -> bool:
+        """Archive/delete an epic (project in Linear).
+
+        Args:
+            epic_id: Epic/project ID to archive
+
+        Returns:
+            True if successful
+        """
+        if not epic_id:
+            raise ValidationError("Epic ID cannot be empty")
+
+        try:
+            # Use LinearClient's ProjectManager to delete (archive) the project
+            # Note: Linear's delete actually archives projects
+            return self.client.projects.delete(epic_id.strip())
+
+        except ValidationError:
+            raise
+        except Exception as e:
+            error_str = str(e)
+            if "401" in error_str or "unauthorized" in error_str.lower():
+                raise AuthError(f"Authentication failed: {e}")
+            elif "not found" in error_str.lower():
+                raise NotFoundError(f"Epic with ID '{epic_id}' not found")
+            elif "network" in error_str.lower() or "connection" in error_str.lower():
+                raise APIConnectionError(f"Network error: {e}")
+            else:
+                raise APIResponseError(f"Linear API error: {e}")
+
+    def get_epic_tasks(self, epic_id: str) -> List[Dict[str, Any]]:
+        """Get all tasks in an epic/project.
+
+        Args:
+            epic_id: Epic/project ID
+
+        Returns:
+            List of tasks in the epic
+        """
+        if not epic_id:
+            raise ValidationError("Epic ID cannot be empty")
+
+        try:
+            # Use LinearClient's IssueManager to get issues for this project
+            issues = self.client.issues.get_by_project(epic_id.strip())
+
+            # Transform LinearIssues to TaskDicts
+            tasks = []
+            for issue_id, issue in issues.items():
+                task = self._map_linear_issue_to_task(issue)
+                # Add epic_id to the task
+                task["epic_id"] = epic_id
+                tasks.append(task)
+
+            return tasks
+
+        except Exception as e:
+            error_str = str(e)
+            if "401" in error_str or "unauthorized" in error_str.lower():
+                raise AuthError(f"Authentication failed: {e}")
             elif "network" in error_str.lower() or "connection" in error_str.lower():
                 raise APIConnectionError(f"Network error: {e}")
             else:

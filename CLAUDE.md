@@ -257,9 +257,89 @@ mock_provider.complete = AsyncMock(return_value=mock_response)
 service = AIService(custom_provider=mock_provider)
 ```
 
-## Linear Integration
+## Linear Integration & Architecture
 
-The project uses the `linear-api` Python package for Linear integration:
+### CRITICAL: Clean Architecture Rules
+
+**NEVER put GraphQL queries outside of `src/alfred/clients/linear/`!** The architecture strictly separates concerns:
+
+#### Layer Responsibilities
+
+1. **Client Layer** (`src/alfred/clients/linear/`)
+   - **OWNS**: ALL GraphQL queries and mutations
+   - **Location**: `src/alfred/clients/linear/managers/`
+   - **Purpose**: Direct Linear API communication
+   - **Returns**: Linear domain models (`LinearProject`, `LinearIssue`, etc.)
+   - **Example files**:
+     - `managers/project_manager.py` - Project/Epic CRUD with GraphQL
+     - `managers/issue_manager.py` - Issue/Task CRUD with GraphQL
+     - `managers/team_manager.py` - Team operations with GraphQL
+
+2. **Adapter Layer** (`src/alfred/adapters/`)
+   - **OWNS**: Data transformation ONLY
+   - **Location**: `src/alfred/adapters/linear_adapter.py`
+   - **Purpose**: Transform between Linear models ↔ Alfred models
+   - **NEVER**: Contains GraphQL queries or direct API calls
+   - **ALWAYS**: Uses `self.client` (LinearClient) for all operations
+   - **Example transformations**:
+     ```python
+     # CORRECT: Use client, transform result
+     def create_epic(self, name: str) -> EpicDict:
+         project = self.client.projects.create(name=name)  # Client does API call
+         return self._map_linear_project_to_epic(project)  # Adapter transforms
+     
+     # WRONG: GraphQL in adapter
+     def create_epic(self, name: str) -> EpicDict:
+         query = "mutation { ... }"  # NEVER DO THIS IN ADAPTER!
+     ```
+
+3. **Core Business Logic** (`src/alfred/core/`)
+   - **OWNS**: Business rules and validation
+   - **Location**: `src/alfred/core/<domain>/<operation>.py`
+   - **Purpose**: Platform-agnostic business logic
+   - **NEVER**: Imports from `clients/linear/`
+   - **ALWAYS**: Uses adapter interfaces
+   - **Example files**:
+     - `core/epics/create.py` - Epic creation business logic
+     - `core/tasks/update.py` - Task update business logic
+
+### Data Flow
+
+```
+User Request
+    ↓
+MCP Tool (`src/alfred/tools/`)
+    ↓
+Business Logic (`src/alfred/core/`) - Platform agnostic
+    ↓
+Adapter (`src/alfred/adapters/`) - Transform only, NO GraphQL!
+    ↓
+Client (`src/alfred/clients/linear/`) - ALL GraphQL here
+    ↓
+Linear API
+```
+
+### File Placement Rules
+
+| What | Where | Example |
+|------|-------|---------|
+| GraphQL queries/mutations | `clients/linear/managers/` | `project_manager.py` |
+| Linear domain models | `clients/linear/domain/` | `project_models.py` |
+| Model transformations | `adapters/linear_adapter.py` | `_map_linear_project_to_epic()` |
+| Business logic | `core/<domain>/` | `core/epics/create.py` |
+| MCP tool wrappers | `tools/<domain>/` | `tools/epics/create_epic.py` |
+
+### Common Mistakes to Avoid
+
+❌ **NEVER**: Put GraphQL in LinearAdapter
+❌ **NEVER**: Import LinearClient in core business logic
+❌ **NEVER**: Transform data in the client layer
+❌ **NEVER**: Put business rules in the adapter
+
+✅ **ALWAYS**: Keep GraphQL in client managers
+✅ **ALWAYS**: Use adapter for transformations only
+✅ **ALWAYS**: Keep business logic platform-agnostic
+✅ **ALWAYS**: Test each layer independently
 
 ### Configuration
 - Set `LINEAR_API_KEY` in `.env` file

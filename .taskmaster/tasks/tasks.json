@@ -527,7 +527,7 @@
         "description": "Create epic/project management tools as defined in design_docs/alfred/PRD.md",
         "details": "Reference: design_docs/alfred/PRD.md (lines 119-125 & 159-165)\n\nCreate in src/alfred/tools/epic_management.py:\n- create_epic - Create new Epic/Project\n- list_epics - View all Epics/Projects  \n- switch_epic - Change active Epic context\n- rename_epic - Rename Epic/Project\n- duplicate_epic - Copy Epic with all tasks\n- delete_epic - Remove Epic/Project\n\nRequirements:\n1. Use FastMCP @server.tool() decorators\n2. Map Linear Projects to Alfred Epics\n3. Store active epic in config\n4. Support epic duplication with tasks\n5. Handle epic deletion safely",
         "testStrategy": "## Test Instructions\n1. Test epic creation with various inputs\n2. Test listing epics with pagination\n3. Test switching active epic context\n4. Test rename operation\n5. Test duplication with tasks\n6. Test deletion with confirmation\n\n## Success Criteria\n- [ ] All epic operations working\n- [ ] Active epic persisted in config\n- [ ] Duplication preserves task structure\n- [ ] Deletion handles dependencies\n- [ ] Error handling robust",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           1,
           2,
@@ -541,7 +541,7 @@
             "title": "Implement list_epics tool",
             "description": "Create the list_epics MCP tool to fetch all Linear Projects (mapped as epics) in the workspace.\n\n**Design Reference:** design_docs/alfred/PRD.md lines 159-164\n**Acceptance Criteria:**\n- Tool returns all Linear Projects in the workspace\n- Each epic includes: id, name, description, task count, created_at\n- Properly maps Linear Project → Alfred Epic concept\n- Returns structured JSON response via MCP\n\n**Test Instructions:**\n1. Mock Linear GraphQL response with 3 sample projects\n2. Call list_epics tool\n3. Verify response contains all projects with correct fields\n4. Test empty workspace case\n5. Test API error handling",
             "details": "",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "parentTaskId": 8
           },
@@ -550,7 +550,7 @@
             "title": "Implement create_epic tool",
             "description": "Create the create_epic MCP tool to create a new Linear Project (mapped as epic).\n\n**Design Reference:** design_docs/alfred/PRD.md lines 159-164\n**Acceptance Criteria:**\n- Tool creates a new Linear Project via GraphQL mutation\n- Accepts: name (required), description (optional), color (optional)\n- Returns created epic with id, name, and creation timestamp\n- Validates name is not empty\n- Handles duplicate name errors gracefully\n\n**Test Instructions:**\n1. Mock successful Linear Project creation mutation\n2. Call create_epic with valid name and description\n3. Verify returned epic has generated ID and matches input\n4. Test duplicate name error case\n5. Test missing required name parameter\n6. Test with optional color parameter",
             "details": "",
-            "status": "pending",
+            "status": "done",
             "dependencies": [
               "8.1"
             ],
@@ -561,7 +561,7 @@
             "title": "Implement switch_epic tool",
             "description": "Create the switch_epic MCP tool to change the active epic context for task operations.\n\n**Design Reference:** design_docs/alfred/PRD.md lines 159-164, architecture.md lines 221-223\n**Acceptance Criteria:**\n- Tool updates active_epic_id in .alfred/config.json\n- Validates epic exists in Linear before switching\n- Returns confirmation with new active epic details\n- Persists change immediately to config file\n- Handles non-existent epic ID gracefully\n\n**Test Instructions:**\n1. Create mock config with existing epic\n2. Call switch_epic with valid epic ID\n3. Verify config.json updated with new active_epic_id\n4. Test switching to non-existent epic (should fail)\n5. Test persistence across tool invocations\n6. Test atomic write to prevent corruption",
             "details": "",
-            "status": "pending",
+            "status": "done",
             "dependencies": [
               "8.1"
             ],
@@ -572,7 +572,7 @@
             "title": "Implement rename_epic tool",
             "description": "Create the rename_epic MCP tool to rename an existing Linear Project (epic).\n\n**Design Reference:** design_docs/alfred/PRD.md lines 159-164\n**Acceptance Criteria:**\n- Tool updates Linear Project name via GraphQL mutation\n- Accepts: epic_id, new_name (required)\n- Validates epic exists before renaming\n- Returns updated epic with new name\n- Handles duplicate name conflicts\n\n**Test Instructions:**\n1. Mock Linear Project update mutation\n2. Call rename_epic with valid ID and new name\n3. Verify mutation called with correct parameters\n4. Test renaming non-existent epic\n5. Test duplicate name error handling\n6. Verify response contains updated epic details",
             "details": "",
-            "status": "pending",
+            "status": "done",
             "dependencies": [
               "8.1"
             ],
@@ -583,7 +583,7 @@
             "title": "Implement duplicate_epic tool",
             "description": "Create the duplicate_epic MCP tool to copy a Linear Project with all its tasks.\n\n**Design Reference:** design_docs/alfred/PRD.md lines 159-164\n**Acceptance Criteria:**\n- Tool creates new Linear Project with copied name + \" (Copy)\"\n- Copies all tasks from source epic to new epic\n- Preserves task descriptions, priorities, labels\n- Does NOT copy task status (all start as \"todo\")\n- Returns new epic with task count\n\n**Test Instructions:**\n1. Mock Linear Project query and creation mutations\n2. Mock task listing and batch creation\n3. Call duplicate_epic with source epic containing 3 tasks\n4. Verify new epic created with correct name\n5. Verify all tasks copied with correct attributes\n6. Test empty epic duplication\n7. Test handling of large task counts (pagination)",
             "details": "",
-            "status": "pending",
+            "status": "done",
             "dependencies": [
               "8.1",
               "8.2"
@@ -595,7 +595,7 @@
             "title": "Implement delete_epic tool",
             "description": "Create the delete_epic MCP tool to remove a Linear Project and optionally its tasks.\n\n**Design Reference:** design_docs/alfred/PRD.md lines 159-164\n**Acceptance Criteria:**\n- Tool deletes Linear Project via GraphQL mutation\n- Accepts: epic_id, delete_tasks (boolean, default false)\n- If delete_tasks=true, deletes all tasks in epic first\n- If delete_tasks=false and epic has tasks, returns error\n- Confirms deletion before executing\n- Cannot delete the last epic in workspace\n\n**Test Instructions:**\n1. Mock Linear Project deletion mutation\n2. Test deleting empty epic (should succeed)\n3. Test deleting epic with tasks, delete_tasks=false (should fail)\n4. Test deleting epic with tasks, delete_tasks=true (should succeed)\n5. Test attempting to delete last epic (should fail)\n6. Verify confirmation prompt behavior\n7. Test cascade deletion of tasks",
             "details": "",
-            "status": "pending",
+            "status": "done",
             "dependencies": [
               "8.1"
             ],
@@ -1211,7 +1211,7 @@
     ],
     "metadata": {
       "created": "2025-08-24T05:16:48.582Z",
-      "updated": "2025-08-27T21:38:55.477Z",
+      "updated": "2025-08-28T01:16:48.539Z",
       "description": "Tasks for master context"
     }
   }
