@@ -657,7 +657,7 @@
         "description": "Create AI-powered task breakdown tools as defined in design_docs/alfred/tools/02-task-creation/",
         "details": "Reference: design_docs/alfred/PRD.md (lines 169-171) & design_docs/alfred/tools/02-task-creation/decompose_task.md\n\nCreate in src/alfred/tools/task_decomposition.py:\n- decompose_task - Break task into subtasks\n- decompose_all_tasks - Batch decomposition\n\nRequirements:\n1. Use AI to analyze task and suggest subtasks\n2. Create 3-7 subtasks based on complexity\n3. Maintain parent-child relationships\n4. Support batch operations\n5. Preserve context and dependencies",
         "testStrategy": "## Test Instructions\n1. Test single task decomposition\n2. Test batch decomposition\n3. Test subtask quality\n4. Test relationship preservation\n5. Test with various task types\n\n## Success Criteria\n- [ ] Quality subtask generation\n- [ ] Appropriate granularity\n- [ ] Context preservation\n- [ ] Batch efficiency\n- [ ] Error handling",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           1,
           2,
@@ -671,7 +671,7 @@
             "title": "Implement decompose_task tool",
             "description": "Create the decompose_task MCP tool to break tasks into subtasks using AI.\n\n**Design Reference:** design_docs/alfred/PRD.md lines 168-171, tools/02-task-creation/decompose_task.md\n**Acceptance Criteria:**\n- Tool sends task to Anthropic for decomposition\n- Accepts: task_id, num_subtasks (optional, default 3-5)\n- Creates Linear sub-issues under parent task\n- Each subtask has clear title and description\n- Preserves parent epic and labels\n- Returns created subtasks with IDs\n\n**Test Instructions:**\n1. Mock Anthropic decomposition response (3 subtasks)\n2. Mock Linear sub-issue creation mutations\n3. Call decompose_task with task_id\n4. Verify AI prompt includes full task context\n5. Verify subtasks created with correct parent\n6. Test with custom num_subtasks parameter\n7. Test error when task already has subtasks\n8. Verify subtask ordering preserved",
             "details": "",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "parentTaskId": 10
           },
@@ -680,7 +680,7 @@
             "title": "Implement decompose_all_tasks tool",
             "description": "Create the decompose_all_tasks MCP tool for batch task decomposition.\n\n**Design Reference:** design_docs/alfred/PRD.md lines 168-171, tools/02-task-creation/decompose_all_tasks.md\n**Acceptance Criteria:**\n- Tool identifies all tasks with complexity > threshold\n- Batch decomposes eligible tasks using AI\n- Skips tasks that already have subtasks\n- Processes in priority order\n- Provides progress updates during batch operation\n- Returns summary of decomposed tasks\n\n**Test Instructions:**\n1. Mock Linear task list with varying complexities\n2. Mock Anthropic batch decomposition responses\n3. Call decompose_all_tasks with threshold=7\n4. Verify only high-complexity tasks processed\n5. Verify tasks with existing subtasks skipped\n6. Test progress reporting for 10+ tasks\n7. Test partial failure handling\n8. Verify summary report accuracy",
             "details": "",
-            "status": "pending",
+            "status": "done",
             "dependencies": [
               "10.1"
             ],
@@ -1211,7 +1211,7 @@
     ],
     "metadata": {
       "created": "2025-08-24T05:16:48.582Z",
-      "updated": "2025-08-28T01:16:48.539Z",
+      "updated": "2025-08-28T04:27:15.832Z",
       "description": "Tasks for master context"
     }
   }

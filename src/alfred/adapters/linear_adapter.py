@@ -66,31 +66,18 @@ class LinearAdapter(TaskAdapter):
         Returns:
             Normalized TaskDict
         """
-        try:
-            task: TaskDict = {
-                "id": issue.identifier if issue.identifier else issue.id,
-                "title": issue.title,
-                "description": issue.description,
-                "status": issue.state.name
-                if hasattr(issue, "state") and issue.state
-                else None,
-                "epic_id": issue.project.id
-                if hasattr(issue, "project") and issue.project
-                else None,
-                "parent_id": issue.parent.id
-                if hasattr(issue, "parent") and issue.parent
-                else None,
-                "url": issue.url if hasattr(issue, "url") else None,
-                "created_at": issue.created_at.isoformat()
-                if hasattr(issue, "created_at") and issue.created_at
-                else None,
-                "updated_at": issue.updated_at.isoformat()
-                if hasattr(issue, "updated_at") and issue.updated_at
-                else None,
-            }
-            return task
-        except Exception as e:
-            raise MappingError(f"Failed to map Linear issue to task: {e}")
+        task: TaskDict = {
+            "id": issue.identifier or issue.id,
+            "title": issue.title,
+            "description": issue.description,
+            "status": issue.state.name if issue.state else None,
+            "epic_id": issue.project.id if issue.project else None,
+            "parent_id": issue.parentId if issue.parentId else None,
+            "url": issue.url,
+            "created_at": issue.createdAt.isoformat() if issue.createdAt else None,
+            "updated_at": issue.updatedAt.isoformat() if issue.updatedAt else None,
+        }
+        return task
 
     def _map_linear_project_to_epic(self, project) -> EpicDict:
         """Map Linear Project to normalized EpicDict.
@@ -101,24 +88,15 @@ class LinearAdapter(TaskAdapter):
         Returns:
             Normalized EpicDict
         """
-        try:
-            epic: EpicDict = {
-                "id": project.id,
-                "name": project.name,
-                "description": project.description
-                if hasattr(project, "description")
-                else None,
-                "url": project.url if hasattr(project, "url") else None,
-                "created_at": project.created_at.isoformat()
-                if hasattr(project, "created_at") and project.created_at
-                else None,
-                "updated_at": project.updated_at.isoformat()
-                if hasattr(project, "updated_at") and project.updated_at
-                else None,
-            }
-            return epic
-        except Exception as e:
-            raise MappingError(f"Failed to map Linear project to epic: {e}")
+        epic: EpicDict = {
+            "id": project.id,
+            "name": project.name,
+            "description": project.description,
+            "url": project.url if project.url else None,
+            "created_at": project.createdAt.isoformat() if project.createdAt else None,
+            "updated_at": project.updatedAt.isoformat() if project.updatedAt else None,
+        }
+        return epic
 
     def _normalize_status_filter(
         self, status: Optional[Union[str, List[str]]]
@@ -236,12 +214,12 @@ class LinearAdapter(TaskAdapter):
 
             for issue_id, issue in issues_by_team.items():
                 # Apply status filter if provided
-                if status_list and hasattr(issue, "state") and issue.state:
+                if status_list and issue.state:
                     if issue.state.name not in status_list:
                         continue
 
                 # Apply project filter if provided
-                if epic_id and hasattr(issue, "project") and issue.project:
+                if epic_id and issue.project:
                     if issue.project.id != epic_id:
                         continue
 
@@ -392,7 +370,7 @@ class LinearAdapter(TaskAdapter):
             )
 
             # If parent has a project, use it
-            if hasattr(parent_issue, "project") and parent_issue.project:
+            if parent_issue.project:
                 input_data.projectName = parent_issue.project.name
 
             subtask = self.client.issues.create(input_data)
@@ -414,6 +392,36 @@ class LinearAdapter(TaskAdapter):
                 raise APIConnectionError(f"Network error: {e}")
             else:
                 raise APIResponseError(f"Linear API error: {e}")
+
+    def get_task_children(self, parent_id: str) -> List[TaskDict]:
+        """Get all subtasks of a parent task.
+
+        Args:
+            parent_id: Parent task ID (identifier like "TASK-123")
+
+        Returns:
+            List of child tasks
+        """
+        # Get all issues and filter for those with this parent
+        all_issues = self.client.issues.get_all()
+
+        # Find parent issue first to get its internal ID
+        parent_issue = None
+        for issue_id, issue in all_issues.items():
+            if issue.identifier == parent_id:
+                parent_issue = issue
+                break
+
+        if not parent_issue:
+            raise NotFoundError(f"Parent task not found: {parent_id}")
+
+        # Find all issues that have this parent
+        children = []
+        for issue_id, issue in all_issues.items():
+            if issue.parentId == parent_issue.id:
+                children.append(self._map_linear_issue_to_task(issue))
+
+        return children
 
     def delete_task(self, task_id: str) -> bool:
         """Delete a task.

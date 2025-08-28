@@ -1,5 +1,6 @@
 """Task management data models."""
 
+from __future__ import annotations
 from datetime import datetime
 from typing import Dict, List, Optional, Literal, Any
 from pydantic import BaseModel
@@ -36,7 +37,7 @@ STATUS_ALFRED_TO_LINEAR = {
 
 
 class AlfredTask(BaseModel):
-    """Structured task response model."""
+    """Structured task response model matching Linear's Issue structure."""
 
     id: str
     title: str
@@ -49,6 +50,7 @@ class AlfredTask(BaseModel):
     created_at: datetime
     updated_at: datetime
     url: Optional[str] = None
+    parent_id: Optional[str] = None  # Maps to Linear's parentId
 
 
 class TaskListResult(BaseModel):
@@ -100,4 +102,5 @@ def to_alfred_task(task: Dict[str, Any]) -> AlfredTask:
         if task.get("updated_at")
         else datetime.now(),
         url=task.get("url"),
+        parent_id=task.get("parent_id"),
     )
