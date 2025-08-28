@@ -3,10 +3,7 @@
 import asyncio
 import logging
 from typing import Optional
-from alfred.core.tasks.create_from_spec import (
-    create_tasks_from_spec_logic,
-    read_spec_file,
-)
+from alfred.core.tasks.create_from_spec import create_tasks_from_spec_logic
 from alfred.config import get_config
 
 logger = logging.getLogger(__name__)
@@ -17,10 +14,12 @@ def register(server) -> int:
 
     @server.tool
     async def create_tasks_from_spec(
-        spec_content: str,
+        spec_path: str,
         num_tasks: int = 10,
         epic_id: Optional[str] = None,
         epic_name: Optional[str] = None,
+        research_mode: bool = False,
+        is_claude_code: bool = True,  # Default to true since MCP is primarily used by Claude Code
     ) -> dict:
         """
         Parse a specification document and create tasks in Linear using AI-powered task generation.
@@ -87,17 +86,17 @@ def register(server) -> int:
         - Very complex specs may timeout - consider breaking into multiple calls
         - Each task creation is atomic - partial failures won't leave orphaned tasks
 
-        File Path Detection:
-        - If spec_content appears to be a file path (ends with .txt, .md, .markdown and <500 chars),
-          the tool will attempt to read it as a file first
-        - If file reading fails, it treats the content as literal specification text
-        - This allows flexibility in passing either content or file paths
+        File Format Support:
+        - Supports .txt and .md/.markdown files
+        - File must exist and be readable
+        - Empty files will return EMPTY_FILE error
+        - Invalid paths will return FILE_NOT_FOUND error
 
         Args:
-            spec_content: The specification document content to parse. Can be a PRD,
-                technical specification, feature requirements, or any structured text
-                describing work to be done. Supports markdown formatting. Maximum
-                recommended size is ~50,000 characters for optimal processing.
+            spec_path: Path to specification document (.txt or .md). Can be absolute or
+                relative path. File must exist and contain the PRD, technical specification,
+                or feature requirements to parse. Maximum recommended file size is ~50,000
+                characters for optimal processing.
 
             num_tasks: Target number of tasks to generate (default: 10). Valid range
                 is 0-50. Set to 0 to let AI determine the appropriate number based on
@@ -115,6 +114,15 @@ def register(server) -> int:
                 nor epic_name is provided, AI may suggest creating an epic based on
                 the specification content.
 
+            research_mode: Enable research mode for enhanced task generation (default: False).
+                When enabled, the AI will research current best practices, technologies,
+                and libraries before generating tasks, resulting in more detailed and
+                up-to-date implementation guidance.
+
+            is_claude_code: Whether the tool is being called from Claude Code (default: True).
+                When True, enables codebase analysis instructions in the prompt. Set to
+                False when using from other environments like Cursor or VS Code.
+
         Returns:
             Dictionary containing:
             - success: Boolean indicating if operation succeeded
@@ -124,7 +132,11 @@ def register(server) -> int:
             - errors: List of any errors encountered during processing
 
         Error Codes:
-            - EMPTY_SPEC: Specification content is empty
+            - FILE_NOT_FOUND: Specification file doesn't exist
+            - NOT_A_FILE: Path points to a directory, not a file
+            - UNSUPPORTED_FORMAT: File format not supported (only .txt, .md, .markdown)
+            - EMPTY_FILE: Specification file is empty
+            - READ_ERROR: Failed to read file (permissions or other IO error)
             - INVALID_NUM_TASKS: num_tasks outside valid range (0-50)
             - AI_GENERATION_FAILED: AI couldn't generate tasks from spec
             - LINEAR_CREATION_FAILED: Failed to create tasks in Linear
@@ -134,24 +146,24 @@ def register(server) -> int:
         Examples:
             # Basic usage with default settings
             create_tasks_from_spec(
-                spec_content="Build user authentication system with email/password..."
+                spec_path="/project/docs/prd.txt"
             )
 
             # Let AI determine task count
             create_tasks_from_spec(
-                spec_content="Complex e-commerce platform requirements...",
+                spec_path="/project/specs/ecommerce.md",
                 num_tasks=0
             )
 
             # Add to existing epic
             create_tasks_from_spec(
-                spec_content="Mobile app features...",
+                spec_path="./requirements/mobile-features.txt",
                 epic_id="LIN-PROJ-123"
             )
 
             # Create new epic
             create_tasks_from_spec(
-                spec_content="Q1 2024 Features...",
+                spec_path="/Users/alice/docs/q1-features.md",
                 epic_name="Q1 2024 Development"
             )
         """
@@ -182,18 +194,6 @@ def register(server) -> int:
             logger.warning("Anthropic API key not configured - AI generation may fail")
             # Don't return error, let it try and fail with fallback
 
-        # If spec_content looks like a file path, try to read it
-        if len(spec_content) < 500 and (
-            spec_content.endswith(".txt")
-            or spec_content.endswith(".md")
-            or spec_content.endswith(".markdown")
-        ):
-            file_content = read_spec_file(spec_content)
-            if file_content:
-                spec_content = file_content
-            # If read fails, proceed with original content
-            # (might be actual spec content that happens to end with .txt)
-
         # Get project context if available
         project_context = None
         try:
@@ -207,15 +207,17 @@ def register(server) -> int:
         except Exception:
             pass
 
-        # Call business logic
+        # Call business logic with spec_path and new parameters
         result = await create_tasks_from_spec_logic(
-            spec_content=spec_content,
+            spec_path=spec_path,
             num_tasks=num_tasks,
             api_key=config.linear_api_key,
             team_id=config.team_id,
             epic_name=epic_name,
             epic_id=epic_id,
             project_context=project_context,
+            research_mode=research_mode,
+            is_claude_code=is_claude_code,
         )
 
         return result

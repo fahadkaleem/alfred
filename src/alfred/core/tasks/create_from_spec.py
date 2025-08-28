@@ -16,13 +16,15 @@ logger = logging.getLogger(__name__)
 
 
 async def create_tasks_from_spec_logic(
-    spec_content: str,
+    spec_path: str,
     num_tasks: int,
     api_key: str,
     team_id: str,
     epic_name: Optional[str] = None,
     epic_id: Optional[str] = None,
     project_context: Optional[str] = None,
+    research_mode: bool = False,
+    is_claude_code: bool = False,
 ) -> Dict[str, Any]:
     """Create tasks from specification with AI assistance.
 
@@ -30,27 +32,32 @@ async def create_tasks_from_spec_logic(
     and creating tasks in Linear using AI to analyze and structure the content.
 
     Args:
-        spec_content: The specification content (PRD, tech spec, etc.)
+        spec_path: Path to specification file (PRD, tech spec, etc.)
         num_tasks: Number of tasks to generate (0 = AI decides)
         api_key: Linear API key
         team_id: Linear team ID
         epic_name: Optional name for new epic if created
         epic_id: Optional existing epic ID to add tasks to
         project_context: Optional project context for AI
+        research_mode: Enable research mode for enhanced analysis
+        is_claude_code: Whether running in Claude Code environment
 
     Returns:
         Dictionary with creation results
     """
     try:
-        # Validate inputs
-        if not spec_content or not spec_content.strip():
+        # Read specification file
+        file_result = read_spec_file(spec_path)
+        if "error" in file_result:
             return {
                 "success": False,
                 "error": {
-                    "code": "EMPTY_SPEC",
-                    "message": "Specification content is empty",
+                    "code": file_result["error"],
+                    "message": file_result["message"],
                 },
             }
+
+        spec_content = file_result["content"]
 
         if num_tasks < 0 or num_tasks > 50:
             return {
@@ -84,6 +91,8 @@ async def create_tasks_from_spec_logic(
             num_tasks=num_tasks,
             complexity_report=complexity_report,
             project_context=project_context,
+            research_mode=research_mode,
+            is_claude_code=is_claude_code,
         )
 
         if not generation_result.tasks:
@@ -183,30 +192,40 @@ async def create_tasks_from_spec_logic(
         }
 
 
-def read_spec_file(spec_path: str) -> Optional[str]:
+def read_spec_file(spec_path: str) -> Dict[str, Any]:
     """Read specification file content.
 
     Args:
         spec_path: Path to specification file
 
     Returns:
-        File content or None if error
+        Dict with either 'content' or 'error' key
     """
     try:
         path = Path(spec_path)
 
         if not path.exists():
             logger.error(f"Specification file not found: {spec_path}")
-            return None
+            return {
+                "error": "FILE_NOT_FOUND",
+                "message": f"Specification file does not exist: {spec_path}",
+            }
 
         if not path.is_file():
             logger.error(f"Specification path is not a file: {spec_path}")
-            return None
+            return {
+                "error": "NOT_A_FILE",
+                "message": f"Path is not a file: {spec_path}",
+            }
 
         # Check file extension
         valid_extensions = [".txt", ".md", ".markdown"]
         if path.suffix.lower() not in valid_extensions:
-            logger.warning(f"Unusual file extension: {path.suffix}")
+            logger.error(f"Unsupported file extension: {path.suffix}")
+            return {
+                "error": "UNSUPPORTED_FORMAT",
+                "message": f"File format not supported: {path.suffix}. Supported formats: .txt, .md, .markdown",
+            }
 
         # Read file
         with open(path, "r", encoding="utf-8") as f:
@@ -214,10 +233,16 @@ def read_spec_file(spec_path: str) -> Optional[str]:
 
         if not content.strip():
             logger.error("Specification file is empty")
-            return None
+            return {"error": "EMPTY_FILE", "message": "Specification file is empty"}
 
-        return content
+        return {"content": content}
 
+    except PermissionError as e:
+        logger.error(f"Permission denied reading file: {e}")
+        return {
+            "error": "READ_ERROR",
+            "message": f"Permission denied: Cannot read file {spec_path}",
+        }
     except Exception as e:
         logger.error(f"Failed to read specification file: {e}")
-        return None
+        return {"error": "READ_ERROR", "message": f"Failed to read file: {str(e)}"}

@@ -33,6 +33,8 @@ class TaskGenerationOrchestrator:
         num_tasks: int,
         complexity_report: Optional[Dict[str, Any]] = None,
         project_context: Optional[str] = None,
+        research_mode: bool = False,
+        is_claude_code: bool = False,
     ) -> GenerationResult:
         """Generate task plan from specification.
 
@@ -41,6 +43,8 @@ class TaskGenerationOrchestrator:
             num_tasks: Number of tasks to generate
             complexity_report: Optional complexity report for prioritization
             project_context: Optional project context
+            research_mode: Enable research mode for enhanced analysis
+            is_claude_code: Whether running in Claude Code environment
 
         Returns:
             GenerationResult with tasks and optional epic
@@ -51,16 +55,26 @@ class TaskGenerationOrchestrator:
         if len(chunks) == 1:
             # Single chunk - direct generation
             return await self._generate_from_single_chunk(
-                chunks[0], num_tasks, project_context
+                chunks[0], num_tasks, project_context, research_mode, is_claude_code
             )
         else:
             # Multiple chunks - need synthesis
             return await self._generate_from_multiple_chunks(
-                chunks, num_tasks, complexity_report, project_context
+                chunks,
+                num_tasks,
+                complexity_report,
+                project_context,
+                research_mode,
+                is_claude_code,
             )
 
     async def _generate_from_single_chunk(
-        self, content: str, num_tasks: int, project_context: Optional[str] = None
+        self,
+        content: str,
+        num_tasks: int,
+        project_context: Optional[str] = None,
+        research_mode: bool = False,
+        is_claude_code: bool = False,
     ) -> GenerationResult:
         """Generate tasks from a single chunk.
 
@@ -75,11 +89,13 @@ class TaskGenerationOrchestrator:
         try:
             logger.info(f"Calling AI service to generate {num_tasks} tasks")
 
-            # Use the AI service's existing method
+            # Use the AI service's existing method with new parameters
             response = await self.ai_service.create_tasks_from_spec(
                 spec_content=content,
                 num_tasks=num_tasks,
                 project_context=project_context,
+                research_mode=research_mode,
+                is_claude_code=is_claude_code,
                 stream=False,
             )
 
@@ -106,6 +122,8 @@ class TaskGenerationOrchestrator:
         num_tasks: int,
         complexity_report: Optional[Dict[str, Any]] = None,
         project_context: Optional[str] = None,
+        research_mode: bool = False,
+        is_claude_code: bool = False,
     ) -> GenerationResult:
         """Generate tasks from multiple chunks with synthesis.
 

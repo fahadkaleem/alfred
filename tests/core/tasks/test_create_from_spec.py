@@ -110,12 +110,18 @@ class TestUtilities:
 class TestCreateFromSpec:
     """Test create_from_spec business logic."""
 
+    @patch("alfred.core.tasks.create_from_spec.read_spec_file")
     @patch("alfred.core.tasks.create_from_spec.AIService")
     @patch("alfred.core.tasks.create_from_spec.LinearTaskCreator")
-    async def test_create_tasks_from_spec_success(self, mock_linear_cls, mock_ai_cls):
+    async def test_create_tasks_from_spec_success(
+        self, mock_linear_cls, mock_ai_cls, mock_read_spec
+    ):
         """Test successful task creation from spec."""
         from alfred.core.tasks.create_from_spec import create_tasks_from_spec_logic
         from alfred.core.tasks.models import LinearTaskCreated, LinearEpicCreated
+
+        # Mock file reading
+        mock_read_spec.return_value = {"content": "Test specification content"}
 
         # Mock AI service
         mock_ai = AsyncMock()
@@ -152,7 +158,7 @@ class TestCreateFromSpec:
             mock_orch_cls.return_value = mock_orchestrator
 
             result = await create_tasks_from_spec_logic(
-                spec_content="Test specification content",
+                spec_path="/test/spec.txt",
                 num_tasks=2,
                 api_key="test-key",
                 team_id="team-1",
@@ -165,25 +171,39 @@ class TestCreateFromSpec:
         assert result["summary"]["created"] == 2
         assert result["summary"]["team_id"] == "team-1"
 
+    @patch("alfred.core.tasks.create_from_spec.read_spec_file")
     @patch("alfred.core.tasks.create_from_spec.AIService")
-    async def test_create_tasks_empty_spec(self, mock_ai_cls):
+    async def test_create_tasks_empty_spec(self, mock_ai_cls, mock_read_spec):
         """Test handling empty specification."""
         from alfred.core.tasks.create_from_spec import create_tasks_from_spec_logic
 
+        # Mock empty file
+        mock_read_spec.return_value = {
+            "error": "EMPTY_FILE",
+            "message": "Specification file is empty",
+        }
+
         result = await create_tasks_from_spec_logic(
-            spec_content="", num_tasks=5, api_key="test-key", team_id="team-1"
+            spec_path="/test/empty.txt",
+            num_tasks=5,
+            api_key="test-key",
+            team_id="team-1",
         )
 
         assert result["success"] is False
-        assert result["error"]["code"] == "EMPTY_SPEC"
+        assert result["error"]["code"] == "EMPTY_FILE"
 
+    @patch("alfred.core.tasks.create_from_spec.read_spec_file")
     @patch("alfred.core.tasks.create_from_spec.AIService")
-    async def test_create_tasks_invalid_num_tasks(self, mock_ai_cls):
+    async def test_create_tasks_invalid_num_tasks(self, mock_ai_cls, mock_read_spec):
         """Test handling invalid number of tasks."""
         from alfred.core.tasks.create_from_spec import create_tasks_from_spec_logic
 
+        # Mock valid file
+        mock_read_spec.return_value = {"content": "Test spec"}
+
         result = await create_tasks_from_spec_logic(
-            spec_content="Test spec",
+            spec_path="/test/spec.txt",
             num_tasks=100,  # Too many
             api_key="test-key",
             team_id="team-1",
@@ -191,6 +211,28 @@ class TestCreateFromSpec:
 
         assert result["success"] is False
         assert result["error"]["code"] == "INVALID_NUM_TASKS"
+
+    @patch("alfred.core.tasks.create_from_spec.read_spec_file")
+    @patch("alfred.core.tasks.create_from_spec.AIService")
+    async def test_create_tasks_file_not_found(self, mock_ai_cls, mock_read_spec):
+        """Test handling file not found."""
+        from alfred.core.tasks.create_from_spec import create_tasks_from_spec_logic
+
+        # Mock file not found
+        mock_read_spec.return_value = {
+            "error": "FILE_NOT_FOUND",
+            "message": "Specification file does not exist",
+        }
+
+        result = await create_tasks_from_spec_logic(
+            spec_path="/test/nonexistent.txt",
+            num_tasks=5,
+            api_key="test-key",
+            team_id="team-1",
+        )
+
+        assert result["success"] is False
+        assert result["error"]["code"] == "FILE_NOT_FOUND"
 
 
 class TestModels:

@@ -54,6 +54,8 @@ class AIService:
         spec_content: str,
         num_tasks: int = 5,
         project_context: Optional[str] = None,
+        research_mode: bool = False,
+        is_claude_code: bool = False,
         stream: bool = False,
     ) -> Union[List[Dict[str, Any]], AsyncGenerator[StreamEvent, None]]:
         """Create tasks from a specification.
@@ -62,6 +64,8 @@ class AIService:
             spec_content: The specification content
             num_tasks: Number of tasks to generate
             project_context: Optional project context
+            research_mode: Enable research mode for enhanced analysis
+            is_claude_code: Whether running in Claude Code environment
             stream: Whether to stream the response
 
         Returns:
@@ -69,7 +73,11 @@ class AIService:
         """
         # Check if spec needs chunking
         prompt_data = self.prompts.render_create_tasks_from_spec(
-            spec_content, num_tasks, project_context
+            spec_content,
+            num_tasks,
+            project_context,
+            research_mode=research_mode,
+            is_claude_code=is_claude_code,
         )
 
         # Estimate tokens
