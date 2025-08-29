@@ -333,9 +333,7 @@ Return the enhanced task as complete JSON with all fields:
         }
 
     @staticmethod
-    def render_enhance_scope(
-        task: str, enhancement_prompt: str = ""
-    ) -> Dict[str, Any]:
+    def render_enhance_scope(task: str, enhancement_prompt: str = "") -> Dict[str, Any]:
         """Render prompt for enhancing task scope.
 
         Args:

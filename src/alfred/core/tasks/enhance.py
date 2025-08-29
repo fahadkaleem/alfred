@@ -42,7 +42,7 @@ async def enhance_task_scope_logic(
     non_functional_reqs = enhanced_task.get("non_functional_requirements", [])
     edge_cases = enhanced_task.get("edge_cases", [])
     testing_reqs = enhanced_task.get("testing_requirements", [])
-    
+
     if any([additional_reqs, non_functional_reqs, edge_cases, testing_reqs]):
         current_desc = alfred_task.description or ""
         enhanced_description = current_desc
@@ -118,11 +118,15 @@ async def simplify_task_logic(
             simplified_description += "\n".join(f"- {req}" for req in core_reqs)
 
         if simplified_approach:
-            simplified_description += f"\n\n**Implementation Approach:**\n{simplified_approach}"
+            simplified_description += (
+                f"\n\n**Implementation Approach:**\n{simplified_approach}"
+            )
 
         if future_enhancements:
             simplified_description += "\n\n**Future Enhancements (Deferred):**\n"
-            simplified_description += "\n".join(f"- {enh}" for enh in future_enhancements)
+            simplified_description += "\n".join(
+                f"- {enh}" for enh in future_enhancements
+            )
 
         update_data["description"] = simplified_description
 
@@ -175,24 +179,16 @@ async def bulk_enhance_tasks_logic(
                     simplification_prompt=enhancement_prompt,
                 )
 
-            results.append({
-                "task_id": task_id,
-                "status": "success",
-                "task": result
-            })
+            results.append({"task_id": task_id, "status": "success", "task": result})
             success_count += 1
         except Exception as e:
             logger.error(f"Failed to enhance task {task_id}: {e}")
-            results.append({
-                "task_id": task_id,
-                "status": "error",
-                "error": str(e)
-            })
+            results.append({"task_id": task_id, "status": "error", "error": str(e)})
             error_count += 1
 
     return {
         "total": len(task_ids),
         "success": success_count,
         "errors": error_count,
-        "results": results
+        "results": results,
     }

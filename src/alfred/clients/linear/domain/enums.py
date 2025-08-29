@@ -84,3 +84,13 @@ class IntegrationService(StrEnum):
     NOTION = "notion"
     SLACK = "slack"
     ZENDESK = "zendesk"
+
+
+class IssueRelationType(StrEnum):
+    """Enum for issue relation types"""
+
+    BLOCKS = "blocks"
+    IS_BLOCKED_BY = "isBlockedBy"
+    DUPLICATES = "duplicates"
+    DUPLICATE_OF = "duplicateOf"
+    RELATES_TO = "relatesTo"

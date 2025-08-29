@@ -21,6 +21,7 @@ from ..domain import (
     LinearUser,
     Reaction,
 )
+from ..domain.enums import IssueRelationType
 from ..utils import process_issue_data, enrich_with_client
 
 
@@ -1279,6 +1280,84 @@ class IssueManager(BaseManager[LinearIssue]):
         input_vars.update(update_dict)
 
         return input_vars
+
+    def create_relation(
+        self,
+        issue_id: str,
+        related_issue_id: str,
+        relation_type: str = IssueRelationType.BLOCKS,
+    ) -> Dict[str, Any]:
+        """
+        Create a relationship between two issues.
+
+        Args:
+            issue_id: The ID of the issue that will be the "source" of the relation
+            related_issue_id: The ID of the issue that will be related
+            relation_type: Type of relationship (blocks, relates, duplicates)
+
+        Returns:
+            The API response
+        """
+        mutation = """
+        mutation IssueRelationCreate($input: IssueRelationCreateInput!) {
+          issueRelationCreate(input: $input) {
+            issueRelation {
+              id
+              type
+              issue {
+                id
+                title
+              }
+              relatedIssue {
+                id
+                title
+              }
+            }
+            success
+          }
+        }
+        """
+
+        input_data = {
+            "issueId": issue_id,
+            "relatedIssueId": related_issue_id,
+            "type": relation_type,
+        }
+
+        response = self._execute_query(mutation, {"input": input_data})
+
+        # Invalidate caches for both issues
+        self._cache_invalidate("relations_by_issue", issue_id)
+        self._cache_invalidate("relations_by_issue", related_issue_id)
+        self._cache_invalidate("inverse_relations_by_issue", issue_id)
+        self._cache_invalidate("inverse_relations_by_issue", related_issue_id)
+
+        return response
+
+    def delete_relation(self, relation_id: str) -> Dict[str, Any]:
+        """
+        Delete a relationship between two issues.
+
+        Args:
+            relation_id: The ID of the relation to delete
+
+        Returns:
+            The API response
+        """
+        mutation = """
+        mutation IssueRelationDelete($id: String!) {
+          issueRelationDelete(id: $id) {
+            success
+          }
+        }
+        """
+
+        response = self._execute_query(mutation, {"id": relation_id})
+
+        # Clear all relation caches since we don't know which issues were affected
+        self._cache_clear()
+
+        return response
 
     def invalidate_cache(self) -> None:
         """

@@ -216,39 +216,36 @@ class LinearTaskCreator:
         return created_tasks
 
     def _would_create_cycle(
-        self, 
-        task_id: str, 
-        depends_on_id: str, 
-        dependency_graph: Dict[str, List[str]]
+        self, task_id: str, depends_on_id: str, dependency_graph: Dict[str, List[str]]
     ) -> bool:
         """Check if adding a dependency would create a cycle.
-        
+
         Args:
             task_id: Task that would depend on another
             depends_on_id: Task that would block the first
             dependency_graph: Current dependency graph
-            
+
         Returns:
             True if this would create a cycle
         """
         # Check if depends_on_id can reach task_id through existing dependencies
         visited = set()
         queue = [depends_on_id]
-        
+
         while queue:
             current = queue.pop(0)
             if current == task_id:
                 return True  # Found a path back to task_id - would create cycle
-            
+
             if current in visited:
                 continue
-                
+
             visited.add(current)
-            
+
             # Add all tasks that current depends on
             if current in dependency_graph:
                 queue.extend(dependency_graph[current])
-        
+
         return False
 
     async def create_task_dependencies(
@@ -298,20 +295,22 @@ class LinearTaskCreator:
 
                 if dep_id and dep_id != created_task.id:
                     # Check if this would create a circular dependency
-                    if self._would_create_cycle(created_task.id, dep_id, dependency_graph):
+                    if self._would_create_cycle(
+                        created_task.id, dep_id, dependency_graph
+                    ):
                         logger.warning(
                             f"Skipping circular dependency: {created_task.title} -> {dep_id} "
                             f"would create a cycle"
                         )
-                        
+
                         # Add note to task description about skipped dependency
                         dep_title = id_to_title.get(dep_id, dep_id)
                         if created_task.id not in tasks_to_update:
                             tasks_to_update[created_task.id] = []
                         tasks_to_update[created_task.id].append(dep_title)
-                        
+
                         continue
-                    
+
                     try:
                         # Create blocking relationship in Linear
                         # created_task depends on dep_id, so dep_id blocks created_task
@@ -329,7 +328,7 @@ class LinearTaskCreator:
                                     "type": "blocks",
                                 }
                             )
-                            
+
                             # Update dependency graph for future cycle checks
                             if created_task.id not in dependency_graph:
                                 dependency_graph[created_task.id] = []
@@ -347,28 +346,31 @@ class LinearTaskCreator:
 
         # Update task descriptions for skipped circular dependencies
         if tasks_to_update:
-            logger.info(f"Updating {len(tasks_to_update)} tasks with circular dependency notes")
+            logger.info(
+                f"Updating {len(tasks_to_update)} tasks with circular dependency notes"
+            )
             for task_id, skipped_deps in tasks_to_update.items():
                 try:
                     # Get current task to append to its description
                     current_task = self.adapter.get_task(task_id)
                     current_description = current_task.get("description", "")
-                    
+
                     # Build the note about skipped dependencies
                     note = "\n\n---\n⚠️ **Note:** Circular dependency detected and skipped:\n"
                     for dep_title in skipped_deps:
                         note += f"- This task was intended to depend on '{dep_title}', but that would create a circular dependency.\n"
                     note += "\n**Action Required:** Review both tasks during implementation to ensure proper coordination."
-                    
+
                     # Update the task description
                     updated_description = current_description + note
                     self.adapter.update_task(
-                        task_id=task_id,
-                        updates={"description": updated_description}
+                        task_id=task_id, updates={"description": updated_description}
                     )
                     logger.info(f"Added circular dependency note to task {task_id}")
-                    
+
                 except Exception as e:
-                    logger.warning(f"Failed to update task {task_id} with circular dependency note: {e}")
+                    logger.warning(
+                        f"Failed to update task {task_id} with circular dependency note: {e}"
+                    )
 
         return dependencies_created

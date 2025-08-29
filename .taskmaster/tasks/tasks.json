@@ -726,10 +726,8 @@
       {
         "id": 12,
         "title": "Implement task relationship tools",
-        "description": "Create task linking and dependency management tools as defined in design_docs/alfred/tools/06-task-hierarchy/",
-        "details": "Reference: design_docs/alfred/PRD.md (lines 141-145) & design_docs/alfred/tools/06-task-hierarchy/\n\nCreate in src/alfred/tools/task_relationships.py:\n- link_tasks - Create blocking/blocked relationships\n- unlink_tasks - Remove relationships\n- check_task_links - Validate relationships\n- repair_task_links - Fix broken links\n- reassign_task - Move between Epics\n\nRequirements:\n1. Create Linear issue relations\n2. Validate dependency chains\n3. Detect circular dependencies\n4. Fix broken links automatically\n5. Support cross-epic moves",
-        "testStrategy": "## Test Instructions\n1. Test link creation\n2. Test unlink operation\n3. Test circular dependency detection\n4. Test link repair\n5. Test epic reassignment\n\n## Success Criteria\n- [ ] Relations created in Linear\n- [ ] Circular deps prevented\n- [ ] Broken links fixed\n- [ ] Epic moves preserve data\n- [ ] Error handling robust",
-        "status": "pending",
+        "description": "Create task linking and dependency management tools with 3 core tools: link_tasks, unlink_tasks, and reassign_task",
+        "status": "done",
         "dependencies": [
           1,
           2,
@@ -737,57 +735,37 @@
           8
         ],
         "priority": "medium",
+        "details": "Reference: design_docs/alfred/PRD.md (lines 141-145) & design_docs/alfred/tools/06-task-hierarchy/\n\nImplemented with business logic in src/alfred/core/task_relationships/ and MCP tool wrappers in src/alfred/tools/task_relationships/:\n- link_tasks - Create blocking/blocked relationships with cycle detection\n- unlink_tasks - Remove relationships\n- reassign_task - Move tasks between epics\n\nRequirements:\n1. Create Linear issue relations\n2. Validate dependency chains with cycle detection\n3. Prevent circular dependencies upfront\n4. Support cross-epic moves\n5. Follow established codebase patterns\n\nArchitecture follows prevention over repair - no need for check/repair tools since Linear handles orphaned links automatically and our link_tasks prevents cycles.",
+        "testStrategy": "## Test Instructions\n1. Test link creation with cycle detection\n2. Test unlink operation\n3. Test circular dependency prevention\n4. Test epic reassignment\n5. Test error handling and validation\n\n## Success Criteria\n- [ ] Relations created in Linear\n- [ ] Circular deps prevented upfront\n- [ ] Epic moves preserve data\n- [ ] Error handling robust\n- [ ] Business logic separated from MCP wrappers",
         "subtasks": [
           {
             "id": 1,
             "title": "Implement link_tasks tool",
-            "description": "Create the link_tasks MCP tool to create blocking/blocked relationships.\n\n**Design Reference:** design_docs/alfred/PRD.md lines 179-183, tools/06-task-hierarchy/link_tasks.md\n**Acceptance Criteria:**\n- Tool creates Linear Relations between tasks\n- Accepts: blocker_id, blocked_id, relation_type (blocks/relates)\n- Validates both tasks exist before linking\n- Prevents circular dependencies\n- Returns confirmation with relationship details\n- Updates task statuses if needed (blocked status)\n\n**Test Instructions:**\n1. Mock Linear relation creation mutation\n2. Call link_tasks with valid task IDs\n3. Verify GraphQL mutation with correct relation type\n4. Test circular dependency prevention\n5. Test linking non-existent tasks (should fail)\n6. Test duplicate relationship handling\n7. Verify blocked task status update\n8. Test cross-epic linking",
-            "details": "",
-            "status": "pending",
+            "description": "Create the link_tasks MCP tool to create blocking/blocked relationships with cycle detection.\n\n**Design Reference:** design_docs/alfred/PRD.md lines 179-183, tools/06-task-hierarchy/link_tasks.md\n**Acceptance Criteria:**\n- Tool creates Linear Relations between tasks\n- Accepts: blocker_id, blocked_id, relation_type (blocks/relates)\n- Validates both tasks exist before linking\n- Prevents circular dependencies using graph traversal\n- Returns confirmation with relationship details\n- Updates task statuses if needed (blocked status)\n- Business logic in src/alfred/core/task_relationships/\n- MCP wrapper in src/alfred/tools/task_relationships/\n\n**Test Instructions:**\n1. Mock Linear relation creation mutation\n2. Call link_tasks with valid task IDs\n3. Verify GraphQL mutation with correct relation type\n4. Test circular dependency prevention with graph traversal\n5. Test linking non-existent tasks (should fail)\n6. Test duplicate relationship handling\n7. Verify blocked task status update\n8. Test cross-epic linking",
+            "status": "done",
             "dependencies": [],
-            "parentTaskId": 12
+            "details": "",
+            "testStrategy": ""
           },
           {
             "id": 2,
             "title": "Implement unlink_tasks tool",
-            "description": "Create the unlink_tasks MCP tool to remove task relationships.\n\n**Design Reference:** design_docs/alfred/PRD.md lines 179-183, tools/06-task-hierarchy/unlink_tasks.md\n**Acceptance Criteria:**\n- Tool removes Linear Relations between tasks\n- Accepts: relation_id or (task1_id, task2_id)\n- Finds and deletes the specific relation\n- Updates task statuses if unblocking\n- Returns confirmation of removed relationship\n\n**Test Instructions:**\n1. Mock Linear relation query and deletion\n2. Call unlink_tasks with relation_id\n3. Verify relation deleted via mutation\n4. Test unlinking by task pair IDs\n5. Test unlinking non-existent relation\n6. Verify task status update when unblocked\n7. Test partial match scenarios\n8. Verify idempotency",
-            "details": "",
-            "status": "pending",
+            "description": "Create the unlink_tasks MCP tool to remove task relationships.\n\n**Design Reference:** design_docs/alfred/PRD.md lines 179-183, tools/06-task-hierarchy/unlink_tasks.md\n**Acceptance Criteria:**\n- Tool removes Linear Relations between tasks\n- Accepts: relation_id or (task1_id, task2_id)\n- Finds and deletes the specific relation\n- Updates task statuses if unblocking\n- Returns confirmation of removed relationship\n- Business logic in src/alfred/core/task_relationships/\n- MCP wrapper in src/alfred/tools/task_relationships/\n\n**Test Instructions:**\n1. Mock Linear relation query and deletion\n2. Call unlink_tasks with relation_id\n3. Verify relation deleted via mutation\n4. Test unlinking by task pair IDs\n5. Test unlinking non-existent relation\n6. Verify task status update when unblocked\n7. Test partial match scenarios\n8. Verify idempotency",
+            "status": "done",
             "dependencies": [
-              "12.1"
+              1
             ],
-            "parentTaskId": 12
+            "details": "",
+            "testStrategy": ""
           },
           {
             "id": 3,
-            "title": "Implement check_task_links tool",
-            "description": "Create the check_task_links MCP tool to validate task relationships.\n\n**Design Reference:** design_docs/alfred/PRD.md lines 179-183, tools/06-task-hierarchy/check_task_links.md\n**Acceptance Criteria:**\n- Tool analyzes all task relationships in epic/workspace\n- Detects circular dependencies\n- Identifies orphaned relations (deleted tasks)\n- Finds conflicting relationships\n- Returns validation report with issues found\n- Suggests fixes for identified problems\n\n**Test Instructions:**\n1. Mock Linear tasks with various relations\n2. Create test data with circular dependency A→B→C→A\n3. Call check_task_links\n4. Verify circular dependency detected\n5. Test orphaned relation detection\n6. Test conflicting relationship detection\n7. Verify fix suggestions provided\n8. Test with clean relationship graph",
-            "details": "",
-            "status": "pending",
-            "dependencies": [
-              "12.1"
-            ],
-            "parentTaskId": 12
-          },
-          {
-            "id": 4,
-            "title": "Implement repair_task_links tool",
-            "description": "Create the repair_task_links MCP tool to fix broken task relationships.\n\n**Design Reference:** design_docs/alfred/PRD.md lines 179-183, tools/06-task-hierarchy/repair_task_links.md\n**Acceptance Criteria:**\n- Tool automatically fixes issues found by check_task_links\n- Removes circular dependencies by breaking oldest link\n- Deletes orphaned relations\n- Resolves conflicting relationships\n- Provides dry-run mode to preview changes\n- Returns summary of repairs made\n\n**Test Instructions:**\n1. Mock Linear relations with various issues\n2. Call repair_task_links in dry-run mode\n3. Verify proposed fixes without changes\n4. Call repair_task_links with execute=true\n5. Verify circular dependencies resolved\n6. Verify orphaned relations removed\n7. Test rollback on partial failure\n8. Verify detailed repair report",
-            "details": "",
-            "status": "pending",
-            "dependencies": [
-              "12.3"
-            ],
-            "parentTaskId": 12
-          },
-          {
-            "id": 5,
             "title": "Implement reassign_task tool",
-            "description": "Create the reassign_task MCP tool to move tasks between epics.\n\n**Design Reference:** design_docs/alfred/PRD.md lines 183, tools/06-task-hierarchy/reassign_task.md\n**Acceptance Criteria:**\n- Tool moves task from one epic to another\n- Accepts: task_id, target_epic_id\n- Updates task's project assignment in Linear\n- Preserves task relationships and subtasks\n- Handles cross-epic dependencies appropriately\n- Returns updated task with new epic\n\n**Test Instructions:**\n1. Mock Linear task update mutation\n2. Call reassign_task with task and target epic\n3. Verify project field updated in mutation\n4. Test moving task with subtasks\n5. Test moving task with dependencies\n6. Test moving to non-existent epic (should fail)\n7. Verify subtasks move with parent\n8. Test cross-epic dependency warnings",
-            "details": "",
-            "status": "pending",
+            "description": "Create the reassign_task MCP tool to move tasks between epics.\n\n**Design Reference:** design_docs/alfred/PRD.md lines 183, tools/06-task-hierarchy/reassign_task.md\n**Acceptance Criteria:**\n- Tool moves task from one epic to another\n- Accepts: task_id, target_epic_id\n- Updates task's project assignment in Linear\n- Preserves task relationships and subtasks\n- Handles cross-epic dependencies appropriately\n- Returns updated task with new epic\n- Business logic in src/alfred/core/task_relationships/\n- MCP wrapper in src/alfred/tools/task_relationships/\n\n**Test Instructions:**\n1. Mock Linear task update mutation\n2. Call reassign_task with task and target epic\n3. Verify project field updated in mutation\n4. Test moving task with subtasks\n5. Test moving task with dependencies\n6. Test moving to non-existent epic (should fail)\n7. Verify subtasks move with parent\n8. Test cross-epic dependency warnings",
+            "status": "done",
             "dependencies": [],
-            "parentTaskId": 12
+            "details": "",
+            "testStrategy": ""
           }
         ]
       },
@@ -1211,7 +1189,7 @@
     ],
     "metadata": {
       "created": "2025-08-24T05:16:48.582Z",
-      "updated": "2025-08-29T15:50:17.580Z",
+      "updated": "2025-08-29T16:33:41.844Z",
       "description": "Tasks for master context"
     }
   }
