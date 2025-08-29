@@ -983,7 +983,7 @@
         "description": "Create remaining task management MCP tools not covered in other tasks",
         "details": "This task covers the implementation of additional task management tools defined in the PRD that weren't included in the core CRUD operations:\n- update_task: AI-enhanced task updates\n- update_subtask: Append information to subtasks\n- bulk_update_tasks: Mass AI-powered updates\n- add_subtask: Create subtasks\n- remove_task: Delete tasks\n- remove_subtask: Delete subtasks\n- archive_subtasks: Mark all subtasks as done\n\n**Design Reference:** design_docs/alfred/PRD.md lines 175-177, 184-186",
         "testStrategy": "",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           1,
           2,
@@ -997,7 +997,7 @@
             "title": "Implement update_task tool",
             "description": "Create the update_task MCP tool for AI-enhanced task updates.\n\n**Design Reference:** design_docs/alfred/PRD.md lines 175-177, tools/05-task-operations/update_task.md\n**Acceptance Criteria:**\n- Tool uses AI to enhance task with additional context\n- Accepts: task_id, update_prompt\n- AI analyzes prompt and intelligently updates task fields\n- Can update: description, labels, priority, custom fields\n- Preserves existing content while adding new information\n- Returns updated task with change summary\n\n**Test Instructions:**\n1. Mock Anthropic update analysis response\n2. Mock Linear task update mutation\n3. Call update_task with task_id and prompt\n4. Verify AI determines which fields to update\n5. Test description enhancement\n6. Test priority adjustment logic\n7. Test label addition/removal\n8. Verify change summary generation",
             "details": "",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "parentTaskId": 16
           },
@@ -1006,7 +1006,7 @@
             "title": "Implement update_subtask tool",
             "description": "Create the update_subtask MCP tool to append information to subtasks.\n\n**Design Reference:** design_docs/alfred/PRD.md lines 175-177, tools/05-task-operations/update_subtask.md\n**Acceptance Criteria:**\n- Tool appends new information to subtask description\n- Accepts: subtask_id, additional_info\n- Adds timestamped entry to preserve history\n- Does not overwrite existing content\n- Updates subtask modified timestamp\n- Returns updated subtask\n\n**Test Instructions:**\n1. Mock Linear sub-issue query and update\n2. Call update_subtask with info to append\n3. Verify description appended with timestamp\n4. Test multiple appends to same subtask\n5. Verify original content preserved\n6. Test with very long descriptions\n7. Test updating non-existent subtask\n8. Verify modified timestamp updated",
             "details": "",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "parentTaskId": 16
           },
@@ -1015,7 +1015,7 @@
             "title": "Implement bulk_update_tasks tool",
             "description": "Create the bulk_update_tasks MCP tool for mass AI-powered updates.\n\n**Design Reference:** design_docs/alfred/PRD.md lines 175-177, tools/05-task-operations/update.md\n**Acceptance Criteria:**\n- Tool applies AI-generated updates to multiple tasks\n- Accepts: task_ids[], update_prompt, filter_criteria\n- AI determines appropriate updates per task\n- Batches Linear API calls for efficiency\n- Provides progress updates during operation\n- Returns summary of all changes made\n\n**Test Instructions:**\n1. Mock Anthropic bulk analysis response\n2. Mock Linear batch update mutations\n3. Call bulk_update_tasks with 5 task IDs\n4. Verify AI analyzes each task individually\n5. Test batch API call efficiency\n6. Test progress reporting\n7. Test partial failure handling\n8. Verify rollback on critical errors\n9. Test filter criteria application",
             "details": "",
-            "status": "pending",
+            "status": "done",
             "dependencies": [
               "16.1"
             ],
@@ -1026,7 +1026,7 @@
             "title": "Implement add_subtask tool",
             "description": "Create the add_subtask MCP tool to create subtasks under existing tasks.\n\n**Design Reference:** design_docs/alfred/PRD.md lines 168, 184, tools/05-task-operations/add_subtask.md\n**Acceptance Criteria:**\n- Tool creates Linear sub-issue under parent task\n- Accepts: parent_id, title, description, assignee (optional)\n- Inherits epic and labels from parent\n- Sets initial status to \"todo\"\n- Validates parent task exists\n- Returns created subtask with ID\n\n**Test Instructions:**\n1. Mock Linear sub-issue creation mutation\n2. Call add_subtask with parent_id and details\n3. Verify sub-issue created with correct parent\n4. Test epic inheritance\n5. Test label inheritance\n6. Test with non-existent parent (should fail)\n7. Test assignee setting\n8. Verify response includes subtask ID",
             "details": "",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "parentTaskId": 16
           },
@@ -1035,7 +1035,7 @@
             "title": "Implement remove_task tool",
             "description": "Create the remove_task MCP tool to delete tasks.\n\n**Design Reference:** design_docs/alfred/PRD.md lines 184, tools/05-task-operations/remove_task.md\n**Acceptance Criteria:**\n- Tool deletes task from Linear via GraphQL\n- Accepts: task_id, cascade_delete (boolean)\n- If cascade_delete=true, deletes all subtasks\n- If cascade_delete=false and has subtasks, returns error\n- Confirms deletion before executing\n- Handles task not found gracefully\n\n**Test Instructions:**\n1. Mock Linear task deletion mutation\n2. Call remove_task with task having no subtasks\n3. Verify deletion mutation called\n4. Test task with subtasks, cascade_delete=false (should fail)\n5. Test task with subtasks, cascade_delete=true\n6. Test deleting non-existent task\n7. Verify confirmation behavior\n8. Test idempotency of deletion",
             "details": "",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "parentTaskId": 16
           },
@@ -1044,7 +1044,7 @@
             "title": "Implement remove_subtask tool",
             "description": "Create the remove_subtask MCP tool to delete subtasks.\n\n**Design Reference:** design_docs/alfred/PRD.md lines 184, tools/05-task-operations/remove_subtask.md\n**Acceptance Criteria:**\n- Tool deletes subtask from Linear\n- Accepts: subtask_id\n- Updates parent task's subtask count\n- Handles subtask not found gracefully\n- Does not affect sibling subtasks\n- Returns confirmation of deletion\n\n**Test Instructions:**\n1. Mock Linear sub-issue deletion\n2. Call remove_subtask with valid ID\n3. Verify deletion mutation called\n4. Test parent task subtask count update\n5. Test deleting non-existent subtask\n6. Test that siblings remain unchanged\n7. Verify idempotency\n8. Test orphaned subtask handling",
             "details": "",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "parentTaskId": 16
           },
@@ -1053,7 +1053,7 @@
             "title": "Implement archive_subtasks tool",
             "description": "Create the archive_subtasks MCP tool to mark all subtasks as done.\n\n**Design Reference:** design_docs/alfred/PRD.md lines 186, tools/05-task-operations/archive_subtasks.md\n**Acceptance Criteria:**\n- Tool batch updates all subtasks to \"done\" status\n- Accepts: parent_task_id\n- Updates all subtasks in single batch operation\n- Skips already completed subtasks\n- Updates parent task progress indicator\n- Returns count of archived subtasks\n\n**Test Instructions:**\n1. Mock Linear batch status update\n2. Call archive_subtasks with parent having 5 subtasks\n3. Verify all subtasks updated to done\n4. Test with mix of pending/done subtasks\n5. Verify only pending ones updated\n6. Test parent progress update\n7. Test with task having no subtasks\n8. Verify batch operation efficiency",
             "details": "",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "parentTaskId": 16
           }
@@ -1065,7 +1065,7 @@
         "description": "Create utility MCP tools for workflow management including dependency validation and file generation as defined in design_docs/alfred/PRD.md",
         "details": "",
         "testStrategy": "",
-        "status": "pending",
+        "status": "cancelled",
         "dependencies": [
           1,
           2,
@@ -1211,7 +1211,7 @@
     ],
     "metadata": {
       "created": "2025-08-24T05:16:48.582Z",
-      "updated": "2025-08-28T18:11:40.166Z",
+      "updated": "2025-08-29T15:35:36.726Z",
       "description": "Tasks for master context"
     }
   }

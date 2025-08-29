@@ -215,6 +215,42 @@ class LinearTaskCreator:
 
         return created_tasks
 
+    def _would_create_cycle(
+        self, 
+        task_id: str, 
+        depends_on_id: str, 
+        dependency_graph: Dict[str, List[str]]
+    ) -> bool:
+        """Check if adding a dependency would create a cycle.
+        
+        Args:
+            task_id: Task that would depend on another
+            depends_on_id: Task that would block the first
+            dependency_graph: Current dependency graph
+            
+        Returns:
+            True if this would create a cycle
+        """
+        # Check if depends_on_id can reach task_id through existing dependencies
+        visited = set()
+        queue = [depends_on_id]
+        
+        while queue:
+            current = queue.pop(0)
+            if current == task_id:
+                return True  # Found a path back to task_id - would create cycle
+            
+            if current in visited:
+                continue
+                
+            visited.add(current)
+            
+            # Add all tasks that current depends on
+            if current in dependency_graph:
+                queue.extend(dependency_graph[current])
+        
+        return False
+
     async def create_task_dependencies(
         self, tasks: List[TaskSuggestion], created_tasks: List[LinearTaskCreated]
     ) -> List[Dict[str, str]]:
@@ -228,6 +264,7 @@ class LinearTaskCreator:
             List of created dependencies
         """
         dependencies_created = []
+        dependency_graph = {}  # Track dependencies to detect cycles
 
         # Build title to ID mapping
         title_to_id = {created.title.lower(): created.id for created in created_tasks}
@@ -258,6 +295,14 @@ class LinearTaskCreator:
                             break
 
                 if dep_id and dep_id != created_task.id:
+                    # Check if this would create a circular dependency
+                    if self._would_create_cycle(created_task.id, dep_id, dependency_graph):
+                        logger.warning(
+                            f"Skipping circular dependency: {created_task.title} -> {dep_id} "
+                            f"would create a cycle"
+                        )
+                        continue
+                    
                     try:
                         # Create blocking relationship in Linear
                         # created_task depends on dep_id, so dep_id blocks created_task
@@ -275,6 +320,11 @@ class LinearTaskCreator:
                                     "type": "blocks",
                                 }
                             )
+                            
+                            # Update dependency graph for future cycle checks
+                            if created_task.id not in dependency_graph:
+                                dependency_graph[created_task.id] = []
+                            dependency_graph[created_task.id].append(dep_id)
                         else:
                             logger.warning(
                                 f"Failed to create dependency between {created_task.id} and {dep_id}"
