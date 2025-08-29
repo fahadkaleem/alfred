@@ -178,7 +178,7 @@ Guidelines:
 9. If the PRD contains specific requirements for libraries, database schemas, frameworks, tech stacks, or any other implementation details, STRICTLY ADHERE to these requirements in your task breakdown and do not discard them under any circumstance
 10. Focus on filling in any gaps left by the PRD or areas that aren't fully specified, while preserving all explicit requirements
 11. Always aim to provide the most direct path to implementation, avoiding over-engineering or roundabout approaches{
-            f'''
+            '''
 12. For each task, include specific, actionable guidance based on current industry standards and best practices discovered through research'''
             if research_mode
             else ""
@@ -324,6 +324,139 @@ Return the enhanced task as complete JSON with all fields:
   "dependencies": ["dependency 1"],
   "estimated_hours": number,
   "priority": "critical|high|medium|low",
+}}"""
+
+        return {
+            "system": system,
+            "user": user,
+            "messages": PromptTemplates.format_messages(system, user),
+        }
+
+    @staticmethod
+    def render_enhance_scope(
+        task: str, enhancement_prompt: str = ""
+    ) -> Dict[str, Any]:
+        """Render prompt for enhancing task scope.
+
+        Args:
+            task: Current task (string or JSON)
+            enhancement_prompt: Optional specific enhancement guidance
+
+        Returns:
+            Dict with system prompt, user prompt, and formatted messages
+        """
+        system = (
+            "You are an experienced technical architect who excels at identifying comprehensive requirements. "
+            "You expand task scope by adding necessary features, edge cases, and quality requirements. "
+            "Always respond with valid JSON."
+        )
+
+        if isinstance(task, dict):
+            task_info = json.dumps(task, indent=2)
+        else:
+            task_info = task
+
+        user = f"""Enhance this task's scope by adding comprehensive requirements and considerations.
+
+Current task:
+{task_info}
+
+{"Enhancement guidance: " + enhancement_prompt if enhancement_prompt else ""}
+
+Requirements:
+1. Add additional functional requirements that make the solution more robust
+2. Include non-functional requirements (performance, security, scalability)
+3. Add edge cases and error handling requirements
+4. Include monitoring and observability requirements
+5. Add testing and validation requirements
+6. Consider integration and compatibility requirements
+7. Preserve all existing requirements while adding new ones
+
+Return the enhanced task as JSON:
+{{
+  "title": "Enhanced title if needed",
+  "description": "Comprehensive description with all requirements",
+  "priority": "high",
+  "additional_requirements": [
+    "New requirement 1",
+    "New requirement 2"
+  ],
+  "non_functional_requirements": [
+    "Performance requirement",
+    "Security requirement"
+  ],
+  "edge_cases": [
+    "Edge case to handle",
+    "Error scenario to consider"
+  ],
+  "testing_requirements": [
+    "Test requirement 1",
+    "Test requirement 2"
+  ]
+}}"""
+
+        return {
+            "system": system,
+            "user": user,
+            "messages": PromptTemplates.format_messages(system, user),
+        }
+
+    @staticmethod
+    def render_simplify_task(
+        task: str, simplification_prompt: str = ""
+    ) -> Dict[str, Any]:
+        """Render prompt for simplifying task to core requirements.
+
+        Args:
+            task: Current task (string or JSON)
+            simplification_prompt: Optional specific simplification guidance
+
+        Returns:
+            Dict with system prompt, user prompt, and formatted messages
+        """
+        system = (
+            "You are a pragmatic product manager focused on MVP delivery. "
+            "You simplify tasks to their essential requirements while preserving core value. "
+            "Always respond with valid JSON."
+        )
+
+        if isinstance(task, dict):
+            task_info = json.dumps(task, indent=2)
+        else:
+            task_info = task
+
+        user = f"""Simplify this task to its core essential requirements.
+
+Current task:
+{task_info}
+
+{"Simplification guidance: " + simplification_prompt if simplification_prompt else ""}
+
+Requirements:
+1. Identify the core functionality that must be delivered
+2. Remove nice-to-have features and defer them to "future_enhancements"
+3. Focus on MVP (Minimum Viable Product) requirements
+4. Simplify complex implementations to basic working versions
+5. Reduce scope while maintaining essential value
+6. Move advanced features to a separate section
+
+Return the simplified task as JSON:
+{{
+  "title": "Simplified title if needed",
+  "description": "Core requirements only",
+  "priority": "medium",
+  "core_requirements": [
+    "Essential requirement 1",
+    "Essential requirement 2"
+  ],
+  "simplified_approach": "How to implement the simplified version",
+  "future_enhancements": [
+    "Deferred feature 1",
+    "Deferred feature 2"
+  ],
+  "removed_complexity": [
+    "What was removed and why"
+  ]
 }}"""
 
         return {

@@ -9,11 +9,11 @@ import json
 import logging
 from typing import Any, AsyncGenerator, Dict, List, Optional, Union
 
-from .base import AIProvider, BaseAIProvider, AIResponse, TokenUsage, StreamEvent
+from .base import AIProvider, BaseAIProvider, TokenUsage, StreamEvent
 from .prompts import PromptTemplates
 from .provider_factory import create_provider
 from alfred.config import get_config
-from .exceptions import AIServiceError, JSONParseError, TokenLimitError
+from .exceptions import JSONParseError
 
 logger = logging.getLogger(__name__)
 
@@ -170,6 +170,58 @@ class AIService:
             )
             # complete_json returns parsed JSON directly, not a response object
 
+            return response
+
+    async def enhance_scope(
+        self,
+        task: Dict[str, Any],
+        enhancement_prompt: str = "",
+        stream: bool = False,
+    ) -> Union[Dict[str, Any], AsyncGenerator[StreamEvent, None]]:
+        """Enhance task scope with additional requirements.
+
+        Args:
+            task: Task to enhance
+            enhancement_prompt: Optional specific enhancement guidance
+            stream: Whether to stream the response
+
+        Returns:
+            Enhanced task dictionary or stream of events
+        """
+        prompt_data = self.prompts.render_enhance_scope(task, enhancement_prompt)
+
+        if stream:
+            return self._stream_json_response(prompt_data["messages"])
+        else:
+            response = await self.provider.complete_json(
+                messages=prompt_data["messages"], temperature=0.7
+            )
+            return response
+
+    async def simplify_task(
+        self,
+        task: Dict[str, Any],
+        simplification_prompt: str = "",
+        stream: bool = False,
+    ) -> Union[Dict[str, Any], AsyncGenerator[StreamEvent, None]]:
+        """Simplify task to core requirements.
+
+        Args:
+            task: Task to simplify
+            simplification_prompt: Optional specific simplification guidance
+            stream: Whether to stream the response
+
+        Returns:
+            Simplified task dictionary or stream of events
+        """
+        prompt_data = self.prompts.render_simplify_task(task, simplification_prompt)
+
+        if stream:
+            return self._stream_json_response(prompt_data["messages"])
+        else:
+            response = await self.provider.complete_json(
+                messages=prompt_data["messages"], temperature=0.5
+            )
             return response
 
     async def research(

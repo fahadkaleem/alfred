@@ -694,7 +694,7 @@
         "description": "Create AI-powered task enhancement and simplification tools as defined in design_docs/alfred/tools/03-task-management/",
         "details": "Reference: design_docs/alfred/PRD.md (lines 147-150) & design_docs/alfred/tools/03-task-management/\n\nCreate in src/alfred/tools/task_enhancement.py:\n- enhance_task_scope - Add requirements to task\n- simplify_task - Reduce task to core requirements\n- update_task - Enhance single task with AI context\n- bulk_update_tasks - Mass AI-powered updates\n\nRequirements:\n1. Use AI to enhance task descriptions\n2. Add/remove requirements intelligently\n3. Maintain task intent\n4. Support batch operations\n5. Track enhancement history",
         "testStrategy": "## Test Instructions\n1. Test scope enhancement\n2. Test simplification\n3. Test context preservation\n4. Test batch updates\n5. Test AI quality\n\n## Success Criteria\n- [ ] Quality enhancements\n- [ ] Intent preservation\n- [ ] Batch efficiency\n- [ ] History tracking\n- [ ] Error handling",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           1,
           2,
@@ -707,8 +707,8 @@
             "id": 1,
             "title": "Implement enhance_task_scope tool",
             "description": "Create the enhance_task_scope MCP tool to increase task complexity with AI.\n\n**Design Reference:** design_docs/alfred/PRD.md lines 148-150, tools/03-task-management/enhance_task_scope.md\n**Acceptance Criteria:**\n- Tool uses AI to add requirements and expand task scope\n- Accepts: task_id, enhancement_prompt (optional)\n- Updates task description with additional requirements\n- Adds relevant labels and increases priority if needed\n- Preserves original requirements while adding new ones\n- Returns updated task with changes highlighted\n\n**Test Instructions:**\n1. Mock Anthropic enhancement response\n2. Mock Linear task update mutation\n3. Call enhance_task_scope with task_id\n4. Verify AI prompt includes current task details\n5. Verify description updated with new requirements\n6. Test with custom enhancement_prompt\n7. Verify original requirements preserved\n8. Test priority escalation logic",
-            "details": "",
-            "status": "pending",
+            "details": "<info added on 2025-08-29T15:49:44.767Z>\nImplemented enhance_task_scope tool with the following:\n- Created AI service methods for enhance_scope in service.py\n- Added render_enhance_scope prompt template in prompts.py\n- Created enhance_task_scope_logic in core/tasks/enhance.py\n- Created MCP tool wrapper in tools/task_enhancement.py\n- Tool properly registered and imports successfully\n- Follows established patterns from existing codebase\n</info added on 2025-08-29T15:49:44.767Z>",
+            "status": "done",
             "dependencies": [],
             "parentTaskId": 11
           },
@@ -716,8 +716,8 @@
             "id": 2,
             "title": "Implement simplify_task tool",
             "description": "Create the simplify_task MCP tool to reduce task complexity with AI.\n\n**Design Reference:** design_docs/alfred/PRD.md lines 148-150, tools/03-task-management/simplify_task.md\n**Acceptance Criteria:**\n- Tool uses AI to identify core requirements and remove extras\n- Accepts: task_id, simplification_prompt (optional)\n- Updates task to focus on MVP/essential features\n- Moves removed requirements to \"Future Enhancements\" section\n- Reduces priority if appropriate\n- Returns updated task with simplification summary\n\n**Test Instructions:**\n1. Mock Anthropic simplification response\n2. Mock Linear task update mutation\n3. Call simplify_task with complex task\n4. Verify AI identifies core vs nice-to-have features\n5. Verify description updated with focused scope\n6. Test future enhancements section creation\n7. Verify priority reduction logic\n8. Test with custom simplification_prompt",
-            "details": "",
-            "status": "pending",
+            "details": "<info added on 2025-08-29T15:49:55.820Z>\nImplemented simplify_task tool with the following:\n- Created AI service method simplify_task in service.py\n- Added render_simplify_task prompt template in prompts.py\n- Created simplify_task_logic in core/tasks/enhance.py\n- Created MCP tool wrapper in tools/task_enhancement.py\n- Tool properly registered and imports successfully\n- Follows established patterns from existing codebase\n</info added on 2025-08-29T15:49:55.820Z>",
+            "status": "done",
             "dependencies": [],
             "parentTaskId": 11
           }
@@ -1211,7 +1211,7 @@
     ],
     "metadata": {
       "created": "2025-08-24T05:16:48.582Z",
-      "updated": "2025-08-29T15:35:36.726Z",
+      "updated": "2025-08-29T15:50:17.580Z",
       "description": "Tasks for master context"
     }
   }
