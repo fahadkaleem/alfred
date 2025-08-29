@@ -5,6 +5,7 @@ from typing import Optional, Dict, Type
 
 from .base import BaseAIProvider, AIProvider
 from .anthropic_provider import AnthropicProvider
+from .perplexity_provider import PerplexityProvider
 from .config import get_provider_config, get_default_provider
 from .exceptions import ProviderNotFoundError
 
@@ -13,6 +14,7 @@ logger = logging.getLogger(__name__)
 # Registry of available providers
 PROVIDER_REGISTRY: Dict[AIProvider, Type[BaseAIProvider]] = {
     AIProvider.ANTHROPIC: AnthropicProvider,
+    AIProvider.PERPLEXITY: PerplexityProvider,
     # Future providers can be added here:
     # AIProvider.OPENAI: OpenAIProvider,
     # AIProvider.GEMINI: GeminiProvider,

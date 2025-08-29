@@ -27,11 +27,10 @@ class Config(BaseModel):
     # API Keys
     linear_api_key: Optional[str] = None
     anthropic_api_key: Optional[str] = None
+    perplexity_api_key: Optional[str] = None
     jira_api_key: Optional[str] = None
     jira_url: Optional[str] = None
     jira_email: Optional[str] = None
-    openai_api_key: Optional[str] = None
-    gemini_api_key: Optional[str] = None
 
     # Workspace Configuration
     workspace_id: Optional[str] = None
@@ -43,22 +42,19 @@ class Config(BaseModel):
 
     # AI Configuration
     ai_provider: AIProvider = AIProvider.ANTHROPIC
+    research_provider: Optional[str] = (
+        "perplexity"  # perplexity, anthropic, openai, gemini, or None for same as ai_provider
+    )
     claude_model: str = "claude-3-5-sonnet-20241022"
-    openai_model: str = "gpt-4-turbo-preview"
-    gemini_model: str = "gemini-pro"
+    perplexity_model: str = "sonar-pro"
     max_tokens: int = Field(default=4096, ge=1, le=100000)
     temperature: float = Field(default=0.7, ge=0.0, le=2.0)
 
     # AI Advanced Settings
     request_timeout: int = Field(default=60, ge=1, le=600)
     max_retries: int = Field(default=3, ge=0, le=10)
-    rate_limit_rpm: int = Field(default=50, ge=1, le=1000)
     chunk_overlap_tokens: int = Field(default=200, ge=0, le=1000)
     max_context_percentage: float = Field(default=0.6, ge=0.1, le=1.0)
-
-    # Behavior Configuration
-    auto_decompose_threshold: int = Field(default=5, ge=1, le=20)
-    default_subtask_count: int = Field(default=3, ge=1, le=10)
 
     @field_validator("*", mode="before")
     @classmethod

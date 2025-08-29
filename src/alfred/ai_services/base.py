@@ -14,6 +14,7 @@ class AIProvider(str, Enum):
     """Supported AI providers."""
 
     ANTHROPIC = "anthropic"
+    PERPLEXITY = "perplexity"
     OPENAI = "openai"  # Future
     GEMINI = "gemini"  # Future
     OLLAMA = "ollama"  # Future

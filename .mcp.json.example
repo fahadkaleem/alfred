@@ -12,7 +12,6 @@
       ],
       "env": {
         "PYTHONPATH": "/Users/mohammedfahadkaleem/Documents/Workspace/alfred-task-manager/src",
-        "ALFRED_VERSION": "0.1.0",
         "ALFRED_LOG_LEVEL": "INFO",
         "ALFRED_TRANSPORT": "stdio",
         "ALFRED_WORKSPACE": "/Users/mohammedfahadkaleem/Documents/Workspace/alfred-task-manager",

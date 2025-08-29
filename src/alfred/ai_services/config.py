@@ -40,28 +40,10 @@ def get_provider_config(provider: AIProvider) -> AIProviderConfig:
             timeout=config.request_timeout,
             max_retries=config.max_retries,
         ),
-        AIProvider.OPENAI: AIProviderConfig(
+        AIProvider.PERPLEXITY: AIProviderConfig(
             provider=provider,
-            api_key=config.openai_api_key,
-            model=config.openai_model,
-            temperature=config.temperature,
-            max_tokens=config.max_tokens,
-            timeout=config.request_timeout,
-            max_retries=config.max_retries,
-        ),
-        AIProvider.GEMINI: AIProviderConfig(
-            provider=provider,
-            api_key=config.gemini_api_key,
-            model=config.gemini_model,
-            temperature=config.temperature,
-            max_tokens=config.max_tokens,
-            timeout=config.request_timeout,
-            max_retries=config.max_retries,
-        ),
-        AIProvider.OLLAMA: AIProviderConfig(
-            provider=provider,
-            api_key=None,  # Ollama doesn't require API key
-            model="llama2",  # Default model for Ollama
+            api_key=config.perplexity_api_key,
+            model=config.perplexity_model,
             temperature=config.temperature,
             max_tokens=config.max_tokens,
             timeout=config.request_timeout,
@@ -77,7 +59,6 @@ def get_default_provider() -> AIProvider:
     config = get_config()
     provider_map = {
         "anthropic": AIProvider.ANTHROPIC,
-        "openai": AIProvider.OPENAI,
-        "gemini": AIProvider.GEMINI,
+        "perplexity": AIProvider.PERPLEXITY,
     }
     return provider_map.get(config.ai_provider, AIProvider.ANTHROPIC)

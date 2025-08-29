@@ -775,7 +775,7 @@
         "description": "Create AI-powered research tool with context gathering as defined in design_docs/alfred/tools/09-special-utilities/research.md",
         "details": "Reference: design_docs/alfred/PRD.md (lines 151) & design_docs/alfred/tools/09-special-utilities/research.md\n\nCreate in src/alfred/tools/research.py:\n- research - AI-powered research with context gathering\n\nRequirements:\n1. Gather context from workspace/tasks\n2. Use AI to research and provide insights\n3. Attach findings to tasks as comments\n4. Support multiple research modes\n5. Include source citations",
         "testStrategy": "## Test Instructions\n1. Test context gathering\n2. Test research quality\n3. Test task attachment\n4. Test citation accuracy\n5. Test various research modes\n\n## Success Criteria\n- [ ] Quality research output\n- [ ] Context awareness\n- [ ] Task integration\n- [ ] Source citations\n- [ ] Error handling",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           1,
           2,
@@ -789,7 +789,7 @@
             "title": "Implement research tool",
             "description": "Create the research MCP tool for AI-powered context gathering.\n\n**Design Reference:** design_docs/alfred/PRD.md lines 148, 189, tools/09-special-utilities/research.md\n**Acceptance Criteria:**\n- Tool accepts research query and optional task context\n- Uses Anthropic to gather relevant information\n- Can attach findings to specific task as comment\n- Supports web search integration (future)\n- Formats response with sources and confidence levels\n- Saves research results for future reference\n\n**Test Instructions:**\n1. Mock Anthropic research response\n2. Mock Linear comment creation\n3. Call research with query \"best practices for API design\"\n4. Verify AI prompt includes query and context\n5. Test attaching research to task_id\n6. Verify formatted response with sections\n7. Test token limit handling for long research\n8. Test caching of research results\n9. Verify Linear comment creation when task_id provided",
             "details": "",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "parentTaskId": 13
           }
@@ -1189,7 +1189,7 @@
     ],
     "metadata": {
       "created": "2025-08-24T05:16:48.582Z",
-      "updated": "2025-08-29T16:33:41.844Z",
+      "updated": "2025-08-29T18:26:53.522Z",
       "description": "Tasks for master context"
     }
   }

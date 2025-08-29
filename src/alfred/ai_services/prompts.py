@@ -467,58 +467,84 @@ Return the simplified task as JSON:
     def render_research(
         query: str, context: str = "", detail_level: str = "medium"
     ) -> Dict[str, Any]:
-        """Render prompt for research queries.
+        """Render research prompt matching Task Master specification.
 
         Args:
             query: Research query
-            context: Additional context
+            context: Project context including tasks, files, etc.
             detail_level: Level of detail (low, medium, high)
 
         Returns:
             Dict with system prompt, user prompt, and formatted messages
         """
-        system = (
-            "You are a knowledgeable technical researcher and architect. "
-            "You provide accurate, practical insights with a focus on implementation. "
-            "Always cite best practices and consider trade-offs."
-        )
+        detail_level_lower = detail_level.lower()
 
-        detail_instructions = {
-            "low": "Provide a concise summary with key points only.",
-            "medium": "Provide a balanced explanation with examples.",
-            "high": "Provide comprehensive analysis with detailed examples and edge cases.",
-        }.get(detail_level, "Provide a thorough response.")
+        system_base = """You are an expert AI research assistant helping with a software development project. You have access to project context including tasks, files, and project structure.
+
+Your role is to provide comprehensive, accurate, and actionable research responses based on the user's query and the provided project context."""
+
+        if detail_level_lower == "low":
+            response_style = """
+**Response Style: Concise & Direct**
+- Provide brief, focused answers (2-4 paragraphs maximum)
+- Focus on the most essential information
+- Use bullet points for key takeaways
+- Avoid lengthy explanations unless critical
+- Skip pleasantries, introductions, and conclusions
+- No phrases like "Based on your project context" or "I'll provide guidance"
+- No summary outros or alignment statements
+- Get straight to the actionable information
+- Use simple, direct language - users want info, not explanation
+
+**For LOW detail level specifically:**
+- Start immediately with the core information
+- No introductory phrases or context acknowledgments
+- No concluding summaries or project alignment statements
+- Focus purely on facts, steps, and actionable items"""
+
+        elif detail_level_lower == "high":
+            response_style = """
+**Response Style: Detailed & Exhaustive**
+- Provide comprehensive, in-depth analysis (8+ paragraphs)
+- Include multiple perspectives and approaches
+- Provide detailed examples, code snippets, and step-by-step guidance
+- Cover edge cases and potential pitfalls
+- Use clear structure with headings, subheadings, and lists"""
+
+        else:
+            response_style = """
+**Response Style: Balanced & Comprehensive**
+- Provide thorough but well-structured responses (4-8 paragraphs)
+- Include relevant examples and explanations
+- Balance depth with readability
+- Use headings and bullet points for organization"""
+
+        system = f"""{system_base}
+{response_style}
+
+**Guidelines:**
+- Always consider the project context when formulating responses
+- Reference specific tasks, files, or project elements when relevant
+- Provide actionable insights that can be applied to the project
+- If the query relates to existing project tasks, suggest how the research applies to those tasks
+- Use markdown formatting for better readability
+- Be precise and avoid speculation unless clearly marked as such"""
 
         context_section = ""
         if context:
-            context_section = (
-                f"\n\nContext:\n{PromptTemplates.sanitize_text(context, 2000)}"
-            )
+            context_section = f"""
 
-        user = f"""Research and provide insights on the following query:
+# Project Context
 
-Query: {query}
-{context_section}
+{PromptTemplates.sanitize_text(context, 8000)}"""
 
-Requirements:
-1. {detail_instructions}
-2. Include practical, implementable recommendations
-3. Consider best practices and industry standards
-4. Identify potential pitfalls and how to avoid them
-5. Provide code examples where relevant
-6. Structure your response clearly with sections
+        user = f"""# Research Query
 
-Return as JSON:
-{{
-  "summary": "Brief overview of findings",
-  "key_insights": ["Insight 1", "Insight 2"],
-  "recommendations": ["Actionable recommendation 1", "Actionable recommendation 2"],
-  "best_practices": ["Best practice 1", "Best practice 2"],
-  "potential_issues": ["Issue to watch for", "Common pitfall"],
-  "examples": ["Code or configuration example if relevant"],
-  "references": ["Relevant documentation or resources"],
-  "next_steps": ["Suggested action 1", "Suggested action 2"]
-}}"""
+{query}{context_section}
+
+# Instructions
+
+Please research and provide a {detail_level_lower}-detail response to the query above. Consider the project context provided and make your response as relevant and actionable as possible for this specific project."""
 
         return {
             "system": system,
