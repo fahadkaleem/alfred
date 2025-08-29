@@ -15,7 +15,6 @@ def register(server) -> int:
         num_subtasks: Optional[int] = None,
         context: Optional[str] = None,
         force: bool = False,
-
     ) -> dict:
         """
         Create subtasks for all eligible tasks using AI.
@@ -141,7 +140,6 @@ def register(server) -> int:
                 num_subtasks=num_subtasks,
                 context=context,
                 force=force,
-
             )
             # Convert Pydantic model to dict for MCP response
             return {

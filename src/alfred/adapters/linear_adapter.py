@@ -312,6 +312,9 @@ class LinearAdapter(TaskAdapter):
             if "status" in updates:
                 update_input["stateName"] = updates["status"]
 
+            if "parent_id" in updates:
+                update_input["parentId"] = updates["parent_id"]
+
             # Update the issue - the linear-api library expects a model-like object
             update_obj = LinearIssueUpdateInput(**update_input)
             updated_issue = self.client.issues.update(target_issue.id, update_obj)
@@ -764,7 +767,3 @@ class LinearAdapter(TaskAdapter):
                 raise APIConnectionError(f"Network error: {e}")
             else:
                 raise APIResponseError(f"Linear API error: {e}")
-
-
-
-

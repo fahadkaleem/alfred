@@ -142,8 +142,6 @@ class AIService:
             else:
                 return [response]
 
-
-
     async def enhance_task(
         self,
         task: Union[str, Dict[str, Any]],

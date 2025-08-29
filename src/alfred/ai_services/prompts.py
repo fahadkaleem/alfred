@@ -263,8 +263,6 @@ Return as JSON array with EXACTLY {num_subtasks} subtasks:
             "messages": PromptTemplates.format_messages(system, user),
         }
 
-
-
     @staticmethod
     def render_enhance_task(
         task: str, context: str, enhancement_type: str = "general"

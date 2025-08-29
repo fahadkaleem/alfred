@@ -14,6 +14,6 @@ def get_task_logic(api_key: str, task_id: str) -> Dict[str, Any]:
     try:
         task = adapter.get_task(task_id)
         alfred_task = to_alfred_task(task)
-        return alfred_task.model_dump()
+        return alfred_task.model_dump(mode="json")
     except NotFoundError:
         return {"error": "not_found", "task_id": task_id}

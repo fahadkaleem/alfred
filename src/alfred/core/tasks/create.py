@@ -21,4 +21,4 @@ def create_task_logic(
     task = adapter.create_task(title=title, description=description, epic_id=epic_id)
 
     alfred_task = to_alfred_task(task)
-    return alfred_task.model_dump()
+    return alfred_task.model_dump(mode="json")

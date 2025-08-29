@@ -33,6 +33,6 @@ def update_task_status_logic(api_key: str, task_id: str, status: str) -> Dict[st
     try:
         task = adapter.update_task(task_id, {"status": linear_status})
         alfred_task = to_alfred_task(task)
-        return alfred_task.model_dump()
+        return alfred_task.model_dump(mode="json")
     except NotFoundError:
         return {"error": "not_found", "task_id": task_id}

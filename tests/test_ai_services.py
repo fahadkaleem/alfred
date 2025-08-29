@@ -260,7 +260,6 @@ class TestAIService:
         assert len(subtasks) == 2
         assert subtasks[0]["title"] == "Subtask 1"
 
-
     @pytest.mark.asyncio
     async def test_research(self, ai_service, mock_provider):
         """Test research functionality."""

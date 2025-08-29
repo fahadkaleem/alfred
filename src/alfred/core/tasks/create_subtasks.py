@@ -17,7 +17,6 @@ from alfred.core.tasks.constants import (
     MAX_SUBTASKS,
     DEFAULT_SUBTASKS,
     TITLE_WORD_DIVISOR,
-
     INELIGIBLE_STATUSES,
 )
 
@@ -136,7 +135,6 @@ async def create_all_subtasks_logic(
     num_subtasks: Optional[int] = None,
     context: Optional[str] = None,
     force: bool = False,
-
 ) -> BatchSubtaskCreationResult:
     """
     Create subtasks for all eligible tasks in batch.

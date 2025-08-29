@@ -42,4 +42,4 @@ def get_tasks_logic(
         next_cursor=None,
     )
 
-    return task_result.model_dump()
+    return task_result.model_dump(mode="json")

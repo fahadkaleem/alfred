@@ -309,5 +309,3 @@ def map_priority_to_linear(priority: str) -> int:
         "P3": 0,  # Low
     }
     return mapping.get(priority, 1)
-
-
