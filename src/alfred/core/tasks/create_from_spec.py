@@ -6,7 +6,6 @@ from typing import Dict, Any, Optional, List
 from pathlib import Path
 
 from alfred.core.tasks.models import CreateTasksFromSpecResult
-from alfred.core.tasks.utilities import load_complexity_report
 from alfred.core.tasks.ai_orchestration import TaskGenerationOrchestrator
 from alfred.core.tasks.linear_integration import LinearTaskCreator
 from alfred.ai_services.service import AIService
@@ -70,11 +69,8 @@ async def create_tasks_from_spec_logic(
 
         # Set default if 0
         if num_tasks == 0:
-            # Let AI decide based on complexity
+            # Let AI decide based on content
             num_tasks = 10  # Default, AI may adjust
-
-        # Load complexity report if available
-        complexity_report = load_complexity_report()
 
         # Initialize AI service
         ai_service = AIService()
@@ -89,7 +85,6 @@ async def create_tasks_from_spec_logic(
         generation_result = await orchestrator.generate_task_plan(
             spec_content=spec_content,
             num_tasks=num_tasks,
-            complexity_report=complexity_report,
             project_context=project_context,
             research_mode=research_mode,
             is_claude_code=is_claude_code,

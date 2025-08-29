@@ -71,7 +71,6 @@ async def test_anthropic_integration():
         for i, task in enumerate(tasks, 1):
             print(f"\n   Task {i}: {task.get('title', 'Untitled')}")
             print(f"   Priority: {task.get('priority', 'N/A')}")
-            print(f"   Complexity: {task.get('complexity', 'N/A')}")
 
         # Test 5: Decompose a task
         print("\n🧪 Test 5: Decomposing a task...")
@@ -85,20 +84,8 @@ async def test_anthropic_integration():
             for i, subtask in enumerate(subtasks, 1):
                 print(f"   Subtask {i}: {subtask.get('title', 'Untitled')}")
 
-        # Test 6: Assess complexity
-        print("\n🧪 Test 6: Assessing task complexity...")
-        complexity = await ai_service.assess_complexity(
-            task="Implement OAuth 2.0 authentication with Google and GitHub providers"
-        )
-
-        print(f"✅ Complexity assessment:")
-        print(f"   Score: {complexity.get('complexity_score', 'N/A')}/10")
-        print(f"   Risk level: {complexity.get('risk_level', 'N/A')}")
-        print(f"   Estimated hours: {complexity.get('estimated_hours', 'N/A')}")
-        print(f"   Should decompose: {complexity.get('should_decompose', 'N/A')}")
-
-        # Test 7: Research query
-        print("\n🧪 Test 7: Testing research functionality...")
+        # Test 6: Research query
+        print("\n🧪 Test 6: Testing research functionality...")
         research = await ai_service.research(
             query="What are the best practices for implementing rate limiting in a REST API?",
             detail_level="low",
@@ -113,8 +100,8 @@ async def test_anthropic_integration():
         else:
             print(f"✅ Research response: {research[:200]}...")
 
-        # Test 8: Streaming (basic test)
-        print("\n🧪 Test 8: Testing streaming response...")
+        # Test 7: Streaming (basic test)
+        print("\n🧪 Test 7: Testing streaming response...")
         messages = [{"role": "user", "content": "Count from 1 to 5 slowly."}]
 
         print("✅ Streaming response: ", end="", flush=True)
@@ -128,14 +115,14 @@ async def test_anthropic_integration():
                     f"\n   Stream completed. Tokens: {event.usage.total_tokens if event.usage else 'N/A'}"
                 )
 
-        # Test 9: Token counting
-        print("\n🧪 Test 9: Testing token counting...")
+        # Test 8: Token counting
+        print("\n🧪 Test 8: Testing token counting...")
         test_text = "This is a test sentence to count tokens. It should be roughly 10-15 tokens."
         token_count = provider.count_tokens(test_text)
         print(f"✅ Token count for test text: {token_count}")
 
-        # Test 10: Usage summary
-        print("\n🧪 Test 10: Getting usage summary...")
+        # Test 9: Usage summary
+        print("\n🧪 Test 9: Getting usage summary...")
         usage = ai_service.get_usage_summary()
         print(f"✅ Total usage across all requests:")
         print(f"   Input tokens: {usage['total_input_tokens']}")

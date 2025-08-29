@@ -17,7 +17,7 @@ from alfred.core.tasks.constants import (
     MAX_SUBTASKS,
     DEFAULT_SUBTASKS,
     TITLE_WORD_DIVISOR,
-    DEFAULT_COMPLEXITY_THRESHOLD,
+
     INELIGIBLE_STATUSES,
 )
 
@@ -136,7 +136,7 @@ async def create_all_subtasks_logic(
     num_subtasks: Optional[int] = None,
     context: Optional[str] = None,
     force: bool = False,
-    threshold: int = DEFAULT_COMPLEXITY_THRESHOLD,
+
 ) -> BatchSubtaskCreationResult:
     """
     Create subtasks for all eligible tasks in batch.
@@ -147,12 +147,24 @@ async def create_all_subtasks_logic(
         num_subtasks: Optional number of subtasks per task
         context: Optional additional context for subtask generation
         force: Force creation even if tasks have subtasks
-        threshold: Complexity threshold for auto-creation (default: 7)
+        threshold: Task threshold for auto-creation (default: 7)
 
     Returns:
         Dict with batch subtask creation results
     """
     adapter = LinearAdapter(api_token=api_key)
+
+    # TODO: PERFORMANCE ISSUE - This function has several performance problems:
+    # 1. When no epic_id is specified, it fetches ALL tasks in the workspace
+    # 2. For each task, get_task_children() makes another API call to fetch ALL issues
+    # 3. This results in N+1 API calls for N tasks, causing the function to hang
+    #
+    # FIXES NEEDED:
+    # - Add MAX_TASKS_PER_BATCH limit (e.g., 10 tasks max)
+    # - Implement batch fetching of children to avoid N+1 queries
+    # - Add progress logging for visibility
+    # - Add timeout protection (e.g., 60 second timeout)
+    # - Consider adding pagination support
 
     # Get tasks (filtered by epic if specified)
     if epic_id:
@@ -197,7 +209,7 @@ async def create_all_subtasks_logic(
 
     # Process each eligible task
     for task in eligible_tasks:
-        # Use complexity assessment to determine subtask count if not specified
+        # Use default logic to determine subtask count if not specified
         task_num_subtasks = num_subtasks
         if not task_num_subtasks:
             # Default subtasks based on task title length as simple heuristic

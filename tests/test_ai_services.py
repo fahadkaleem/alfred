@@ -87,18 +87,6 @@ class TestPromptTemplates:
         assert "Auth system" in result["user"]
         assert "Build OAuth" in result["user"]
 
-    def test_render_assess_complexity(self):
-        """Test complexity assessment prompt rendering."""
-        templates = PromptTemplates()
-
-        result = templates.render_assess_complexity(
-            "Complex task description", include_recommendations=True
-        )
-
-        assert "complexity" in result["user"].lower()
-        assert "decompose" in result["user"].lower()
-        assert "1-10" in result["user"]
-
     def test_render_research(self):
         """Test research prompt rendering."""
         templates = PromptTemplates()
@@ -272,23 +260,6 @@ class TestAIService:
         assert len(subtasks) == 2
         assert subtasks[0]["title"] == "Subtask 1"
 
-    @pytest.mark.asyncio
-    async def test_assess_complexity(self, ai_service, mock_provider):
-        """Test complexity assessment."""
-        mock_response = {
-            "complexity_score": 7,
-            "risk_level": "medium",
-            "estimated_hours": 20,
-            "should_decompose": True,
-        }
-
-        mock_provider.complete_json = AsyncMock(return_value=mock_response)
-
-        assessment = await ai_service.assess_complexity("Complex task")
-
-        assert assessment["complexity_score"] == 7
-        assert assessment["risk_level"] == "medium"
-        assert assessment["should_decompose"] is True
 
     @pytest.mark.asyncio
     async def test_research(self, ai_service, mock_provider):

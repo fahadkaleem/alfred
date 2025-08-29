@@ -2,7 +2,7 @@
 
 from alfred.core.tasks.update_status import update_task_status_logic
 from alfred.config import get_config
-from alfred.models.tasks import VALID_ALFRED_STATUSES
+from alfred.models.tasks import TaskStatus
 
 
 def register(server) -> int:
@@ -82,12 +82,16 @@ def register(server) -> int:
             - On invalid status: {'error': 'invalid_status', 'message': '...', 'provided': '<status>'}
         """
         # Validate status first
-        if status not in VALID_ALFRED_STATUSES:
+        # Validate status using enum
+        try:
+            TaskStatus(status.lower())
+        except ValueError:
+            valid_statuses = [s.value for s in TaskStatus]
             return {
                 "error": "invalid_status",
-                "message": f"Status must be one of: {VALID_ALFRED_STATUSES}",
+                "message": f"Status must be one of: {valid_statuses}",
                 "provided": status,
-                "valid_statuses": VALID_ALFRED_STATUSES,
+                "valid_statuses": valid_statuses,
             }
 
         config = get_config()

@@ -24,7 +24,6 @@ class TaskSuggestion(BaseModel):
     technical_notes: Optional[str] = Field(
         None, description="Implementation approach and patterns"
     )
-    complexity: int = Field(5, ge=1, le=10, description="Complexity score 1-10")
 
     @field_validator("title")
     @classmethod

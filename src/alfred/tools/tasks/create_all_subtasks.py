@@ -15,7 +15,7 @@ def register(server) -> int:
         num_subtasks: Optional[int] = None,
         context: Optional[str] = None,
         force: bool = False,
-        threshold: int = 7,
+
     ) -> dict:
         """
         Create subtasks for all eligible tasks using AI.
@@ -80,7 +80,7 @@ def register(server) -> int:
             epic_id: Filter tasks to specific epic/project. Only tasks in this epic will be
                 processed. Must be valid Linear project ID. If omitted, processes tasks from
                 all epics.
-            num_subtasks: Number of subtasks per task. Default: auto (3-5 based on complexity).
+            num_subtasks: Number of subtasks per task. Default: auto (3-5 based on heuristics).
                 Applies same count to all tasks. Range: 1-10. Higher values may reduce detail
                 quality.
             context: Additional context for all subtask generation. Applies to every task
@@ -89,8 +89,7 @@ def register(server) -> int:
             force: Force regeneration even if tasks have subtasks. Default: false. When true,
                 DELETES all existing subtasks before creating new ones for every processed
                 task. Use with extreme caution.
-            threshold: Complexity threshold for auto-creation. Default: 7. Currently not fully
-                implemented. Reserved for future complexity-based filtering.
+
 
         Returns:
             Dictionary with:
@@ -142,7 +141,7 @@ def register(server) -> int:
                 num_subtasks=num_subtasks,
                 context=context,
                 force=force,
-                threshold=threshold,
+
             )
             # Convert Pydantic model to dict for MCP response
             return {

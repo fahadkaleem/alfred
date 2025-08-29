@@ -1,7 +1,10 @@
 """Linear GraphQL API adapter implementation."""
 
+import logging
 import os
 from typing import Dict, List, Optional, Any, Union
+
+logger = logging.getLogger(__name__)
 
 from alfred.clients.linear import (
     LinearClient,
@@ -761,3 +764,7 @@ class LinearAdapter(TaskAdapter):
                 raise APIConnectionError(f"Network error: {e}")
             else:
                 raise APIResponseError(f"Linear API error: {e}")
+
+
+
+

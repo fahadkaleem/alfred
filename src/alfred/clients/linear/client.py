@@ -11,6 +11,7 @@ from typing import Optional, Dict, Any
 from .domain.base_domain import LinearModel
 
 from .managers.cache_manager import CacheManager
+
 from .managers.issue_manager import IssueManager
 from .managers.project_manager import ProjectManager
 from .managers.team_manager import TeamManager
@@ -83,6 +84,7 @@ class LinearClient:
         self.cache = CacheManager(enabled=enable_cache, default_ttl=cache_ttl)
 
         # Initialize resource managers
+
         self.issues = IssueManager(self)
         self.projects = ProjectManager(self)
         self.teams = TeamManager(self)

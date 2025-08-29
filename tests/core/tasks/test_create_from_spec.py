@@ -72,7 +72,7 @@ class TestUtilities:
     def test_parse_ai_response_dict_with_tasks(self):
         """Test parsing AI response as dict with tasks."""
         response = {
-            "tasks": [{"title": "Task 1", "description": "Desc 1", "complexity": 7}],
+            "tasks": [{"title": "Task 1", "description": "Desc 1"}],
             "epic": {
                 "title": "Epic Title",
                 "description": "Epic Desc",
@@ -242,7 +242,7 @@ class TestModels:
         """Test TaskSuggestion model validation."""
         # Valid task
         task = TaskSuggestion(
-            title="Test Task", description="Description", priority="P1", complexity=5
+            title="Test Task", description="Description", priority="P1"
         )
         assert task.title == "Test Task"
         assert task.priority == "P1"

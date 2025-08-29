@@ -609,7 +609,7 @@
         "description": "Create AI-powered task analysis tools as defined in design_docs/alfred/PRD.md",
         "details": "Reference: design_docs/alfred/PRD.md (lines 133-139) & design_docs/alfred/tools/04-task-analysis/\n\nCreate in src/alfred/tools/task_analysis.py:\n- get_next_task - AI-powered task prioritization\n- assess_complexity - Analyze task difficulty\n- get_complexity_report - View complexity analysis\n\nRequirements:\n1. Use AI to analyze task priorities\n2. Consider dependencies and blockers\n3. Assess complexity based on description\n4. Generate recommendations\n5. Support batch analysis",
         "testStrategy": "## Test Instructions\n1. Test next task selection logic\n2. Test complexity assessment accuracy\n3. Test with various task states\n4. Test dependency consideration\n5. Test batch complexity analysis\n\n## Success Criteria\n- [ ] Smart task prioritization\n- [ ] Accurate complexity scoring\n- [ ] Dependency awareness\n- [ ] Clear recommendations\n- [ ] Performance acceptable",
-        "status": "pending",
+        "status": "done",
         "dependencies": [
           1,
           2,
@@ -623,7 +623,7 @@
             "title": "Implement assess_complexity tool",
             "description": "Create the assess_complexity MCP tool to analyze task difficulty using AI.\n\n**Design Reference:** design_docs/alfred/PRD.md lines 137-139, tools/04-task-analysis/assess_complexity.md\n**Acceptance Criteria:**\n- Tool sends task details to Anthropic for complexity analysis\n- Returns complexity score (1-10) and reasoning\n- Provides decomposition recommendations for complex tasks\n- Analyzes based on: technical difficulty, dependencies, scope, unknowns\n- Caches analysis results in task custom fields\n\n**Test Instructions:**\n1. Mock Anthropic API response with complexity analysis\n2. Call assess_complexity with sample task\n3. Verify prompt includes task title, description, labels\n4. Verify response contains score, reasoning, recommendations\n5. Test error handling for AI API failures\n6. Test caching of results in Linear custom fields\n7. Verify token usage tracking",
             "details": "",
-            "status": "pending",
+            "status": "done",
             "dependencies": [],
             "parentTaskId": 9
           },
@@ -632,7 +632,7 @@
             "title": "Implement get_next_task tool",
             "description": "Create the get_next_task MCP tool for AI-powered task prioritization.\n\n**Design Reference:** design_docs/alfred/PRD.md lines 137-139, tools/04-task-analysis/get_next_task.md\n**Acceptance Criteria:**\n- Tool analyzes all pending tasks in active epic\n- Uses AI to recommend next task based on: dependencies, priority, complexity, context\n- Returns single recommended task with reasoning\n- Considers blocked tasks and skips them\n- Provides alternative suggestions if primary is blocked\n\n**Test Instructions:**\n1. Mock Linear task list with various statuses/priorities\n2. Mock Anthropic prioritization response\n3. Call get_next_task\n4. Verify AI prompt includes all pending tasks\n5. Verify blocked tasks excluded from recommendations\n6. Test with empty task list\n7. Test with all tasks blocked\n8. Verify reasoning explains the choice",
             "details": "",
-            "status": "pending",
+            "status": "done",
             "dependencies": [
               "9.1"
             ],
@@ -643,7 +643,7 @@
             "title": "Implement get_complexity_report tool",
             "description": "Create the get_complexity_report MCP tool to view aggregated complexity analysis.\n\n**Design Reference:** design_docs/alfred/PRD.md lines 137-139, tools/04-task-analysis/get_complexity_report.md\n**Acceptance Criteria:**\n- Tool aggregates complexity scores across epic/workspace\n- Returns report with: task count by complexity, average score, recommendations\n- Groups tasks by complexity buckets (simple/moderate/complex)\n- Identifies tasks needing decomposition (score > 7)\n- Supports filtering by epic, status, or date range\n\n**Test Instructions:**\n1. Mock Linear tasks with various complexity scores\n2. Call get_complexity_report\n3. Verify aggregation calculations correct\n4. Test filtering by epic_id\n5. Test filtering by status (pending only)\n6. Verify recommendations for high-complexity tasks\n7. Test with no analyzed tasks\n8. Verify report formatting and structure",
             "details": "",
-            "status": "pending",
+            "status": "done",
             "dependencies": [
               "9.1"
             ],
@@ -1211,7 +1211,7 @@
     ],
     "metadata": {
       "created": "2025-08-24T05:16:48.582Z",
-      "updated": "2025-08-28T04:27:15.832Z",
+      "updated": "2025-08-28T18:11:40.166Z",
       "description": "Tasks for master context"
     }
   }

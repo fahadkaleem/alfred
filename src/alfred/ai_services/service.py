@@ -142,30 +142,7 @@ class AIService:
             else:
                 return [response]
 
-    async def assess_complexity(
-        self,
-        task: Union[str, Dict[str, Any], List[Dict[str, Any]]],
-        include_recommendations: bool = True,
-    ) -> Dict[str, Any]:
-        """Assess task complexity.
 
-        Args:
-            task: Task(s) to assess
-            include_recommendations: Whether to include recommendations
-
-        Returns:
-            Complexity assessment dictionary
-        """
-        prompt_data = self.prompts.render_assess_complexity(
-            task, include_recommendations
-        )
-
-        response = await self.provider.complete_json(
-            messages=prompt_data["messages"], temperature=0.5
-        )
-        # complete_json returns parsed JSON directly, not a response object
-
-        return response
 
     async def enhance_task(
         self,
@@ -260,14 +237,8 @@ class AIService:
                 "Streaming not supported for chunked specs, using non-streaming"
             )
 
-        # First, assess complexity to guide chunking
-        complexity = await self.assess_complexity(
-            f"Specification excerpt:\n{spec_content[:2000]}",
-            include_recommendations=True,
-        )
-
-        # Determine chunk size based on complexity
-        chunk_size = 4000 if complexity.get("complexity_score", 5) < 7 else 3000
+        # Use default chunk size without complexity assessment
+        chunk_size = 4000
         overlap = self.config.chunk_overlap_tokens * 4  # Convert to chars
 
         # Chunk the spec

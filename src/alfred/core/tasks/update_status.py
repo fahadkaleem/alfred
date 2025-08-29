@@ -4,9 +4,9 @@ from typing import Dict, Any
 from alfred.adapters.linear_adapter import LinearAdapter
 from alfred.adapters.base import NotFoundError
 from alfred.models.tasks import (
+    TaskStatus,
     map_status_alfred_to_linear,
     to_alfred_task,
-    VALID_ALFRED_STATUSES,
 )
 
 
@@ -14,12 +14,16 @@ def update_task_status_logic(api_key: str, task_id: str, status: str) -> Dict[st
     """Update task status with Alfred to Linear mapping."""
 
     # Belt and suspenders validation (should be caught at MCP layer)
-    if status not in VALID_ALFRED_STATUSES:
+    try:
+        # Validate status by trying to create enum instance
+        task_status = TaskStatus(status.lower())
+    except ValueError:
+        valid_statuses = [s.value for s in TaskStatus]
         return {
             "error": "invalid_status",
-            "message": f"Status must be one of: {VALID_ALFRED_STATUSES}",
+            "message": f"Status must be one of: {valid_statuses}",
             "provided": status,
-            "valid_statuses": VALID_ALFRED_STATUSES,
+            "valid_statuses": valid_statuses,
         }
 
     adapter = LinearAdapter(api_token=api_key)

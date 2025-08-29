@@ -121,10 +121,10 @@ Based on your analysis:
 """
 
         # Determine task count guidance
-        task_complexity_guidance = (
-            "Unless complexity warrants otherwise"
+        task_count_guidance_prefix = (
+            "Unless requirements warrant otherwise"
             if num_tasks > 0
-            else "Depending on the complexity"
+            else "Depending on the requirements"
         )
         task_count_guidance = (
             f"exactly {num_tasks}" if num_tasks > 0 else "an appropriate number of"
@@ -157,12 +157,11 @@ Each task should follow this JSON structure:
     "testStrategy": string (validation approach),
     "acceptance_criteria": ["criterion 1", "criterion 2"],
     "technical_notes": string (implementation approach, libraries, patterns),
-    "complexity": 1-10,
     "estimated_hours": number
 }}
 
 Guidelines:
-1. {task_complexity_guidance}, create {
+1. {task_count_guidance_prefix}, create {
             task_count_guidance
         } tasks, numbered sequentially starting from 1
 2. Each task should be atomic and focused on a single responsibility following the most up to date best practices and standards
@@ -264,68 +263,7 @@ Return as JSON array with EXACTLY {num_subtasks} subtasks:
             "messages": PromptTemplates.format_messages(system, user),
         }
 
-    @staticmethod
-    def render_assess_complexity(
-        task: str, include_recommendations: bool = True
-    ) -> Dict[str, Any]:
-        """Render prompt for assessing task complexity.
 
-        Args:
-            task: Task or tasks to assess (string or JSON)
-            include_recommendations: Whether to include decomposition recommendations
-
-        Returns:
-            Dict with system prompt, user prompt, and formatted messages
-        """
-        system = (
-            "You are a technical lead with expertise in effort estimation and risk assessment. "
-            "You provide accurate complexity assessments and actionable recommendations. "
-            "Be conservative in your estimates. Always respond with valid JSON."
-        )
-
-        # Handle both single task and multiple tasks
-        if isinstance(task, (list, dict)):
-            task_info = json.dumps(task, indent=2)
-        else:
-            task_info = task
-
-        recommendations_section = ""
-        if include_recommendations:
-            recommendations_section = """
-5. Should this be decomposed? (boolean)
-6. Recommended number of subtasks if decomposition needed
-7. Decomposition strategy"""
-
-        user = f"""Analyze the complexity of this task/these tasks and provide detailed assessment.
-
-Task(s) to analyze:
-{task_info}
-
-Evaluate and provide:
-1. Technical complexity score (1-10 scale)
-2. Risk level (low/medium/high/critical)  
-3. Estimated effort in hours
-4. Required skills and expertise
-{recommendations_section}
-
-Return as JSON:
-{{
-  "complexity_score": 1-10,
-  "risk_level": "low|medium|high|critical",
-  "estimated_hours": number,
-  "required_skills": ["skill1", "skill2"],
-  "risk_factors": ["specific risk 1", "specific risk 2"],
-  "complexity_reasoning": "Detailed explanation of complexity factors",
-  "should_decompose": boolean,
-  "recommended_subtasks": number or null,
-  "decomposition_strategy": "How to break this down effectively" or null
-}}"""
-
-        return {
-            "system": system,
-            "user": user,
-            "messages": PromptTemplates.format_messages(system, user),
-        }
 
     @staticmethod
     def render_enhance_task(
@@ -388,7 +326,6 @@ Return the enhanced task as complete JSON with all fields:
   "dependencies": ["dependency 1"],
   "estimated_hours": number,
   "priority": "critical|high|medium|low",
-  "complexity": 1-10
 }}"""
 
         return {

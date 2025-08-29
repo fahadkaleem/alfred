@@ -232,7 +232,6 @@ def parse_ai_response(payload: Union[str, dict]) -> GenerationResult:
             acceptance_criteria=task_data.get("acceptance_criteria", []),
             technical_notes=task_data.get("technical_notes")
             or task_data.get("technical_details"),
-            complexity=task_data.get("complexity", 5),
         )
         tasks.append(task)
 
@@ -256,14 +255,12 @@ def parse_ai_response(payload: Union[str, dict]) -> GenerationResult:
 def merge_task_candidates(
     candidates: List[TaskSuggestion],
     limit: int,
-    complexity_report: Optional[Dict[str, Any]] = None,
 ) -> List[TaskSuggestion]:
     """Merge and deduplicate task candidates.
 
     Args:
         candidates: List of task suggestions
         limit: Maximum number of tasks to return
-        complexity_report: Optional complexity report for prioritization
 
     Returns:
         Merged and prioritized list of tasks
@@ -285,17 +282,10 @@ def merge_task_candidates(
             seen_titles.add(normalized)
             unique_tasks.append(task)
 
-    # Sort by priority and complexity
-    def task_score(task: TaskSuggestion) -> tuple:
+    # Sort by priority
+    def task_score(task: TaskSuggestion) -> int:
         # Lower priority number = higher priority (P0 > P1 > P2 > P3)
-        priority_score = int(task.priority[1])
-
-        # Adjust by complexity if report available
-        complexity_boost = 0
-        if complexity_report and task.title in complexity_report:
-            complexity_boost = -complexity_report[task.title].get("score", 0)
-
-        return (priority_score + complexity_boost, -task.complexity)
+        return int(task.priority[1])
 
     unique_tasks.sort(key=task_score)
 
@@ -321,24 +311,3 @@ def map_priority_to_linear(priority: str) -> int:
     return mapping.get(priority, 1)
 
 
-def load_complexity_report(
-    path: str = ".alfred/reports/complexity.json",
-) -> Optional[Dict[str, Any]]:
-    """Load complexity report if available.
-
-    Args:
-        path: Path to complexity report
-
-    Returns:
-        Complexity report dict or None
-    """
-    import os
-
-    if not os.path.exists(path):
-        return None
-
-    try:
-        with open(path, "r") as f:
-            return json.load(f)
-    except Exception:
-        return None

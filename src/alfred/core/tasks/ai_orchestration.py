@@ -31,7 +31,6 @@ class TaskGenerationOrchestrator:
         self,
         spec_content: str,
         num_tasks: int,
-        complexity_report: Optional[Dict[str, Any]] = None,
         project_context: Optional[str] = None,
         research_mode: bool = False,
         is_claude_code: bool = False,
@@ -41,7 +40,6 @@ class TaskGenerationOrchestrator:
         Args:
             spec_content: Specification content
             num_tasks: Number of tasks to generate
-            complexity_report: Optional complexity report for prioritization
             project_context: Optional project context
             research_mode: Enable research mode for enhanced analysis
             is_claude_code: Whether running in Claude Code environment
@@ -62,7 +60,6 @@ class TaskGenerationOrchestrator:
             return await self._generate_from_multiple_chunks(
                 chunks,
                 num_tasks,
-                complexity_report,
                 project_context,
                 research_mode,
                 is_claude_code,
@@ -120,7 +117,6 @@ class TaskGenerationOrchestrator:
         self,
         chunks: List[str],
         num_tasks: int,
-        complexity_report: Optional[Dict[str, Any]] = None,
         project_context: Optional[str] = None,
         research_mode: bool = False,
         is_claude_code: bool = False,
@@ -130,7 +126,6 @@ class TaskGenerationOrchestrator:
         Args:
             chunks: List of content chunks
             num_tasks: Number of tasks to generate
-            complexity_report: Optional complexity report
             project_context: Optional project context
 
         Returns:
@@ -169,7 +164,7 @@ class TaskGenerationOrchestrator:
             return GenerationResult(epic=epic_suggestion, tasks=synthesized)
         else:
             # Simple merge for small number of chunks
-            merged = merge_task_candidates(all_candidates, num_tasks, complexity_report)
+            merged = merge_task_candidates(all_candidates, num_tasks)
             return GenerationResult(epic=epic_suggestion, tasks=merged)
 
     async def _synthesize_candidates(
@@ -194,7 +189,6 @@ class TaskGenerationOrchestrator:
                 "title": task.title,
                 "description": task.description,
                 "priority": task.priority,
-                "complexity": task.complexity,
                 "dependencies": task.dependencies,
             }
             for task in candidates
@@ -263,7 +257,7 @@ Your previous response had an error: {error}
 
 Please regenerate {num_tasks} tasks from this specification in valid JSON format.
 Each task must have: title, description, priority (P0-P3), dependencies (array), 
-acceptance_criteria (array), complexity (1-10).
+acceptance_criteria (array).
 
 Specification:
 {content[:4000]}
@@ -325,5 +319,4 @@ Return ONLY valid JSON array of tasks.
             acceptance_criteria=task_data.get("acceptance_criteria", []),
             technical_notes=task_data.get("technical_notes")
             or task_data.get("technical_details"),
-            complexity=task_data.get("complexity", 5),
         )
