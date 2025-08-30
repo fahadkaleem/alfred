@@ -117,6 +117,6 @@ async def list_epics() -> dict:
       - url: Direct Linear URL to access the epic (may be null)
     - count: Total number of epics returned (0 to 100)
     """
-    config = mcp.state["config"]
+    config = mcp.state.config
 
     return await list_epics_logic(api_key=config.linear_api_key)

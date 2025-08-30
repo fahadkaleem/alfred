@@ -54,7 +54,7 @@ async def update_subtask(
         Dictionary with updated subtask object containing the appended information
         and updated timestamp showing when the information was added.
     """
-    config = mcp.state["config"]
+    config = mcp.state.config
 
     return await update_subtask_logic(
         api_key=config.linear_api_key,

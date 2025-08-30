@@ -130,7 +130,7 @@ async def delete_epic(epic_id: str, delete_tasks: bool = False) -> dict:
     - tasks_deleted: Number of tasks that were deleted (0 if delete_tasks=False)
     - message: Human-readable confirmation with deletion details
     """
-    config = mcp.state["config"]
+    config = mcp.state.config
 
     return await delete_epic_logic(
         api_key=config.linear_api_key, epic_id=epic_id, delete_tasks=delete_tasks

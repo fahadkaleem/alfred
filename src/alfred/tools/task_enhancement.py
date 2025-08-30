@@ -40,7 +40,7 @@ async def enhance_task_scope(
     Returns:
         Enhanced task with additional requirements
     """
-    config = mcp.state["config"]
+    config = mcp.state.config
 
     return await enhance_task_scope_logic(
         api_key=config.linear_api_key,
@@ -81,7 +81,7 @@ async def simplify_task(
     Returns:
         Simplified task with core requirements only
     """
-    config = mcp.state["config"]
+    config = mcp.state.config
 
     return await simplify_task_logic(
         api_key=config.linear_api_key,

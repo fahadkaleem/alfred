@@ -92,7 +92,7 @@ def get_tasks(
         - has_next: Whether more pages exist
         - next_cursor: Cursor for next page
     """
-    config = mcp.state["config"]
+    config = mcp.state.config
 
     return get_tasks_logic(
         api_key=config.linear_api_key,

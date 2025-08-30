@@ -62,7 +62,7 @@ async def bulk_update_tasks(
         bulk_update_tasks(task_ids=["AUTH-123", "PROJ-456"], prompt="Add security requirements")
         bulk_update_tasks(task_ids=["AUTH-123"], prompt="Update for new API", research=true)
     """
-    config = mcp.state["config"]
+    config = mcp.state.config
 
     return await bulk_update_tasks_logic(
         api_key=config.linear_api_key,

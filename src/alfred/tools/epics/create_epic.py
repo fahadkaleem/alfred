@@ -105,7 +105,7 @@ async def create_epic(name: str, description: Optional[str] = None) -> dict:
         - updated_at: ISO timestamp of last modification
     - message: Human-readable success message
     """
-    config = mcp.state["config"]
+    config = mcp.state.config
 
     return await create_epic_logic(
         api_key=config.linear_api_key, name=name, description=description

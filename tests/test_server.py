@@ -7,13 +7,13 @@ import os
 import sys
 import pytest
 
-from alfred.server import create_server
+from alfred.mcp import mcp
 from alfred.config import get_config
 
 
 @pytest.mark.asyncio
 async def test_server():
-    """Test the server creation and basic functionality."""
+    """Test the MCP server functionality."""
     print("Testing Alfred MCP Server...")
     print("-" * 50)
 
@@ -25,16 +25,15 @@ async def test_server():
     print(f"   ✓ Claude Model: {config.claude_model}")
     print(f"   ✓ Max Tokens: {config.max_tokens}")
 
-    # Test 2: Server creation
-    print("\n2. Testing server creation...")
-    server = create_server()
-    print(f"   ✓ Server created: {server.name}")
+    # Test 2: MCP instance
+    print("\n2. Testing MCP instance...")
+    print(f"   ✓ MCP instance created: {mcp.name}")
 
-    # Test 3: Server state
-    print("\n3. Testing server state...")
-    assert "session_manager" in server.state
-    assert "config" in server.state
-    assert "logger" in server.state
+    # Test 3: MCP state
+    print("\n3. Testing MCP state...")
+    assert hasattr(mcp.state, "session_manager")
+    assert hasattr(mcp.state, "config")
+    assert hasattr(mcp.state, "logger")
     print("   ✓ Session manager initialized")
     print("   ✓ Config attached")
     print("   ✓ Logger configured")
@@ -43,12 +42,12 @@ async def test_server():
     print("\n4. Testing tool auto-registration...")
     # Tools are now auto-registered via decorators when imported
     # Check that tools exist on the server
-    tool_count = len(getattr(server, '_tools', {}))
+    tool_count = len(getattr(mcp, '_tools', {}))
     print(f"   ✓ Tools auto-registered: {tool_count}")
 
     # Test 5: Session management
     print("\n5. Testing session management...")
-    session_manager = server.state["session_manager"]
+    session_manager = mcp.state.session_manager
 
     # Create a test session
     test_session_id = "test-session-123"

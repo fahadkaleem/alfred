@@ -87,7 +87,7 @@ async def get_next_task(
     - Clear reasoning explaining the selection logic
     - Up to 2 alternative task suggestions
     """
-    config = mcp.state["config"]
+    config = mcp.state.config
 
     result = await get_next_task_logic(
         api_key=config.linear_api_key,

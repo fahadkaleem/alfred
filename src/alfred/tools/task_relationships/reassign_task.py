@@ -39,7 +39,7 @@ def reassign_task(task_id: str, target_epic_id: str) -> dict:
     Returns:
         Dictionary with success status, message, and updated task details
     """
-    config = mcp.state["config"]
+    config = mcp.state.config
 
     return reassign_task_logic(
         api_key=config.linear_api_key,

@@ -118,7 +118,7 @@ async def create_subtasks(
             context="Update for new API requirements"
         )
     """
-    config = mcp.state["config"]
+    config = mcp.state.config
 
     # Validate API keys
     if not config.linear_api_key:

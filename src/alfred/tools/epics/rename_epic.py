@@ -128,7 +128,7 @@ async def rename_epic(epic_id: str, new_name: str) -> dict:
     - message: Confirmation of successful rename
     - old_name: Previous epic name (for audit trail)
     """
-    config = mcp.state["config"]
+    config = mcp.state.config
 
     return await rename_epic_logic(
         api_key=config.linear_api_key, epic_id=epic_id, new_name=new_name

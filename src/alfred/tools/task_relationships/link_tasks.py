@@ -44,7 +44,7 @@ def link_tasks(
     Returns:
         Dictionary with success status, message, and relationship details
     """
-    config = mcp.state["config"]
+    config = mcp.state.config
 
     return link_tasks_logic(
         api_key=config.linear_api_key,

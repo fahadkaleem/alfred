@@ -60,7 +60,7 @@ def add_subtask(
         Dictionary with created subtask object including Linear sub-issue ID,
         parent relationship, and inherited properties from parent task.
     """
-    config = mcp.state["config"]
+    config = mcp.state.config
 
     return add_subtask_logic(
         api_key=config.linear_api_key,

@@ -37,6 +37,6 @@ async def list_teams() -> dict:
       - key: Team key/abbreviation (if available)
     - count: Total number of teams returned
     """
-    config = mcp.state["config"]
+    config = mcp.state.config
 
     return await list_teams_logic(api_key=config.linear_api_key)

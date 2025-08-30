@@ -125,6 +125,6 @@ async def switch_epic(epic_id: str) -> dict:
     - message: Confirmation of context switch
     - previous_epic_id: ID of the previously active epic (null if none)
     """
-    config = mcp.state["config"]
+    config = mcp.state.config
 
     return await switch_epic_logic(api_key=config.linear_api_key, epic_id=epic_id)

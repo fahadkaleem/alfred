@@ -164,7 +164,7 @@ async def create_tasks_from_spec(
             epic_name="Q1 2024 Development"
         )
     """
-    config = mcp.state["config"]
+    config = mcp.state.config
 
     # Check workspace configuration
     if not config.team_id:

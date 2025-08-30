@@ -119,7 +119,7 @@ async def create_all_subtasks(
             context="Updated requirements for v2"
         )
     """
-    config = mcp.state["config"]
+    config = mcp.state.config
 
     # Validate API keys
     if not config.linear_api_key:

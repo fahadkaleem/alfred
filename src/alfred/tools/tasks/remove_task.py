@@ -58,7 +58,7 @@ def remove_task(
         remove_task(task_ids=["AUTH-123", "PROJ-456"], cascade_delete=false)  # Delete multiple, fail if subtasks
         remove_task(task_ids=["AUTH-123"], cascade_delete=true)  # Delete task and all its subtasks
     """
-    config = mcp.state["config"]
+    config = mcp.state.config
 
     return remove_task_logic(
         api_key=config.linear_api_key,

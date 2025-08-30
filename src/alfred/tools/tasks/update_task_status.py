@@ -91,7 +91,7 @@ def update_task_status(task_id: str, status: str) -> dict:
             "valid_statuses": valid_statuses,
         }
 
-    config = mcp.state["config"]
+    config = mcp.state.config
 
     return update_task_status_logic(
         api_key=config.linear_api_key, task_id=task_id, status=status

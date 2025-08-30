@@ -6,6 +6,7 @@ import os
 import sys
 import subprocess
 import time
+from alfred.mcp import mcp
 
 
 def send_json_rpc(proc, request):
@@ -128,18 +129,16 @@ def test_direct_server_run():
     print("\nTesting direct server execution...")
     print("-" * 50)
 
-    from alfred.server import create_server, main
 
     try:
-        server = create_server()
-        print(f"✓ Server created: {server.name}")
+        print(f"✓ MCP instance created: {mcp.name}")
 
-        # Check server has expected attributes
-        assert hasattr(server, "state")
-        assert "session_manager" in server.state
-        print("✓ Server state initialized correctly")
+        # Check MCP has expected attributes
+        assert hasattr(mcp, "state")
+        assert hasattr(mcp.state, "session_manager")
+        print("✓ MCP state initialized correctly")
 
-        tool_count = len(getattr(server, '_tools', {}))
+        tool_count = len(getattr(mcp, '_tools', {}))
         print(f"✓ Tools auto-registered: {tool_count}")
 
         return True

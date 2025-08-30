@@ -139,7 +139,7 @@ async def duplicate_epic(epic_id: str, new_name: Optional[str] = None) -> dict:
     - tasks_copied: Number of tasks successfully duplicated
     - message: Summary of the duplication operation
     """
-    config = mcp.state["config"]
+    config = mcp.state.config
 
     return await duplicate_epic_logic(
         api_key=config.linear_api_key, epic_id=epic_id, new_name=new_name

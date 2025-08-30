@@ -57,7 +57,7 @@ def remove_subtask(
         remove_subtask(subtask_id="AUTH-124", convert_to_task=true)  # Convert to standalone task
         remove_subtask(subtask_id="AUTH-124", convert_to_task=false)  # Explicitly delete
     """
-    config = mcp.state["config"]
+    config = mcp.state.config
 
     return remove_subtask_logic(
         api_key=config.linear_api_key,

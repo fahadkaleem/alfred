@@ -97,7 +97,7 @@ def create_task(
     Returns:
         Dictionary with complete AlfredTask object representing the created task
     """
-    config = mcp.state["config"]
+    config = mcp.state.config
 
     return create_task_logic(
         api_key=config.linear_api_key,

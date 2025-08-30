@@ -74,6 +74,6 @@ def get_task(task_id: str) -> dict:
         - On success: Complete AlfredTask object with all fields
         - On not found: {'error': 'not_found', 'task_id': '<id>'}
     """
-    config = mcp.state["config"]
+    config = mcp.state.config
 
     return get_task_logic(api_key=config.linear_api_key, task_id=task_id)

@@ -43,7 +43,7 @@ async def initialize_workspace(workspace_id: str, team_id: str) -> dict:
     - team: Object with id and name
     - config_path: Path where configuration was saved
     """
-    config = mcp.state["config"]
+    config = mcp.state.config
 
     return await initialize_workspace_logic(
         workspace_id=workspace_id, team_id=team_id, api_key=config.linear_api_key

@@ -40,6 +40,6 @@ async def list_projects() -> dict:
       - url: Linear URL for the project (if available)
     - count: Total number of projects returned
     """
-    config = mcp.state["config"]
+    config = mcp.state.config
 
     return await list_projects_logic(api_key=config.linear_api_key)

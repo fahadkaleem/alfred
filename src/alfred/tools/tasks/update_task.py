@@ -63,7 +63,7 @@ async def update_task(
         update_task(task_id="AUTH-123", prompt="Add error handling", research=false, append=false)
         update_task(task_id="AUTH-123", prompt="Implementation notes", append=true)  # research defaults to false
     """
-    config = mcp.state["config"]
+    config = mcp.state.config
 
     return await update_task_logic(
         api_key=config.linear_api_key,

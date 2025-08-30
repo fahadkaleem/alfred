@@ -42,7 +42,7 @@ def unlink_tasks(
     Returns:
         Dictionary with success status, message, and removed relationship details
     """
-    config = mcp.state["config"]
+    config = mcp.state.config
 
     return unlink_tasks_logic(
         api_key=config.linear_api_key,

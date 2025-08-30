@@ -54,7 +54,7 @@ def archive_subtasks(
         detailed results per subtask showing status changes, and any errors
         encountered during the batch update operation.
     """
-    config = mcp.state["config"]
+    config = mcp.state.config
 
     return archive_subtasks_logic(
         api_key=config.linear_api_key,
