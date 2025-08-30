@@ -8,9 +8,9 @@ import logging
 
 class MCPState(BaseModel):
     """Type-safe state container for MCP server."""
-    
+
     model_config = {"arbitrary_types_allowed": True}
-    
+
     config: Config
     logger: logging.Logger
     session_manager: SessionManager
@@ -37,5 +37,5 @@ mcp = FastMCP(
 mcp.state = MCPState(
     config=get_config(),
     logger=get_logger("alfred.mcp"),
-    session_manager=SessionManager()
+    session_manager=SessionManager(),
 )

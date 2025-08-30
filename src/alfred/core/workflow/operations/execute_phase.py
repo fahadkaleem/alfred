@@ -286,6 +286,7 @@ X.4 **Document review findings** → load_instructions("common/save-context")
    Suggested title: '[{review_config.name}] - Document review findings'
 
 Replace X with the current parent todo number. For example, if the parent todo is #3, create subtasks as 3.1, 3.2, etc.
+# TODO: CONFUSING - This references Task Master's numbering system, not Alfred's Linear integration
 
 Execute each subtask by:
 1. Create todo with smart title

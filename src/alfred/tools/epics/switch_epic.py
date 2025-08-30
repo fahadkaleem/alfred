@@ -36,7 +36,7 @@ async def switch_epic(epic_id: str) -> dict:
     Usage:
 
     Before using this tool:
-    - MUST have LINEAR_API_KEY configured in environment variables
+    - MUST have platform API key configured in environment variables
     - MUST have workspace initialized using initialize_workspace
     - SHOULD use list_epics to verify epic_id exists
 
@@ -55,8 +55,8 @@ async def switch_epic(epic_id: str) -> dict:
     - Multiple sessions can have different active epics
 
     WARNING:
-    - Tool will fail if LINEAR_API_KEY is not set in environment
-    - Tool will fail if Linear API key is invalid or expired
+    - Tool will fail if platform API key is not set in environment
+    - Tool will fail if platform API key is invalid or expired
     - Tool will fail if epic_id doesn't exist in workspace
     - Tool will fail if epic_id format is invalid
 
@@ -111,7 +111,7 @@ async def switch_epic(epic_id: str) -> dict:
     Parameters:
 
     epic_id [string] (required) - The unique identifier of the epic to switch to. Must be
-        an exact epic ID from Linear (e.g., "abc123-def456-789"). Get valid IDs using
+        an exact epic ID from platform (e.g., "abc123-def456-789"). Get valid IDs using
         list_epics. Case-sensitive and must exist in your workspace.
 
     Returns:
@@ -121,10 +121,10 @@ async def switch_epic(epic_id: str) -> dict:
       - id: The epic ID now active
       - name: Human-readable epic name
       - description: Epic description if available
-      - url: Direct Linear URL for the epic
+      - url: Direct platform URL for the epic
     - message: Confirmation of context switch
     - previous_epic_id: ID of the previously active epic (null if none)
     """
     config = mcp.state.config
 
-    return await switch_epic_logic(api_key=config.linear_api_key, epic_id=epic_id)
+    return await switch_epic_logic(config=config, epic_id=epic_id)

@@ -3,7 +3,8 @@
 import logging
 from datetime import datetime
 from typing import Dict, Any
-from alfred.adapters.linear_adapter import LinearAdapter
+from alfred.adapters import get_adapter
+from alfred.models.config import Config
 from alfred.models.tasks import to_alfred_task
 from alfred.ai_services import AIService
 
@@ -11,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 async def update_subtask_logic(
-    api_key: str,
+    config: Config,
     subtask_id: str,
     prompt: str,
     research: bool = False,
@@ -20,7 +21,7 @@ async def update_subtask_logic(
     Append timestamped information to a subtask without replacing existing content.
 
     Args:
-        api_key: Linear API key
+        config: Alfred configuration object
         subtask_id: ID of subtask to update (must be a Linear sub-issue ID)
         prompt: Information to add to the subtask
         research: Whether to use research mode for enhanced updates
@@ -28,7 +29,7 @@ async def update_subtask_logic(
     Returns:
         Dictionary with updated subtask data
     """
-    adapter = LinearAdapter(api_token=api_key)
+    adapter = get_adapter(config)
 
     # Get current subtask (subtasks are just Linear issues with parentId)
     current_subtask = adapter.get_task(subtask_id)

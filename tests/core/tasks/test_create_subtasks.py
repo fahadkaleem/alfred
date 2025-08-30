@@ -7,15 +7,26 @@ from alfred.core.tasks.create_subtasks import (
     create_all_subtasks_logic,
 )
 from alfred.adapters.base import NotFoundError
+from alfred.models.config import Config, Platform
+
+
+@pytest.fixture
+def mock_config():
+    """Create a mock config object for testing."""
+    config = Mock(spec=Config)
+    config.platform = Platform.LINEAR
+    config.linear_api_key = "test-key"
+    config.linear_team_id = "team-123"
+    return config
 
 
 @pytest.mark.asyncio
-async def test_create_subtasks_success():
+async def test_create_subtasks_success(mock_config):
     """Test successful subtask creation."""
-    with patch("alfred.core.tasks.create_subtasks.LinearAdapter") as MockAdapter:
+    with patch("alfred.core.tasks.create_subtasks.get_adapter") as mock_get_adapter:
         # Setup mock adapter
         mock_adapter = Mock()
-        MockAdapter.return_value = mock_adapter
+        mock_get_adapter.return_value = mock_adapter
 
         # Mock task retrieval
         mock_task = {
@@ -82,7 +93,7 @@ async def test_create_subtasks_success():
 
             # Execute
             result = await create_subtasks_logic(
-                api_key="test-key", task_id="TASK-123", num_subtasks=3
+                config=mock_config, task_id="TASK-123", num_subtasks=3
             )
 
             # Verify
@@ -93,12 +104,12 @@ async def test_create_subtasks_success():
 
 
 @pytest.mark.asyncio
-async def test_create_subtasks_already_has_subtasks():
+async def test_create_subtasks_already_has_subtasks(mock_config):
     """Test subtask creation fails when task has subtasks and force is False."""
-    with patch("alfred.core.tasks.create_subtasks.LinearAdapter") as MockAdapter:
+    with patch("alfred.core.tasks.create_subtasks.get_adapter") as mock_get_adapter:
         # Setup mock adapter
         mock_adapter = Mock()
-        MockAdapter.return_value = mock_adapter
+        mock_get_adapter.return_value = mock_adapter
 
         # Mock task (without subtasks field since we use get_task_children now)
         mock_task = {
@@ -118,7 +129,7 @@ async def test_create_subtasks_already_has_subtasks():
         # Execute and expect ValueError
         with pytest.raises(ValueError) as exc_info:
             await create_subtasks_logic(
-                api_key="test-key", task_id="TASK-123", num_subtasks=3, force=False
+                config=mock_config, task_id="TASK-123", num_subtasks=3, force=False
             )
 
         # Verify
@@ -127,12 +138,12 @@ async def test_create_subtasks_already_has_subtasks():
 
 
 @pytest.mark.asyncio
-async def test_create_subtasks_force_override():
+async def test_create_subtasks_force_override(mock_config):
     """Test forced subtask creation deletes existing subtasks."""
-    with patch("alfred.core.tasks.create_subtasks.LinearAdapter") as MockAdapter:
+    with patch("alfred.core.tasks.create_subtasks.get_adapter") as mock_get_adapter:
         # Setup mock adapter
         mock_adapter = Mock()
-        MockAdapter.return_value = mock_adapter
+        mock_get_adapter.return_value = mock_adapter
 
         # Mock task (without subtasks field since we use get_task_children now)
         mock_task = {
@@ -169,7 +180,7 @@ async def test_create_subtasks_force_override():
 
             # Execute
             result = await create_subtasks_logic(
-                api_key="test-key", task_id="TASK-123", num_subtasks=1, force=True
+                config=mock_config, task_id="TASK-123", num_subtasks=1, force=True
             )
 
             # Verify
@@ -180,12 +191,12 @@ async def test_create_subtasks_force_override():
 
 
 @pytest.mark.asyncio
-async def test_create_subtasks_not_eligible():
+async def test_create_subtasks_not_eligible(mock_config):
     """Test subtask creation fails for completed/cancelled tasks."""
-    with patch("alfred.core.tasks.create_subtasks.LinearAdapter") as MockAdapter:
+    with patch("alfred.core.tasks.create_subtasks.get_adapter") as mock_get_adapter:
         # Setup mock adapter
         mock_adapter = Mock()
-        MockAdapter.return_value = mock_adapter
+        mock_get_adapter.return_value = mock_adapter
 
         # Mock completed task
         mock_task = {
@@ -202,19 +213,19 @@ async def test_create_subtasks_not_eligible():
 
         # Execute and expect ValueError
         with pytest.raises(ValueError) as exc_info:
-            await create_subtasks_logic(api_key="test-key", task_id="TASK-123")
+            await create_subtasks_logic(config=mock_config, task_id="TASK-123")
 
         # Verify
         assert "Cannot create subtasks for task with status" in str(exc_info.value)
 
 
 @pytest.mark.asyncio
-async def test_create_all_subtasks_success():
+async def test_create_all_subtasks_success(mock_config):
     """Test successful batch subtask creation."""
-    with patch("alfred.core.tasks.create_subtasks.LinearAdapter") as MockAdapter:
+    with patch("alfred.core.tasks.create_subtasks.get_adapter") as mock_get_adapter:
         # Setup mock adapter
         mock_adapter = Mock()
-        MockAdapter.return_value = mock_adapter
+        mock_get_adapter.return_value = mock_adapter
 
         # Mock task list
         mock_tasks = [
@@ -249,7 +260,7 @@ async def test_create_all_subtasks_success():
             )
 
             # Execute
-            result = await create_all_subtasks_logic(api_key="test-key", num_subtasks=1)
+            result = await create_all_subtasks_logic(config=mock_config, num_subtasks=1)
 
             # Verify
             assert result.expanded_count == 2  # Task 1 and 2
@@ -258,12 +269,12 @@ async def test_create_all_subtasks_success():
 
 
 @pytest.mark.asyncio
-async def test_create_all_subtasks_with_epic_filter():
+async def test_create_all_subtasks_with_epic_filter(mock_config):
     """Test batch subtask creation with epic filtering."""
-    with patch("alfred.core.tasks.create_subtasks.LinearAdapter") as MockAdapter:
+    with patch("alfred.core.tasks.create_subtasks.get_adapter") as mock_get_adapter:
         # Setup mock adapter
         mock_adapter = Mock()
-        MockAdapter.return_value = mock_adapter
+        mock_get_adapter.return_value = mock_adapter
 
         # Mock filtered task list
         mock_tasks = [
@@ -298,7 +309,7 @@ async def test_create_all_subtasks_with_epic_filter():
 
             # Execute
             result = await create_all_subtasks_logic(
-                api_key="test-key", epic_id="EPIC-1", num_subtasks=1
+                config=mock_config, epic_id="EPIC-1", num_subtasks=1
             )
 
             # Verify

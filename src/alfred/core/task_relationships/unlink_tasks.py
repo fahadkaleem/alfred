@@ -1,19 +1,20 @@
 """Business logic for unlinking tasks."""
 
 from typing import Dict, Any, Optional
-from alfred.adapters.linear_adapter import LinearAdapter
+from alfred.adapters import get_adapter
+from alfred.models.config import Config
 from alfred.adapters.base import NotFoundError
 from .models import UnlinkTasksResult, TaskRelationship
 
 
 def unlink_tasks_logic(
-    api_key: str, task_id_1: str, task_id_2: str, relation_type: Optional[str] = None
+    config: Config, task_id_1: str, task_id_2: str, relation_type: Optional[str] = None
 ) -> Dict[str, Any]:
     """
     Remove a relationship between two tasks.
 
     Args:
-        api_key: Linear API key
+        config: Alfred configuration object
         task_id_1: ID of first task
         task_id_2: ID of second task
         relation_type: Optional filter for specific relation type
@@ -21,7 +22,7 @@ def unlink_tasks_logic(
     Returns:
         UnlinkTasksResult as dict
     """
-    adapter = LinearAdapter(api_token=api_key)
+    adapter = get_adapter(config)
 
     try:
         adapter.get_task(task_id_1)

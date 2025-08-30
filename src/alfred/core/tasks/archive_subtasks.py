@@ -2,14 +2,15 @@
 
 import logging
 from typing import Dict, Any
-from alfred.adapters.linear_adapter import LinearAdapter
+from alfred.adapters import get_adapter
+from alfred.models.config import Config
 from alfred.models.tasks import to_alfred_task, TaskStatus
 
 logger = logging.getLogger(__name__)
 
 
 def archive_subtasks_logic(
-    api_key: str,
+    config: Config,
     parent_task_id: str,
     status: str = "done",
 ) -> Dict[str, Any]:
@@ -17,14 +18,14 @@ def archive_subtasks_logic(
     Mark all subtasks of a parent task as completed/archived.
 
     Args:
-        api_key: Linear API key
+        config: Alfred configuration object
         parent_task_id: ID of parent task whose subtasks to archive
         status: Status to set for subtasks ("done", "cancelled")
 
     Returns:
         Dictionary with archiving results
     """
-    adapter = LinearAdapter(api_token=api_key)
+    adapter = get_adapter(config)
 
     # Get all subtasks (children) of the parent task
     try:

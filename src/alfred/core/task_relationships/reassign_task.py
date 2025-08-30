@@ -1,26 +1,27 @@
 """Business logic for reassigning tasks between epics."""
 
 from typing import Dict, Any
-from alfred.adapters.linear_adapter import LinearAdapter
+from alfred.adapters import get_adapter
+from alfred.models.config import Config
 from alfred.adapters.base import NotFoundError
 from .models import ReassignTaskResult
 
 
 def reassign_task_logic(
-    api_key: str, task_id: str, target_epic_id: str
+    config: Config, task_id: str, target_epic_id: str
 ) -> Dict[str, Any]:
     """
     Move a task from one epic to another.
 
     Args:
-        api_key: Linear API key
+        config: Alfred configuration object
         task_id: ID of task to reassign
         target_epic_id: ID of target epic
 
     Returns:
         ReassignTaskResult as dict
     """
-    adapter = LinearAdapter(api_token=api_key)
+    adapter = get_adapter(config)
 
     try:
         current_task = adapter.get_task(task_id)

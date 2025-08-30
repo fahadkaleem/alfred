@@ -25,6 +25,9 @@ class ContextGatherer:
         task_ids: List[str], project_root: str
     ) -> Tuple[List[Dict[str, Any]], int]:
         """Gather context from Task Master tasks."""
+        # TODO: BROKEN - Replace Task Master imports with Alfred's Linear integration
+        # Should use: from alfred.core.tasks.get import get_task_logic
+        # Linear task IDs are like "AUTH-123", not "1.2" format
         try:
             from alfred_task_manager.mcp import mcp__taskmaster_ai__get_task
 
@@ -33,6 +36,7 @@ class ContextGatherer:
 
             for task_id in task_ids:
                 try:
+                    # TODO: BROKEN - Should call get_task_logic(api_key=config.linear_api_key, task_id=task_id)
                     result = mcp__taskmaster_ai__get_task(
                         id=task_id, projectRoot=project_root
                     )
@@ -193,10 +197,14 @@ class FuzzyTaskSearch:
         query: str, project_root: str, max_results: int = 8
     ) -> List[FuzzySearchResult]:
         """Find tasks relevant to the query using fuzzy search."""
+        # TODO: BROKEN - Replace Task Master imports with Alfred's Linear integration
+        # Should use: from alfred.core.tasks.list import get_tasks_logic
+        # Then call get_tasks_logic(api_key=config.linear_api_key)
         try:
             from alfred_task_manager.mcp import mcp__taskmaster_ai__get_tasks
 
             # Get all tasks
+            # TODO: BROKEN - Should call get_tasks_logic() instead
             result = mcp__taskmaster_ai__get_tasks(projectRoot=project_root)
             if not result.get("data", {}).get("tasks"):
                 return []
@@ -256,11 +264,16 @@ class ResearchSaver:
     @staticmethod
     def save_to_task(task_id: str, research_result: str, project_root: str) -> bool:
         """Save research result to a task as an update."""
+        # TODO: BROKEN - Replace Task Master imports with Alfred's Linear integration
+        # Should use: from alfred.core.tasks.update import update_task_logic
+        # Linear doesn't have subtask concept with "." format - all are regular tasks
         try:
             from alfred_task_manager.mcp import mcp__taskmaster_ai__update_subtask
 
             # Check if it's a subtask ID
+            # TODO: BROKEN - Linear uses task IDs like "AUTH-123", not "1.2" format
             if "." in task_id:
+                # TODO: BROKEN - Should call update_task_logic() for Linear tasks
                 result = mcp__taskmaster_ai__update_subtask(
                     id=task_id,
                     prompt=f"Research findings: {research_result}",
@@ -268,8 +281,10 @@ class ResearchSaver:
                 )
             else:
                 # Use update_task for main tasks
+                # TODO: BROKEN - Replace with Alfred's Linear integration
                 from alfred_task_manager.mcp import mcp__taskmaster_ai__update_task
 
+                # TODO: BROKEN - Should call update_task_logic(api_key, task_id, prompt, append=True)
                 result = mcp__taskmaster_ai__update_task(
                     id=task_id,
                     prompt=f"Research findings: {research_result}",
@@ -291,6 +306,8 @@ class ResearchSaver:
         """Save research result to a file."""
         try:
             # Create research directory
+            # TODO: BROKEN - Using Task Master directory structure instead of Alfred's
+            # Should be something like: os.path.join(project_root, ".alfred", "research")
             research_dir = os.path.join(project_root, ".taskmaster", "docs", "research")
             os.makedirs(research_dir, exist_ok=True)
 

@@ -8,16 +8,16 @@ from alfred.core.epics.create import create_epic_logic
 @mcp.tool
 async def create_epic(name: str, description: Optional[str] = None) -> dict:
     """
-    Create a new epic (project) in Linear for organizing related tasks and features.
+    Create a new epic (project) in the configured platform (Linear/Jira) for organizing related tasks and features.
 
-    This tool creates a new epic/project container in your Linear workspace, which serves
+    This tool creates a new epic/project container in your platform workspace, which serves
     as a high-level grouping mechanism for related tasks, features, or initiatives.
 
     Key features:
-    - Creates a new project container in Linear (called "epic" in Alfred terminology)
+    - Creates a new project container in platform (called "epic" in Alfred terminology)
     - Returns the epic ID immediately for use in task assignment
     - Supports optional description for context and documentation
-    - Automatically integrates with your Linear team workspace
+    - Automatically integrates with your platform team workspace
 
     Use this tool when:
     - You need to start a new feature, initiative, or project area
@@ -33,7 +33,7 @@ async def create_epic(name: str, description: Optional[str] = None) -> dict:
     Usage:
 
     Before using this tool:
-    - MUST have LINEAR_API_KEY configured in environment variables
+    - MUST have platform API key configured in environment variables
     - MUST have workspace initialized using initialize_workspace
     - Consider using list_epics first to check for existing similar epics
 
@@ -44,14 +44,14 @@ async def create_epic(name: str, description: Optional[str] = None) -> dict:
     - Created epics are immediately available for task assignment
 
     IMPORTANT:
-    - Epics in Alfred map directly to Projects in Linear's terminology
+    - Epics in Alfred map directly to Projects in platform terminology
     - Epic names should be unique within your workspace to avoid confusion
     - Once created, the epic ID is permanent and cannot be changed
-    - Created epics appear immediately in Linear's UI and are accessible to all team members
+    - Created epics appear immediately in platform UI and are accessible to all team members
 
     WARNING:
-    - Tool will fail if LINEAR_API_KEY is not set in environment
-    - Tool will fail if Linear API key is invalid or expired
+    - Tool will fail if platform API key is not set in environment
+    - Tool will fail if platform API key is invalid or expired
     - Tool may fail if epic name already exists (depends on workspace settings)
     - Tool will fail if workspace is not initialized
 
@@ -100,13 +100,11 @@ async def create_epic(name: str, description: Optional[str] = None) -> dict:
         - id: Unique epic ID (use for task assignment and other operations)
         - name: Epic name as created
         - description: Epic description (if provided)
-        - url: Direct Linear URL to view the epic
+        - url: Direct platform URL to view the epic
         - created_at: ISO timestamp of creation
         - updated_at: ISO timestamp of last modification
     - message: Human-readable success message
     """
     config = mcp.state.config
 
-    return await create_epic_logic(
-        api_key=config.linear_api_key, name=name, description=description
-    )
+    return await create_epic_logic(config=config, name=name, description=description)

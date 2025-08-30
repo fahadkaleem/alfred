@@ -2,14 +2,15 @@
 
 import logging
 from typing import Dict, Any
-from alfred.adapters.linear_adapter import LinearAdapter
+from alfred.adapters import get_adapter
+from alfred.models.config import Config
 from alfred.models.tasks import to_alfred_task
 
 logger = logging.getLogger(__name__)
 
 
 def remove_subtask_logic(
-    api_key: str,
+    config: Config,
     subtask_id: str,
     convert_to_task: bool = False,
 ) -> Dict[str, Any]:
@@ -17,14 +18,14 @@ def remove_subtask_logic(
     Remove a subtask or convert it to a standalone task.
 
     Args:
-        api_key: Linear API key
+        config: Alfred configuration object
         subtask_id: ID of subtask to remove (Linear sub-issue ID)
         convert_to_task: Whether to convert to standalone task instead of deleting
 
     Returns:
         Dictionary with removal or conversion results
     """
-    adapter = LinearAdapter(api_token=api_key)
+    adapter = get_adapter(config)
 
     if convert_to_task:
         # Get the subtask details first

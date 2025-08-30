@@ -69,6 +69,7 @@ class PromptTemplates:
         Returns:
             Dict with system prompt, user prompt, and formatted messages
         """
+        # TODO: CONFUSING - Remove Task Master references, this is Alfred
         # TaskMaster-inspired system prompt with Alfred's identity
         research_section = ""
         if research_mode:
@@ -468,6 +469,7 @@ Return the simplified task as JSON:
         query: str, context: str = "", detail_level: str = "medium"
     ) -> Dict[str, Any]:
         """Render research prompt matching Task Master specification.
+        # TODO: CONFUSING - Remove Task Master references, this is Alfred
 
         Args:
             query: Research query

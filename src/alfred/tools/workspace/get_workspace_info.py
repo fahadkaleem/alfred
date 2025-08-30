@@ -10,7 +10,7 @@ async def get_workspace_info() -> dict:
     Get current workspace configuration and status.
 
     This tool retrieves the current workspace configuration and validates the
-    connection status to Linear.
+    connection status to platform.
 
     Usage:
     - Use this tool to check if Alfred is properly configured
@@ -20,7 +20,7 @@ async def get_workspace_info() -> dict:
 
     IMPORTANT:
     - Returns different status values based on configuration state
-    - Will attempt to validate Linear connection if API key is available
+    - Will attempt to validate platform connection if API key is available
     - Does not require any parameters
 
     Returns:

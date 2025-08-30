@@ -1,7 +1,8 @@
 """Business logic for switching active epic."""
 
 from typing import Dict, Any
-from alfred.adapters.linear_adapter import LinearAdapter
+from alfred.adapters import get_adapter
+from alfred.models.config import Config
 from alfred.adapters.base import AuthError, APIConnectionError, NotFoundError
 from alfred.config import get_config, set_config
 from alfred.utils import get_logger
@@ -9,12 +10,12 @@ from alfred.utils import get_logger
 logger = get_logger("alfred.core.epics.switch")
 
 
-async def switch_epic_logic(api_key: str, epic_id: str) -> Dict[str, Any]:
+async def switch_epic_logic(config: Config, epic_id: str) -> Dict[str, Any]:
     """
     Switch the active epic context for task operations.
 
     Args:
-        api_key: Linear API key
+        config: Alfred configuration object
         epic_id: Epic ID to switch to
 
     Returns:
@@ -25,16 +26,12 @@ async def switch_epic_logic(api_key: str, epic_id: str) -> Dict[str, Any]:
         NotFoundError: If epic doesn't exist
         APIConnectionError: If network issues occur
     """
-    if not api_key:
-        raise AuthError(
-            "LINEAR_API_KEY not configured. Please set it in environment variables or .env file"
-        )
 
     if not epic_id or not epic_id.strip():
         raise ValueError("Epic ID cannot be empty")
 
     try:
-        adapter = LinearAdapter(api_token=api_key)
+        adapter = get_adapter(config)
 
         # Verify the epic exists by fetching all epics
         epics = adapter.get_epics(limit=100)
@@ -80,5 +77,5 @@ async def switch_epic_logic(api_key: str, epic_id: str) -> Dict[str, Any]:
         logger.error(f"Failed to switch epic: {e}")
         error_str = str(e).lower()
         if "401" in error_str or "unauthorized" in error_str:
-            raise AuthError("Invalid Linear API key")
+            raise AuthError("Invalid API key")
         raise APIConnectionError(f"Failed to switch epic: {e}")

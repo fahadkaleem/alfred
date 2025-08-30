@@ -34,7 +34,7 @@ async def enhance_task_scope(
     - You're preparing tasks for sprint planning
 
     Args:
-        task_id: Linear task ID to enhance (e.g., "AUTH-123")
+        task_id: platform task ID to enhance (e.g., "AUTH-123")
         enhancement_prompt: Optional specific guidance for enhancement
 
     Returns:
@@ -43,7 +43,7 @@ async def enhance_task_scope(
     config = mcp.state.config
 
     return await enhance_task_scope_logic(
-        api_key=config.linear_api_key,
+        config=config,
         task_id=task_id,
         enhancement_prompt=enhancement_prompt,
     )
@@ -75,7 +75,7 @@ async def simplify_task(
     - You're managing limited sprint capacity
 
     Args:
-        task_id: Linear task ID to simplify (e.g., "AUTH-123")
+        task_id: platform task ID to simplify (e.g., "AUTH-123")
         simplification_prompt: Optional specific guidance for simplification
 
     Returns:
@@ -84,7 +84,7 @@ async def simplify_task(
     config = mcp.state.config
 
     return await simplify_task_logic(
-        api_key=config.linear_api_key,
+        config=config,
         task_id=task_id,
         simplification_prompt=simplification_prompt,
     )

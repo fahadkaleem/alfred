@@ -174,6 +174,7 @@ class PromptBuilder:
         lines.extend(
             [
                 "",
+                # TODO: CONFUSING - This appears to reference Task Master's numbering system, not Alfred's Linear integration
                 "Replace X with the current parent todo number. For example, if the parent todo is #3, create subtasks as 3.1, 3.2, etc.",
                 "",
                 "Execute each subtask by:",

@@ -18,6 +18,7 @@ from .base import (
     MappingError,
 )
 from .linear_adapter import LinearAdapter
+from .factory import get_adapter
 
 __all__ = [
     "TaskAdapter",
@@ -32,4 +33,5 @@ __all__ = [
     "APIResponseError",
     "MappingError",
     "LinearAdapter",
+    "get_adapter",  # Export factory function
 ]

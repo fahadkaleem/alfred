@@ -12,13 +12,13 @@ def link_tasks(
     relation_type: str = IssueRelationType.BLOCKS,
 ) -> dict:
     """
-    Create a blocking relationship between two tasks in Linear.
+    Create a blocking relationship between two tasks in platform.
 
-    This tool creates task dependencies using Linear's native blocking/blocked relationships
+    This tool creates task dependencies using platform's native blocking/blocked relationships
     with automatic cycle detection to prevent circular dependencies.
 
     Key features:
-    - Creates Linear issue relations with validation
+    - Creates platform issue relations with validation
     - Prevents circular dependencies with graph traversal
     - Validates both tasks exist before linking
     - Supports different relationship types (blocks, relates, duplicates)
@@ -37,8 +37,8 @@ def link_tasks(
     - Duplicate relationships are detected and rejected
 
     Args:
-        blocker_task_id: Linear issue ID of the task that will block (prerequisite)
-        blocked_task_id: Linear issue ID of the task that will be blocked (dependent)
+        blocker_task_id: platform issue ID of the task that will block (prerequisite)
+        blocked_task_id: platform issue ID of the task that will be blocked (dependent)
         relation_type: Type of relationship - "blocks" (default), "relates", or "duplicates"
 
     Returns:
@@ -47,7 +47,7 @@ def link_tasks(
     config = mcp.state.config
 
     return link_tasks_logic(
-        api_key=config.linear_api_key,
+        config=config,
         blocker_task_id=blocker_task_id,
         blocked_task_id=blocked_task_id,
         relation_type=relation_type,

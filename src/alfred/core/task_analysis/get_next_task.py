@@ -4,7 +4,8 @@ import logging
 from typing import Dict, List, Optional, Any
 from pydantic import BaseModel
 
-from alfred.adapters.linear_adapter import LinearAdapter
+from alfred.adapters import get_adapter
+from alfred.models.config import Config
 from alfred.adapters.base import NotFoundError
 from alfred.models.tasks import AlfredTask, TaskStatus, TaskStatusGroups
 
@@ -23,7 +24,7 @@ class NextTaskResult(BaseModel):
 
 
 async def get_next_task_logic(
-    api_key: str,
+    config: Config,
     epic_id: Optional[str] = None,
     assignee_id: Optional[str] = None,
     include_blocked: bool = False,
@@ -32,7 +33,7 @@ async def get_next_task_logic(
     Intelligently find the next task to work on based on priorities and dependencies.
 
     Args:
-        api_key: Linear API key
+        config: Alfred configuration object
         epic_id: Filter by specific epic (optional)
         assignee_id: Filter by assignee (optional)
         include_blocked: Include blocked tasks in consideration
@@ -41,7 +42,7 @@ async def get_next_task_logic(
         NextTaskResult with selected task and reasoning
     """
     try:
-        adapter = LinearAdapter(api_token=api_key)
+        adapter = get_adapter(config)
 
         # Get tasks from Linear
         if epic_id:

@@ -27,12 +27,15 @@ async def research(
     Args:
         query: Research query/prompt (required)
         taskIds: Comma-separated task/subtask IDs for context (e.g., "15,16.2,17")
+        # TODO: BROKEN - Using Task Master ID format, Linear uses "AUTH-123" format
         filePaths: Comma-separated file paths for context (e.g., "src/api.js,docs/readme.md")
         customContext: Additional custom context text
         includeProjectTree: Include project file tree structure in context
         detailLevel: Response detail level - "low", "medium", or "high"
         saveTo: Auto-save to task/subtask ID (e.g., "15" or "15.2")
+        # TODO: BROKEN - Using Task Master ID format, Linear uses "AUTH-123" format
         saveToFile: Save to .taskmaster/docs/research/ directory
+        # TODO: BROKEN - Using Task Master directory structure, should use Alfred's structure
         projectRoot: Absolute path to project directory (required)
         tag: Tag context to operate on
 

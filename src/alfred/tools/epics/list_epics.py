@@ -7,17 +7,17 @@ from alfred.core.epics.list import list_epics_logic
 @mcp.tool
 async def list_epics() -> dict:
     """
-    List all epics (projects) in the Linear workspace for discovery and navigation.
+    List all epics (projects) in the configured platform (Linear/Jira) workspace for discovery and navigation.
 
-    This tool retrieves a complete list of all epics/projects in your Linear workspace,
+    This tool retrieves a complete list of all epics/projects in your platform workspace,
     providing essential metadata for epic discovery, task organization, and navigation.
 
     Key features:
-    - Retrieves all epics/projects from your Linear workspace
+    - Retrieves all epics/projects from your platform workspace
     - Returns epic IDs needed for other operations (create_task, switch_epic, etc.)
     - Provides epic metadata including names, descriptions, and URLs
     - No pagination required - returns all epics up to API limit
-    - Sorted by creation or modification date (Linear default)
+    - Sorted by creation or modification date (platform default)
 
     Use this tool when:
     - You need to discover what epics exist before creating tasks
@@ -35,7 +35,7 @@ async def list_epics() -> dict:
     Usage:
 
     Before using this tool:
-    - MUST have LINEAR_API_KEY configured in environment variables
+    - MUST have platform API key configured in environment variables
     - MUST have workspace initialized using initialize_workspace
 
     When listing epics:
@@ -45,15 +45,15 @@ async def list_epics() -> dict:
     - Empty result array means no epics exist in the workspace
 
     IMPORTANT:
-    - "Epic" in Alfred terminology maps to "Project" in Linear's UI
-    - Returns maximum of 100 epics due to Linear API limitations
+    - "Epic" in Alfred terminology maps to "Project" in platform UI
+    - Returns maximum of 100 epics due to platform API limitations
     - If you have >100 epics, only the most recent 100 are returned
     - Epic IDs are permanent and unique within your workspace
     - Results are read-only - this tool cannot modify epics
 
     WARNING:
-    - Tool will fail if LINEAR_API_KEY is not set in environment
-    - Tool will fail if Linear API key is invalid or expired
+    - Tool will fail if platform API key is not set in environment
+    - Tool will fail if platform API key is invalid or expired
     - Returns empty array (not error) if no epics exist
     - Tool will fail if workspace is not initialized
 
@@ -93,7 +93,7 @@ async def list_epics() -> dict:
     User: How many active projects do we have?
     Assistant: I'll list all epics to count the total projects in your workspace.
     *Uses list_epics tool*
-    You have 23 active projects (epics) in your Linear workspace.
+    You have 23 active projects (epics) in your platform workspace.
     </example>
 
     <reasoning>
@@ -114,9 +114,9 @@ async def list_epics() -> dict:
       - id: Unique epic identifier (use for other operations)
       - name: Human-readable epic name
       - description: Epic description if set (may be null)
-      - url: Direct Linear URL to access the epic (may be null)
+      - url: Direct platform URL to access the epic (may be null)
     - count: Total number of epics returned (0 to 100)
     """
     config = mcp.state.config
 
-    return await list_epics_logic(api_key=config.linear_api_key)
+    return await list_epics_logic(config=config)

@@ -18,7 +18,7 @@ async def create_tasks_from_spec_logic(
     spec_path: str,
     num_tasks: int,
     api_key: str,
-    team_id: str,
+    team_name: str,
     epic_name: Optional[str] = None,
     epic_id: Optional[str] = None,
     project_context: Optional[str] = None,
@@ -34,7 +34,7 @@ async def create_tasks_from_spec_logic(
         spec_path: Path to specification file (PRD, tech spec, etc.)
         num_tasks: Number of tasks to generate (0 = AI decides)
         api_key: Linear API key
-        team_id: Linear team ID
+        team_name: Platform team name
         epic_name: Optional name for new epic if created
         epic_id: Optional existing epic ID to add tasks to
         project_context: Optional project context for AI
@@ -77,7 +77,7 @@ async def create_tasks_from_spec_logic(
         orchestrator = TaskGenerationOrchestrator(ai_service)
 
         # Initialize Linear integration
-        linear_creator = LinearTaskCreator(api_key=api_key, team_id=team_id)
+        linear_creator = LinearTaskCreator(api_key=api_key, team_name=team_name)
 
         # Step 1: Generate task plan with AI
         logger.info(f"Generating {num_tasks} tasks from specification")
@@ -108,7 +108,7 @@ async def create_tasks_from_spec_logic(
         if not epic_id and generation_result.epic:
             # AI suggests creating an epic
             epic_created = await linear_creator.ensure_epic_if_needed(
-                epic=generation_result.epic, team_id=team_id
+                epic=generation_result.epic, team_name=team_name
             )
             if epic_created:
                 final_epic_id = epic_created.id
@@ -122,7 +122,7 @@ async def create_tasks_from_spec_logic(
                 create_epic=True,
             )
             epic_created = await linear_creator.ensure_epic_if_needed(
-                epic=epic_suggestion, team_id=team_id
+                epic=epic_suggestion, team_name=team_name
             )
             if epic_created:
                 final_epic_id = epic_created.id
@@ -130,7 +130,7 @@ async def create_tasks_from_spec_logic(
         # Step 3: Create tasks in Linear
         logger.info("Creating tasks in Linear")
         created_tasks = await linear_creator.batch_create_tasks(
-            tasks=generation_result.tasks, team_id=team_id, epic_id=final_epic_id
+            tasks=generation_result.tasks, team_name=team_name, epic_id=final_epic_id
         )
 
         if not created_tasks:
@@ -167,7 +167,7 @@ async def create_tasks_from_spec_logic(
                 "requested": num_tasks,
                 "created": len(created_tasks),
                 "skipped": len(generation_result.tasks) - len(created_tasks),
-                "team_id": team_id,
+                "team_name": team_name,
                 "epic_created": epic_created is not None,
                 "dependencies_created": len(dependencies_created),
                 "platform": "linear",

@@ -129,7 +129,6 @@ def test_direct_server_run():
     print("\nTesting direct server execution...")
     print("-" * 50)
 
-
     try:
         print(f"✓ MCP instance created: {mcp.name}")
 
@@ -138,7 +137,7 @@ def test_direct_server_run():
         assert hasattr(mcp.state, "session_manager")
         print("✓ MCP state initialized correctly")
 
-        tool_count = len(getattr(mcp, '_tools', {}))
+        tool_count = len(getattr(mcp, "_tools", {}))
         print(f"✓ Tools auto-registered: {tool_count}")
 
         return True

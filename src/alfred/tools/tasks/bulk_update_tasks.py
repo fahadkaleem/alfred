@@ -17,11 +17,11 @@ async def bulk_update_tasks(
     This tool applies AI-generated updates to multiple tasks in a single operation.
     It processes all provided task IDs and applies appropriate updates per task based
     on the context prompt. AI determines appropriate updates per task, batches
-    Linear API calls for efficiency, and provides progress updates during operation.
+    platform API calls for efficiency, and provides progress updates during operation.
 
     Key features:
     - Bulk AI-powered updates to multiple tasks simultaneously
-    - Efficient batching of Linear API calls for performance
+    - Efficient batching of platform API calls for performance
     - Individual task processing with error handling per task
     - Progress reporting and detailed results for each task
     - Preserves existing content while applying contextual updates
@@ -39,7 +39,7 @@ async def bulk_update_tasks(
     - Use update_task for single task updates instead of bulk operations
 
     Args:
-        task_ids (List[str]): List of Linear task IDs to update. Each must be a valid existing
+        task_ids (List[str]): List of platform task IDs to update. Each must be a valid existing
             task ID in your workspace. Format examples: ["AUTH-123", "PROJ-456",
             "LOGIN-789"]. Task IDs are case-sensitive and must match exactly.
             Invalid task IDs will be skipped with warnings.
@@ -65,7 +65,7 @@ async def bulk_update_tasks(
     config = mcp.state.config
 
     return await bulk_update_tasks_logic(
-        api_key=config.linear_api_key,
+        config=config,
         task_ids=task_ids,
         prompt=prompt,
         research=research,

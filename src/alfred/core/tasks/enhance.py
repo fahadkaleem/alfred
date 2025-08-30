@@ -2,7 +2,8 @@
 
 import logging
 from typing import Dict, Any, List, Optional
-from alfred.adapters.linear_adapter import LinearAdapter
+from alfred.adapters import get_adapter
+from alfred.models.config import Config
 from alfred.models.tasks import to_alfred_task
 from alfred.ai_services import AIService
 
@@ -10,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 async def enhance_task_scope_logic(
-    api_key: str,
+    config: Config,
     task_id: str,
     enhancement_prompt: Optional[str] = None,
 ) -> Dict[str, Any]:
@@ -18,14 +19,14 @@ async def enhance_task_scope_logic(
     Enhance a task's scope by adding comprehensive requirements.
 
     Args:
-        api_key: Linear API key
+        config: Alfred configuration object
         task_id: ID of task to enhance
         enhancement_prompt: Optional specific enhancement guidance
 
     Returns:
         Dictionary with enhanced task data
     """
-    adapter = LinearAdapter(api_token=api_key)
+    adapter = get_adapter(config)
 
     current_task = adapter.get_task(task_id)
     alfred_task = to_alfred_task(current_task)
@@ -78,7 +79,7 @@ async def enhance_task_scope_logic(
 
 
 async def simplify_task_logic(
-    api_key: str,
+    config: Config,
     task_id: str,
     simplification_prompt: Optional[str] = None,
 ) -> Dict[str, Any]:
@@ -86,14 +87,14 @@ async def simplify_task_logic(
     Simplify a task to its core requirements.
 
     Args:
-        api_key: Linear API key
+        config: Alfred configuration object
         task_id: ID of task to simplify
         simplification_prompt: Optional specific simplification guidance
 
     Returns:
         Dictionary with simplified task data
     """
-    adapter = LinearAdapter(api_token=api_key)
+    adapter = get_adapter(config)
 
     current_task = adapter.get_task(task_id)
     alfred_task = to_alfred_task(current_task)
@@ -143,7 +144,7 @@ async def simplify_task_logic(
 
 
 async def bulk_enhance_tasks_logic(
-    api_key: str,
+    config: Config,
     task_ids: List[str],
     enhancement_prompt: str,
     enhancement_type: str = "scope",
@@ -152,7 +153,7 @@ async def bulk_enhance_tasks_logic(
     Enhance multiple tasks in bulk.
 
     Args:
-        api_key: Linear API key
+        config: Alfred configuration object
         task_ids: List of task IDs to enhance
         enhancement_prompt: Enhancement guidance to apply
         enhancement_type: Type of enhancement ("scope" or "simplify")
@@ -168,13 +169,13 @@ async def bulk_enhance_tasks_logic(
         try:
             if enhancement_type == "scope":
                 result = await enhance_task_scope_logic(
-                    api_key=api_key,
+                    config=config,
                     task_id=task_id,
                     enhancement_prompt=enhancement_prompt,
                 )
             else:
                 result = await simplify_task_logic(
-                    api_key=api_key,
+                    config=config,
                     task_id=task_id,
                     simplification_prompt=enhancement_prompt,
                 )

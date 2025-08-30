@@ -43,7 +43,7 @@ async def create_all_subtasks(
     Usage:
 
     Before using this tool:
-    - MUST have LINEAR_API_KEY configured in environment variables
+    - MUST have platform API key configured in environment variables
     - MUST have ANTHROPIC_API_KEY configured for AI generation
     - CONSIDER using epic_id to limit scope for large projects
     - CONSIDER reviewing task list with get_tasks first
@@ -68,13 +68,13 @@ async def create_all_subtasks(
     - Both API keys must remain valid for entire operation duration
 
     CRITICAL REQUIREMENTS:
-    - LINEAR_API_KEY and ANTHROPIC_API_KEY must both be configured
+    - platform API key and ANTHROPIC_API_KEY must both be configured
     - At least one eligible task must exist for processing
     - Epic ID (if provided) must be valid
 
     Args:
         epic_id: Filter tasks to specific epic/project. Only tasks in this epic will be
-            processed. Must be valid Linear project ID. If omitted, processes tasks from
+            processed. Must be valid platform project ID. If omitted, processes tasks from
             all epics.
         num_subtasks: Number of subtasks per task. Default: auto (3-5 based on heuristics).
             Applies same count to all tasks. Range: 1-10. Higher values may reduce detail
@@ -95,7 +95,7 @@ async def create_all_subtasks(
         - results: Detailed results for each task processed with status and errors
 
     Error Codes:
-        - LINEAR_API_KEY not configured
+        - platform API key not configured
         - ANTHROPIC_API_KEY not configured
         - Individual task errors included in results array
 
@@ -123,14 +123,14 @@ async def create_all_subtasks(
 
     # Validate API keys
     if not config.linear_api_key:
-        return {"error": "LINEAR_API_KEY not configured"}
+        return {"error": "platform API key not configured"}
 
     if not config.anthropic_api_key:
         return {"error": "ANTHROPIC_API_KEY not configured for AI subtask generation"}
 
     try:
         result = await create_all_subtasks_logic(
-            api_key=config.linear_api_key,
+            config=config,
             epic_id=epic_id,
             num_subtasks=num_subtasks,
             context=context,

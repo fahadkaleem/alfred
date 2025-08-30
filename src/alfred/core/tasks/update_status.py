@@ -1,7 +1,8 @@
 """Business logic for updating task status."""
 
 from typing import Dict, Any
-from alfred.adapters.linear_adapter import LinearAdapter
+from alfred.adapters import get_adapter
+from alfred.models.config import Config
 from alfred.adapters.base import NotFoundError
 from alfred.models.tasks import (
     TaskStatus,
@@ -10,7 +11,9 @@ from alfred.models.tasks import (
 )
 
 
-def update_task_status_logic(api_key: str, task_id: str, status: str) -> Dict[str, Any]:
+def update_task_status_logic(
+    config: Config, task_id: str, status: str
+) -> Dict[str, Any]:
     """Update task status with Alfred to Linear mapping."""
 
     # Belt and suspenders validation (should be caught at MCP layer)
@@ -26,7 +29,7 @@ def update_task_status_logic(api_key: str, task_id: str, status: str) -> Dict[st
             "valid_statuses": valid_statuses,
         }
 
-    adapter = LinearAdapter(api_token=api_key)
+    adapter = get_adapter(config)
 
     linear_status = map_status_alfred_to_linear(status)
 

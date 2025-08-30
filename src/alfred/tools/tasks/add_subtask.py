@@ -15,12 +15,12 @@ def add_subtask(
     """
     Create subtasks under existing tasks for detailed implementation breakdown.
 
-    This tool creates Linear sub-issues under parent tasks. Subtasks inherit
+    This tool creates platform (Linear/Jira) sub-issues under parent tasks. Subtasks inherit
     epic and labels from parent task, are set to initial status "todo", and
     validate that parent task exists before creation.
 
     Key features:
-    - Creates Linear sub-issue under parent task relationship
+    - Creates platform sub-issue under parent task relationship
     - Inherits epic assignment and labels from parent automatically
     - Sets initial status to "todo" for new work items
     - Validates parent task exists before creating subtask
@@ -39,7 +39,7 @@ def add_subtask(
     - Parent task must be accessible and not completed
 
     Args:
-        parent_id: Linear task/issue ID to add subtask under. Must be a valid
+        parent_id: Platform task/issue ID to add subtask under. Must be a valid
             existing task ID in your workspace. Format examples: "AUTH-123",
             "PROJ-456", "LOGIN-789". Task IDs are case-sensitive and must
             match exactly. This will become the parent of the new sub-issue.
@@ -52,18 +52,18 @@ def add_subtask(
             notes. Default: empty string. Can include markdown formatting
             for better readability.
         assignee_id: User ID to assign subtask to. Currently accepted but
-            assignment may not be implemented in Linear integration. Default:
-            null (unassigned). Use Linear web interface for assignment if
+            assignment may not be implemented in platform integration. Default:
+            null (unassigned). Use platform web interface for assignment if
             needed.
 
     Returns:
-        Dictionary with created subtask object including Linear sub-issue ID,
+        Dictionary with created subtask object including platform sub-issue ID,
         parent relationship, and inherited properties from parent task.
     """
     config = mcp.state.config
 
     return add_subtask_logic(
-        api_key=config.linear_api_key,
+        config=config,
         parent_id=parent_id,
         title=title,
         description=description,

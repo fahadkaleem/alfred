@@ -1,12 +1,13 @@
 """Business logic for adding subtasks to parent tasks."""
 
 from typing import Dict, Any, Optional
-from alfred.adapters.linear_adapter import LinearAdapter
+from alfred.adapters import get_adapter
+from alfred.models.config import Config
 from alfred.models.tasks import to_alfred_task
 
 
 def add_subtask_logic(
-    api_key: str,
+    config: Config,
     parent_id: str,
     title: Optional[str] = None,
     description: Optional[str] = None,
@@ -16,7 +17,7 @@ def add_subtask_logic(
     Create a subtask under an existing parent task.
 
     Args:
-        api_key: Linear API key
+        config: Alfred configuration object
         parent_id: ID of parent task to add subtask to
         title: Title for new subtask
         description: Description for new subtask
@@ -25,7 +26,7 @@ def add_subtask_logic(
     Returns:
         Dictionary with created subtask data
     """
-    adapter = LinearAdapter(api_token=api_key)
+    adapter = get_adapter(config)
 
     if not title:
         title = "New Subtask"

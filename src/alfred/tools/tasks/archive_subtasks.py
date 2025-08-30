@@ -38,14 +38,14 @@ def archive_subtasks(
     - Use update_task_status for individual subtask status changes
 
     Args:
-        parent_task_id: Linear task ID whose subtasks should be archived.
+        parent_task_id: platform task ID whose subtasks should be archived.
             Must be a valid existing task ID in your workspace. Format
             examples: "AUTH-123", "PROJ-456", "LOGIN-789". Task IDs are
             case-sensitive and must match exactly. Task must exist and
             be accessible.
         status: Status to apply to all subtasks. Default: "done". Valid
             values: "done", "completed", "cancelled", "archived". All map
-            to appropriate Linear workflow states. "done" and "completed"
+            to appropriate platform workflow states. "done" and "completed"
             mark subtasks as successfully finished. "cancelled" marks them
             as no longer needed.
 
@@ -57,7 +57,7 @@ def archive_subtasks(
     config = mcp.state.config
 
     return archive_subtasks_logic(
-        api_key=config.linear_api_key,
+        config=config,
         parent_task_id=parent_task_id,
         status=status,
     )

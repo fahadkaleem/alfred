@@ -3,7 +3,8 @@
 import logging
 from datetime import datetime
 from typing import Dict, Any
-from alfred.adapters.linear_adapter import LinearAdapter
+from alfred.adapters import get_adapter
+from alfred.models.config import Config
 from alfred.models.tasks import to_alfred_task
 from alfred.ai_services import AIService
 
@@ -11,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 async def update_task_logic(
-    api_key: str,
+    config: Config,
     task_id: str,
     prompt: str,
     research: bool = False,
@@ -21,7 +22,7 @@ async def update_task_logic(
     Update a single task by ID with AI-enhanced modifications.
 
     Args:
-        api_key: Linear API key
+        config: Alfred configuration object
         task_id: ID of task to update
         prompt: Description of changes to make
         research: Whether to use research mode for enhanced updates
@@ -30,7 +31,7 @@ async def update_task_logic(
     Returns:
         Dictionary with updated task data
     """
-    adapter = LinearAdapter(api_token=api_key)
+    adapter = get_adapter(config)
 
     # Get current task
     current_task = adapter.get_task(task_id)

@@ -2,7 +2,8 @@
 
 import logging
 from typing import List, Optional
-from alfred.adapters.linear_adapter import LinearAdapter
+from alfred.adapters import get_adapter
+from alfred.models.config import Config
 from alfred.adapters.base import NotFoundError
 from alfred.models.tasks import to_alfred_task, AlfredTask
 from alfred.models.subtask_responses import (
@@ -24,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 
 async def create_subtasks_logic(
-    api_key: str,
+    config: Config,
     task_id: str,
     num_subtasks: int = DEFAULT_SUBTASKS,
     context: Optional[str] = None,
@@ -34,7 +35,7 @@ async def create_subtasks_logic(
     Create AI-generated subtasks for a task.
 
     Args:
-        api_key: Linear API key
+        config: Alfred configuration object
         task_id: Task ID to create subtasks for
         num_subtasks: Number of subtasks to generate (default: 3)
         context: Optional additional context for subtask generation
@@ -43,7 +44,7 @@ async def create_subtasks_logic(
     Returns:
         Dict with subtask creation results
     """
-    adapter = LinearAdapter(api_token=api_key)
+    adapter = get_adapter(config)
 
     # Get the task from Linear
     task = adapter.get_task(task_id)
@@ -130,7 +131,7 @@ async def create_subtasks_logic(
 
 
 async def create_all_subtasks_logic(
-    api_key: str,
+    config: Config,
     epic_id: Optional[str] = None,
     num_subtasks: Optional[int] = None,
     context: Optional[str] = None,
@@ -140,7 +141,7 @@ async def create_all_subtasks_logic(
     Create subtasks for all eligible tasks in batch.
 
     Args:
-        api_key: Linear API key
+        config: Alfred configuration object
         epic_id: Optional epic ID to filter tasks
         num_subtasks: Optional number of subtasks per task
         context: Optional additional context for subtask generation
@@ -150,7 +151,7 @@ async def create_all_subtasks_logic(
     Returns:
         Dict with batch subtask creation results
     """
-    adapter = LinearAdapter(api_token=api_key)
+    adapter = get_adapter(config)
 
     # TODO: PERFORMANCE ISSUE - This function has several performance problems:
     # 1. When no epic_id is specified, it fetches ALL tasks in the workspace
@@ -218,7 +219,7 @@ async def create_all_subtasks_logic(
 
         try:
             result = await create_subtasks_logic(
-                api_key=api_key,
+                config=config,
                 task_id=task.id,
                 num_subtasks=task_num_subtasks,
                 context=context,

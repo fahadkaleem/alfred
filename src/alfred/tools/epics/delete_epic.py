@@ -7,14 +7,14 @@ from alfred.core.epics.delete import delete_epic_logic
 @mcp.tool
 async def delete_epic(epic_id: str, delete_tasks: bool = False) -> dict:
     """
-    Delete an epic (project) from Linear with built-in safety mechanism for task preservation.
+    Delete an epic (project) from the configured platform (Linear/Jira) with built-in safety mechanism for task preservation.
 
-    This tool permanently removes an epic/project from your Linear workspace. It includes
+    This tool permanently removes an epic/project from your platform workspace. It includes
     a safety mechanism that prevents accidental deletion of epics containing tasks unless
     explicitly authorized.
 
     Key features:
-    - Deletes epics/projects from Linear workspace permanently
+    - Deletes epics/projects from platform workspace permanently
     - Safety mechanism prevents accidental task deletion (fails if epic has tasks)
     - Optional force deletion of epic with all contained tasks
     - Returns count of deleted tasks for audit purposes
@@ -35,7 +35,7 @@ async def delete_epic(epic_id: str, delete_tasks: bool = False) -> dict:
     Usage:
 
     Before using this tool:
-    - MUST have LINEAR_API_KEY configured in environment variables
+    - MUST have platform API key configured in environment variables
     - MUST have workspace initialized using initialize_workspace
     - ALWAYS use list_epics to verify epic_id and review epic name
     - STRONGLY RECOMMENDED to check tasks with get_tasks(epic_id=...) first
@@ -48,19 +48,19 @@ async def delete_epic(epic_id: str, delete_tasks: bool = False) -> dict:
 
     IMPORTANT:
     - Deletion is PERMANENT and cannot be undone - there is no recovery mechanism
-    - Cannot delete the last remaining epic in the workspace (Linear requirement)
+    - Cannot delete the last remaining epic in the workspace (platform requirement)
     - All task data including comments, attachments, and history is lost
     - Deleted epic IDs cannot be reused
     - Team members will immediately lose access to deleted epics and tasks
 
     CRITICAL REQUIREMENTS:
-    - The epic_id must exist in your Linear workspace
+    - The epic_id must exist in your platform workspace
     - The epic_id must be exact - partial matches are not supported
     - You cannot delete an epic that other users are actively working in
 
     WARNING:
-    - Tool will fail if LINEAR_API_KEY is not set in environment
-    - Tool will fail if Linear API key is invalid or expired
+    - Tool will fail if platform API key is not set in environment
+    - Tool will fail if platform API key is invalid or expired
     - Tool will fail if epic_id doesn't exist in workspace
     - Tool will fail if epic has tasks and delete_tasks=False (safety mechanism)
     - Tool will fail if attempting to delete the last epic in workspace
@@ -113,7 +113,7 @@ async def delete_epic(epic_id: str, delete_tasks: bool = False) -> dict:
     Parameters:
 
     epic_id [string] (required) - The unique identifier of the epic to delete. Must be the
-        exact epic ID from Linear (e.g., "abc123-def456-789"). Get this from list_epics
+        exact epic ID from platform (e.g., "abc123-def456-789"). Get this from list_epics
         or from previous epic creation. Case-sensitive and must match exactly.
 
     delete_tasks [boolean] (optional) - Controls whether to force deletion of epic with tasks.
@@ -133,5 +133,5 @@ async def delete_epic(epic_id: str, delete_tasks: bool = False) -> dict:
     config = mcp.state.config
 
     return await delete_epic_logic(
-        api_key=config.linear_api_key, epic_id=epic_id, delete_tasks=delete_tasks
+        config=config, epic_id=epic_id, delete_tasks=delete_tasks
     )

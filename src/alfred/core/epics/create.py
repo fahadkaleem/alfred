@@ -1,7 +1,8 @@
 """Business logic for creating epics."""
 
 from typing import Dict, Any, Optional
-from alfred.adapters.linear_adapter import LinearAdapter
+from alfred.adapters import get_adapter
+from alfred.models.config import Config
 from alfred.adapters.base import AuthError, APIConnectionError, ValidationError
 from alfred.utils import get_logger
 
@@ -9,13 +10,13 @@ logger = get_logger("alfred.core.epics.create")
 
 
 async def create_epic_logic(
-    api_key: str, name: str, description: Optional[str] = None
+    config: Config, name: str, description: Optional[str] = None
 ) -> Dict[str, Any]:
     """
-    Create a new epic (project) in Linear.
+    Create a new epic (project) in configured platform.
 
     Args:
-        api_key: Linear API key
+        config: Alfred configuration object
         name: Epic name
         description: Optional epic description
 
@@ -27,16 +28,11 @@ async def create_epic_logic(
         ValidationError: If name is empty
         APIConnectionError: If network issues occur
     """
-    if not api_key:
-        raise AuthError(
-            "LINEAR_API_KEY not configured. Please set it in environment variables or .env file"
-        )
-
     if not name or not name.strip():
         raise ValidationError("Epic name cannot be empty")
 
     try:
-        adapter = LinearAdapter(api_token=api_key)
+        adapter = get_adapter(config)
 
         # Create epic via adapter
         epic = adapter.create_epic(name=name.strip(), description=description)

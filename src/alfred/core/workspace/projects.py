@@ -1,20 +1,21 @@
 """Business logic for project/epic listing."""
 
 from typing import Dict, Any
-from alfred.adapters.linear_adapter import LinearAdapter
+from alfred.adapters import get_adapter
 from alfred.adapters.base import AuthError, APIConnectionError
+from alfred.models.config import Config
 from alfred.models.workspace import ProjectsListResponse, ProjectInfo
 from alfred.utils import get_logger
 
 logger = get_logger("alfred.core.workspace.projects")
 
 
-async def list_projects_logic(api_key: str) -> Dict[str, Any]:
+async def list_projects_logic(config: Config) -> Dict[str, Any]:
     """
     List all projects (epics) in the Linear workspace.
 
     Args:
-        api_key: Linear API key
+        config: Alfred configuration object
 
     Returns:
         Dictionary with list of projects and their details
@@ -23,13 +24,8 @@ async def list_projects_logic(api_key: str) -> Dict[str, Any]:
         AuthError: If API key is missing or invalid
         APIConnectionError: If network issues occur
     """
-    if not api_key:
-        raise AuthError(
-            "LINEAR_API_KEY not configured. Please set it in environment variables or .env file"
-        )
-
     try:
-        adapter = LinearAdapter(api_token=api_key)
+        adapter = get_adapter(config)
 
         # Get projects/epics - adapter returns List[EpicDict]
         projects = adapter.get_epics(limit=100)

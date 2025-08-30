@@ -16,13 +16,13 @@ async def create_subtasks(
     """
     Create AI-generated subtasks for a task.
 
-    This tool creates detailed subtasks for a single Linear task using AI to analyze the task
-    and generate actionable implementation steps. It creates actual Linear sub-issues with
+    This tool creates detailed subtasks for a single platform task using AI to analyze the task
+    and generate actionable implementation steps. It creates actual platform sub-issues with
     technical details and acceptance criteria.
 
     Key features:
     - AI-powered subtask generation with consistent structure
-    - Automatic creation of subtasks as Linear sub-issues
+    - Automatic creation of subtasks as platform sub-issues
     - Preserves parent task context and epic assignment
     - Includes technical implementation details and acceptance criteria
     - Supports forced regeneration of existing subtasks
@@ -42,19 +42,19 @@ async def create_subtasks(
     Usage:
 
     Before using this tool:
-    - MUST have LINEAR_API_KEY configured in environment variables
+    - MUST have platform API key configured in environment variables
     - MUST have ANTHROPIC_API_KEY configured for AI generation
     - SHOULD verify task exists and is eligible using get_task
 
     When creating subtasks:
     - Task must be in "pending" or "in_progress" status
     - Task cannot already have subtasks (unless force=True)
-    - Each subtask will be created as a Linear sub-issue
+    - Each subtask will be created as a platform sub-issue
     - Subtasks inherit the parent task's epic assignment
     - AI generates 3-7 subtasks based on complexity (or as specified)
 
     IMPORTANT:
-    - Subtasks are actual Linear issues with parent relationships
+    - Subtasks are actual platform issues with parent relationships
     - Force parameter will DELETE all existing subtasks before creating new ones
     - Each subtask includes technical details and acceptance criteria
     - Generation may take 10-30 seconds depending on complexity
@@ -66,13 +66,13 @@ async def create_subtasks(
     - Tool will fail if ANTHROPIC_API_KEY is not configured
 
     CRITICAL REQUIREMENTS:
-    - task_id must be exact Linear issue identifier (e.g., "AUTH-123")
+    - task_id must be exact platform issue identifier (e.g., "AUTH-123")
     - Task IDs are case-sensitive
-    - Both LINEAR_API_KEY and ANTHROPIC_API_KEY must be valid
+    - Both platform API key and ANTHROPIC_API_KEY must be valid
 
     Args:
-        task_id: Linear task ID to create subtasks for. Must be exact task identifier
-            like "AUTH-123", "PROJ-456". Case-sensitive and must exist in Linear.
+        task_id: platform task ID to create subtasks for. Must be exact task identifier
+            like "AUTH-123", "PROJ-456". Case-sensitive and must exist in platform.
             Task must be in "pending" or "in_progress" status.
         num_subtasks: Number of subtasks to generate. Default: 3. Recommended range: 3-7.
             Higher numbers may result in less detailed subtasks. AI will optimize based
@@ -94,7 +94,7 @@ async def create_subtasks(
         - TASK_HAS_SUBTASKS: Task already has subtasks and force=False
         - TASK_NOT_ELIGIBLE: Task is completed or cancelled
         - AI_SERVICE_ERROR: AI generation failed
-        - LINEAR_API_KEY not configured
+        - platform API key not configured
         - ANTHROPIC_API_KEY not configured
 
     Examples:
@@ -122,14 +122,14 @@ async def create_subtasks(
 
     # Validate API keys
     if not config.linear_api_key:
-        return {"error": "LINEAR_API_KEY not configured"}
+        return {"error": "platform API key not configured"}
 
     if not config.anthropic_api_key:
         return {"error": "ANTHROPIC_API_KEY not configured for AI subtask generation"}
 
     try:
         result = await create_subtasks_logic(
-            api_key=config.linear_api_key,
+            config=config,
             task_id=task_id,
             num_subtasks=num_subtasks,
             context=context,

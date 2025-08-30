@@ -1,14 +1,15 @@
 """Business logic for linking tasks with cycle detection."""
 
 from typing import Dict, Any, Set, List
-from alfred.adapters.linear_adapter import LinearAdapter
+from alfred.adapters import get_adapter
+from alfred.models.config import Config
 from alfred.adapters.base import NotFoundError, ValidationError
 from alfred.clients.linear.domain.enums import IssueRelationType
 from .models import LinkTasksResult, TaskRelationship
 
 
 def _detect_cycle(
-    adapter: LinearAdapter,
+    adapter,
     start_task_id: str,
     target_task_id: str,
     visited: Set[str],
@@ -18,7 +19,7 @@ def _detect_cycle(
     Detect if adding a relationship would create a cycle.
 
     Args:
-        adapter: Linear adapter instance
+        adapter: Adapter instance
         start_task_id: Current task in traversal
         target_task_id: Task we're looking for in the path
         visited: Set of visited task IDs
@@ -55,7 +56,7 @@ def _detect_cycle(
 
 
 def link_tasks_logic(
-    api_key: str,
+    config: Config,
     blocker_task_id: str,
     blocked_task_id: str,
     relation_type: str = IssueRelationType.BLOCKS,
@@ -64,7 +65,7 @@ def link_tasks_logic(
     Create a blocking relationship between two tasks.
 
     Args:
-        api_key: Linear API key
+        config: Alfred configuration object
         blocker_task_id: ID of task that will block
         blocked_task_id: ID of task that will be blocked
         relation_type: Type of relationship (blocks, relates, duplicates)
@@ -72,7 +73,7 @@ def link_tasks_logic(
     Returns:
         LinkTasksResult as dict
     """
-    adapter = LinearAdapter(api_token=api_key)
+    adapter = get_adapter(config)
 
     if blocker_task_id == blocked_task_id:
         return LinkTasksResult(

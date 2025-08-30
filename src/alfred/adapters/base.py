@@ -264,3 +264,85 @@ class TaskAdapter(ABC):
             APIConnectionError: If network fails
         """
         pass
+
+    @abstractmethod
+    def get_task_children(self, parent_id: str) -> List[TaskDict]:
+        """Get all subtasks of a parent task.
+
+        Args:
+            parent_id: Parent task ID
+
+        Returns:
+            List of child tasks as TaskDict objects
+
+        Raises:
+            NotFoundError: If parent task doesn't exist
+            AuthError: If not authenticated
+        """
+        pass
+
+    @abstractmethod
+    def rename_epic(self, epic_id: str, new_name: str) -> EpicDict:
+        """Rename an epic/project.
+
+        Args:
+            epic_id: Epic/project ID
+            new_name: New name for the epic
+
+        Returns:
+            Updated epic as EpicDict
+
+        Raises:
+            NotFoundError: If epic doesn't exist
+            ValidationError: If new name is invalid or already exists
+            AuthError: If not authenticated
+        """
+        pass
+
+    @abstractmethod
+    def delete_epic(self, epic_id: str) -> bool:
+        """Delete/archive an epic.
+
+        Args:
+            epic_id: Epic/project ID to delete
+
+        Returns:
+            True if deletion was successful
+
+        Raises:
+            NotFoundError: If epic doesn't exist
+            AuthError: If not authenticated
+        """
+        pass
+
+    @abstractmethod
+    def get_epic_tasks(self, epic_id: str) -> List[TaskDict]:
+        """Get all tasks in an epic/project.
+
+        Args:
+            epic_id: Epic/project ID
+
+        Returns:
+            List of tasks in the epic
+
+        Raises:
+            NotFoundError: If epic doesn't exist
+            AuthError: If not authenticated
+        """
+        pass
+
+    @abstractmethod
+    def get_workflow_states(self, team_id: Optional[str] = None) -> Dict[str, Any]:
+        """Get workflow states for a team.
+
+        Args:
+            team_id: Optional team ID. If not provided, uses default team
+
+        Returns:
+            Dictionary with workflow states and metadata
+
+        Raises:
+            NotFoundError: If team doesn't exist
+            AuthError: If not authenticated
+        """
+        pass

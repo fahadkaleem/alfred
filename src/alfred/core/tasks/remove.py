@@ -2,13 +2,14 @@
 
 import logging
 from typing import Dict, Any, List
-from alfred.adapters.linear_adapter import LinearAdapter
+from alfred.adapters import get_adapter
+from alfred.models.config import Config
 
 logger = logging.getLogger(__name__)
 
 
 def remove_task_logic(
-    api_key: str,
+    config: Config,
     task_ids: List[str],
     cascade_delete: bool = False,
 ) -> Dict[str, Any]:
@@ -16,14 +17,14 @@ def remove_task_logic(
     Remove tasks from Linear.
 
     Args:
-        api_key: Linear API key
+        config: Alfred configuration object
         task_ids: List of task IDs to remove
         cascade_delete: Whether to delete subtasks if they exist
 
     Returns:
         Dictionary with removal results
     """
-    adapter = LinearAdapter(api_token=api_key)
+    adapter = get_adapter(config)
 
     removed_tasks = []
     failed_tasks = []

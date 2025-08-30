@@ -19,10 +19,10 @@ async def create_tasks_from_spec(
     is_claude_code: bool = True,  # Default to true since MCP is primarily used by Claude Code
 ) -> dict:
     """
-    Parse a specification document and create tasks in Linear using AI-powered task generation.
+    Parse a specification document and create tasks in platform using AI-powered task generation.
 
     This tool transforms product requirements documents (PRDs), technical specifications, or
-    any structured requirements text into well-formed development tasks in Linear. It uses
+    any structured requirements text into well-formed development tasks in platform. It uses
     AI to understand requirements, break them down into actionable work items, and creates
     them with proper project association, dependencies, and structured metadata.
 
@@ -50,8 +50,8 @@ async def create_tasks_from_spec(
 
     Usage Guidance and Specification Requirements:
 
-    IMPORTANT: This tool requires BOTH Linear API key and Anthropic API key to be configured.
-    The Linear API key enables task creation, while the Anthropic API key powers the AI
+    IMPORTANT: This tool requires BOTH platform API key and Anthropic API key to be configured.
+    The platform API key enables task creation, while the Anthropic API key powers the AI
     analysis. Without Anthropic API key, the tool will fail with AI_GENERATION_FAILED.
 
     CRITICAL: The specification content must be substantial enough for meaningful analysis.
@@ -66,11 +66,11 @@ async def create_tasks_from_spec(
     - Include acceptance criteria for major features when known
 
     Epic/Project Management:
-    - Epic and Project are synonymous in Linear - this tool uses "epic" for consistency
+    - Epic and Project are synonymous in platform - this tool uses "epic" for consistency
     - You can either: (1) specify existing epic_id, (2) provide epic_name for new epic,
         or (3) let AI suggest an epic based on specification content
     - Tasks without epic association will be created in the team's backlog
-    - Created epics will be visible in Linear's Projects section immediately
+    - Created epics will be visible in platform's Projects section immediately
 
     Task Generation Control:
     - num_tasks=0: Let AI determine optimal count based on specification complexity
@@ -100,7 +100,7 @@ async def create_tasks_from_spec(
             specification complexity. AI will aim for this target but may adjust
             slightly for logical task grouping.
 
-        epic_id: Optional Linear project/epic ID to add tasks to. If provided,
+        epic_id: Optional platform project/epic ID to add tasks to. If provided,
             all created tasks will be associated with this epic. Use list_projects
             tool to discover available epic IDs. If not provided and epic_name is
             not set, tasks will be created without epic association.
@@ -136,8 +136,8 @@ async def create_tasks_from_spec(
         - READ_ERROR: Failed to read file (permissions or other IO error)
         - INVALID_NUM_TASKS: num_tasks outside valid range (0-50)
         - AI_GENERATION_FAILED: AI couldn't generate tasks from spec
-        - LINEAR_CREATION_FAILED: Failed to create tasks in Linear
-        - API_AUTH_ERROR: Linear authentication failed
+        - PLATFORM_CREATION_FAILED: Failed to create tasks in platform
+        - API_AUTH_ERROR: Platform authentication failed
         - UNEXPECTED_ERROR: Other unexpected errors
 
     Examples:
@@ -167,7 +167,7 @@ async def create_tasks_from_spec(
     config = mcp.state.config
 
     # Check workspace configuration
-    if not config.team_id:
+    if not config.team_name:
         return {
             "success": False,
             "error": {
@@ -176,13 +176,13 @@ async def create_tasks_from_spec(
             },
         }
 
-    # Validate Linear API key
+    # Validate platform API key
     if not config.linear_api_key:
         return {
             "success": False,
             "error": {
                 "code": "API_AUTH_ERROR",
-                "message": "Linear API key not configured",
+                "message": "platform API key not configured",
             },
         }
 
@@ -209,7 +209,7 @@ async def create_tasks_from_spec(
         spec_path=spec_path,
         num_tasks=num_tasks,
         api_key=config.linear_api_key,
-        team_id=config.team_id,
+        team_name=config.team_name,
         epic_name=epic_name,
         epic_id=epic_id,
         project_context=project_context,

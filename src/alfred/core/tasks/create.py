@@ -1,12 +1,13 @@
 """Business logic for creating tasks."""
 
 from typing import Dict, Any, Optional, List
-from alfred.adapters.linear_adapter import LinearAdapter
+from alfred.adapters import get_adapter
+from alfred.models.config import Config
 from alfred.models.tasks import to_alfred_task
 
 
 def create_task_logic(
-    api_key: str,
+    config: Config,
     title: str,
     description: Optional[str] = None,
     epic_id: Optional[str] = None,
@@ -14,9 +15,9 @@ def create_task_logic(
     labels: Optional[List[str]] = None,
     priority: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Create new task in Linear."""
+    """Create new task in configured platform."""
 
-    adapter = LinearAdapter(api_token=api_key)
+    adapter = get_adapter(config)
 
     task = adapter.create_task(title=title, description=description, epic_id=epic_id)
 

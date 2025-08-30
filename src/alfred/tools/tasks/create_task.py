@@ -15,16 +15,16 @@ def create_task(
     priority: Optional[str] = None,
 ) -> dict:
     """
-    Create a new task in Linear.
+    Create a new task in the configured platform (Linear/Jira).
 
-    This tool creates a new task in Linear with specified details and returns the
+    This tool creates a new task with specified details and returns the
     created task mapped to Alfred's standardized format. It handles task creation
     with optional epic assignment, descriptions, and future extensibility for labels
     and priorities.
 
     Key features:
-    - Creates tasks with Linear API integration and immediate persistence
-    - Automatic task ID generation following Linear's naming conventions
+    - Creates tasks with platform API integration and immediate persistence
+    - Automatic task ID generation following platform naming conventions
     - Epic/project assignment for organized task management
     - Extensible design for future label and priority support
     - Returns complete created task object for verification and reference
@@ -43,7 +43,7 @@ def create_task(
 
     Usage Guidance and Task Creation Best Practices:
 
-    IMPORTANT: Tasks are created with Linear's default status ("todo") which maps to Alfred's
+    IMPORTANT: Tasks are created with the platform's default status ("todo") which maps to Alfred's
     "pending" status. Use update_task_status immediately after creation if you need a different
     initial status.
 
@@ -78,20 +78,20 @@ def create_task(
             criteria, or implementation notes. Supports markdown formatting. Include context that
             helps team members understand the work without additional research. Default: empty string.
             Can be updated later using update_task tool.
-        epic_id: Linear project/epic ID to assign this task to. Must be a valid project ID accessible
-            to your team. Use list_projects tool to discover available epic IDs. Format example:
-            "PROJ_abc123def". Default: task goes to team's default backlog. Invalid epic IDs will
+        epic_id: Project/epic ID to assign this task to. Must be a valid project ID accessible
+            to your team. Use list_projects tool to discover available epic IDs. Format varies
+            by platform. Default: task goes to team's default backlog. Invalid epic IDs will
             cause task creation to fail.
         assignee_id: User ID to assign task to. Currently accepted but assignment not yet implemented
-            in Linear integration. Parameter preserved for future versions. Default: null (unassigned).
-            Use Linear web interface for assignment until API integration is complete.
+            in platform integration. Parameter preserved for future versions. Default: null (unassigned).
+            Use platform web interface for assignment until API integration is complete.
         labels: Array of label names to apply to task. Currently accepted but labels not yet applied
-            in Linear integration. Parameter preserved for future versions. Default: empty list.
-            Example: ["bug", "frontend", "high-priority"]. Use Linear web interface for labeling
+            in platform integration. Parameter preserved for future versions. Default: empty list.
+            Example: ["bug", "frontend", "high-priority"]. Use platform web interface for labeling
             until API integration is complete.
-        priority: Task priority level. Currently accepted but priority not yet set in Linear integration.
+        priority: Task priority level. Currently accepted but priority not yet set in platform integration.
             Parameter preserved for future versions. Valid values: "low", "medium", "high", "urgent".
-            Default: null (Linear default). Use Linear web interface for priority setting until API
+            Default: null (platform default). Use platform web interface for priority setting until API
             integration is complete.
 
     Returns:
@@ -100,7 +100,7 @@ def create_task(
     config = mcp.state.config
 
     return create_task_logic(
-        api_key=config.linear_api_key,
+        config=config,
         title=title,
         description=description,
         epic_id=epic_id,

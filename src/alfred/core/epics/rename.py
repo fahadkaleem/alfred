@@ -1,7 +1,8 @@
 """Business logic for renaming epics."""
 
 from typing import Dict, Any
-from alfred.adapters.linear_adapter import LinearAdapter
+from alfred.adapters import get_adapter
+from alfred.models.config import Config
 from alfred.adapters.base import (
     AuthError,
     APIConnectionError,
@@ -14,13 +15,13 @@ logger = get_logger("alfred.core.epics.rename")
 
 
 async def rename_epic_logic(
-    api_key: str, epic_id: str, new_name: str
+    config: Config, epic_id: str, new_name: str
 ) -> Dict[str, Any]:
     """
     Rename an existing epic (project) in Linear.
 
     Args:
-        api_key: Linear API key
+        config: Alfred configuration object
         epic_id: Epic ID to rename
         new_name: New name for the epic
 
@@ -33,10 +34,6 @@ async def rename_epic_logic(
         ValidationError: If new name is invalid
         APIConnectionError: If network issues occur
     """
-    if not api_key:
-        raise AuthError(
-            "LINEAR_API_KEY not configured. Please set it in environment variables or .env file"
-        )
 
     if not epic_id or not epic_id.strip():
         raise ValidationError("Epic ID cannot be empty")
@@ -45,7 +42,7 @@ async def rename_epic_logic(
         raise ValidationError("New epic name cannot be empty")
 
     try:
-        adapter = LinearAdapter(api_token=api_key)
+        adapter = get_adapter(config)
 
         # First verify the epic exists and get its old name
         epics = adapter.get_epics(limit=100)
@@ -77,7 +74,7 @@ async def rename_epic_logic(
         logger.error(f"Failed to rename epic: {e}")
         error_str = str(e).lower()
         if "401" in error_str or "unauthorized" in error_str:
-            raise AuthError("Invalid Linear API key")
+            raise AuthError("Invalid API key")
         elif "duplicate" in error_str or "already exists" in error_str:
             raise ValidationError(f"An epic with the name '{new_name}' already exists")
         raise APIConnectionError(f"Failed to rename epic: {e}")

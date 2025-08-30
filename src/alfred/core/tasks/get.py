@@ -1,15 +1,16 @@
 """Business logic for getting a single task."""
 
 from typing import Dict, Any
-from alfred.adapters.linear_adapter import LinearAdapter
+from alfred.adapters import get_adapter
+from alfred.models.config import Config
 from alfred.adapters.base import NotFoundError
 from alfred.models.tasks import to_alfred_task
 
 
-def get_task_logic(api_key: str, task_id: str) -> Dict[str, Any]:
-    """Get single task by ID."""
+def get_task_logic(config: Config, task_id: str) -> Dict[str, Any]:
+    """Get single task by ID from configured platform."""
 
-    adapter = LinearAdapter(api_token=api_key)
+    adapter = get_adapter(config)
 
     try:
         task = adapter.get_task(task_id)

@@ -1,7 +1,8 @@
 """Task utilities and common functions."""
 
 from alfred.config import get_config
-from alfred.adapters.linear_adapter import LinearAdapter
+from alfred.adapters import get_adapter
+from alfred.models.config import Config
 from alfred.models.tasks import WorkspaceConfig
 
 
@@ -11,11 +12,11 @@ def load_workspace_config() -> WorkspaceConfig:
     return WorkspaceConfig(
         api_key=config.linear_api_key,
         workspace_id=config.workspace_id,
-        team_id=config.team_id,
+        team_name=config.team_name,
     )
 
 
-def get_linear_adapter() -> LinearAdapter:
-    """Get configured Linear adapter."""
-    config = load_workspace_config()
-    return LinearAdapter(api_token=config.api_key)
+def get_task_adapter():
+    """Get configured task adapter."""
+    config = get_config()
+    return get_adapter(config)

@@ -42,7 +42,7 @@ async def test_server():
     print("\n4. Testing tool auto-registration...")
     # Tools are now auto-registered via decorators when imported
     # Check that tools exist on the server
-    tool_count = len(getattr(mcp, '_tools', {}))
+    tool_count = len(getattr(mcp, "_tools", {}))
     print(f"   ✓ Tools auto-registered: {tool_count}")
 
     # Test 5: Session management

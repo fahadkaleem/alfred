@@ -73,14 +73,14 @@ def set_config(config: Config) -> None:
 
 def set_active_workspace(
     workspace_id: Optional[str] = None,
-    team_id: Optional[str] = None,
+    team_name: Optional[str] = None,
     active_epic_id: Optional[str] = None,
 ) -> Config:
     """Set the active workspace configuration.
 
     Args:
         workspace_id: Workspace/instance ID
-        team_id: Team/project ID
+        team_name: Team name (e.g., "Engineering", "Design")
         active_epic_id: Default epic for new tasks
 
     Returns:
@@ -90,8 +90,8 @@ def set_active_workspace(
 
     if workspace_id is not None:
         config.workspace_id = workspace_id
-    if team_id is not None:
-        config.team_id = team_id
+    if team_name is not None:
+        config.team_name = team_name
     if active_epic_id is not None:
         config.active_epic_id = active_epic_id
 
@@ -102,7 +102,7 @@ def set_active_workspace(
     workspace_data = {
         "platform": config.platform,
         "workspace_id": config.workspace_id,
-        "team_id": config.team_id,
+        "team_name": config.team_name,
         "active_epic_id": config.active_epic_id,
     }
     write_workspace_config(workspace_data)
@@ -123,7 +123,7 @@ def current_workspace() -> Dict[str, Any]:
     return {
         "platform": config.platform,
         "workspace_id": config.workspace_id,
-        "team_id": config.team_id,
+        "team_name": config.team_name,
         "active_epic_id": config.active_epic_id,
         "has_linear_config": bool(config.linear_api_key),
         "has_jira_config": bool(config.jira_api_key and config.jira_url),

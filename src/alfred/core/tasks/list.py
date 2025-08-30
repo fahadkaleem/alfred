@@ -1,7 +1,8 @@
 """Business logic for listing tasks."""
 
 from typing import Optional, Dict, Any
-from alfred.adapters.linear_adapter import LinearAdapter
+from alfred.adapters import get_adapter
+from alfred.models.config import Config
 from alfred.models.tasks import (
     TaskListResult,
     map_status_alfred_to_linear,
@@ -10,7 +11,7 @@ from alfred.models.tasks import (
 
 
 def get_tasks_logic(
-    api_key: str,
+    config: Config,
     status: Optional[str] = None,
     epic_id: Optional[str] = None,
     page: int = 1,
@@ -18,7 +19,7 @@ def get_tasks_logic(
 ) -> Dict[str, Any]:
     """List tasks with filtering and pagination."""
 
-    adapter = LinearAdapter(api_token=api_key)
+    adapter = get_adapter(config)
 
     linear_status = None
     if status:

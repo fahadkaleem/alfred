@@ -9,14 +9,14 @@ def get_task(task_id: str) -> dict:
     """
     Fetch a single task by ID.
 
-    This tool retrieves a specific task from Linear by its ID and returns complete
+    This tool retrieves a specific task from the configured platform (Linear/Jira) by its ID and returns complete
     task details mapped to Alfred's standardized format. It provides comprehensive
     task information including status, description, epic assignment, and all
     associated metadata.
 
     Key features:
     - Retrieves complete task details with all available fields
-    - Automatic Linear → Alfred data model mapping
+    - Automatic platform → Alfred data model mapping
     - Detailed error reporting for non-existent or inaccessible tasks
     - Returns structured task object compatible with other Alfred tools
     - Includes task relationships and epic assignment information
@@ -35,7 +35,7 @@ def get_task(task_id: str) -> dict:
 
     Usage Guidance and Task ID Requirements:
 
-    IMPORTANT: Task IDs in Linear follow specific naming conventions (e.g., "AUTH-123",
+    IMPORTANT: Task IDs in platform follow specific naming conventions (e.g., "AUTH-123",
     "PROJ-456"). They are case-sensitive and must match exactly. Use discovery tools like
     get_tasks or list_projects if you need to find task IDs.
 
@@ -44,13 +44,13 @@ def get_task(task_id: str) -> dict:
     have appropriate access permissions for the requested task.
 
     Task ID Format Requirements:
-    - Must be complete Linear task identifier (e.g., "AUTH-123", not "123" or "auth-123")
+    - Must be complete platform task identifier (e.g., "AUTH-123", not "123" or "auth-123")
     - Case-sensitive - "AUTH-123" is different from "auth-123"
     - Must exist in your accessible workspace/team context
     - Cannot be partial matches - exact ID required
 
     Response Data Completeness:
-    - Includes all Linear task fields mapped to Alfred format
+    - Includes all platform task fields mapped to Alfred format
     - Contains epic/project assignment information if applicable
     - Includes current status with Alfred standardized naming
     - Provides creation and modification timestamps
@@ -60,11 +60,11 @@ def get_task(task_id: str) -> dict:
     - Non-existent task ID: Returns structured error with the attempted ID
     - Access denied: Returns error if task exists but you lack permissions
     - Invalid format: Returns error for malformed task IDs
-    - Linear API issues: Returns error with Linear's specific error message
+    - Platform API issues: Returns error with platform's specific error message
 
     Args:
-        task_id: Linear task/issue ID to retrieve. Must be complete, exact task identifier
-            following Linear's naming convention. Examples: "AUTH-123", "PROJ-456", "LOGIN-789".
+        task_id: Platform task/issue ID to retrieve. Must be complete, exact task identifier
+            following platform's naming convention. Examples: "AUTH-123", "PROJ-456", "LOGIN-789".
             Case-sensitive and must match exactly - no partial matching or search capability.
             Task must exist in your accessible workspace/team. Use get_tasks or project
             management tools to discover task IDs if unknown.
@@ -76,4 +76,4 @@ def get_task(task_id: str) -> dict:
     """
     config = mcp.state.config
 
-    return get_task_logic(api_key=config.linear_api_key, task_id=task_id)
+    return get_task_logic(config=config, task_id=task_id)

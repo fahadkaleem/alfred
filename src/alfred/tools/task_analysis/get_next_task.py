@@ -12,7 +12,7 @@ async def get_next_task(
     include_blocked: bool = False,
 ) -> dict:
     """
-    Intelligently find the next Linear/Jira task or subtask to work on based on priorities, dependencies, and task statuses within the platform's workflow.
+    Intelligently find the next platform/Jira task or subtask to work on based on priorities, dependencies, and task statuses within the platform's workflow.
 
     Business Value:
     - **Who uses this**: Developers needing to know what to work on next
@@ -36,7 +36,7 @@ async def get_next_task(
     Crucial Guardrails:
     - This tool only reads data - it doesn't modify task status
     - Use update_task_status after selecting a task to mark it "in_progress"
-    - Tool respects Linear's dependency structure and blocking relationships
+    - Tool respects platform's dependency structure and blocking relationships
     - Only suggests tasks where all prerequisites are completed
 
     Usage Guidance:
@@ -90,7 +90,7 @@ async def get_next_task(
     config = mcp.state.config
 
     result = await get_next_task_logic(
-        api_key=config.linear_api_key,
+        config=config,
         epic_id=epic_id,
         assignee_id=assignee_id,
         include_blocked=include_blocked,

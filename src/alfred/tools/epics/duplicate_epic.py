@@ -8,7 +8,7 @@ from alfred.core.epics.duplicate import duplicate_epic_logic
 @mcp.tool
 async def duplicate_epic(epic_id: str, new_name: Optional[str] = None) -> dict:
     """
-    Duplicate an epic (project) with all its tasks to create templates or variations.
+    Duplicate an epic (project) in the configured platform (Linear/Jira) with all its tasks to create templates or variations.
 
     This tool creates a complete copy of an existing epic/project including all contained
     tasks. Useful for creating project templates, branching similar work, or setting up
@@ -37,7 +37,7 @@ async def duplicate_epic(epic_id: str, new_name: Optional[str] = None) -> dict:
     Usage:
 
     Before using this tool:
-    - MUST have LINEAR_API_KEY configured in environment variables
+    - MUST have platform API key configured in environment variables
     - MUST have workspace initialized using initialize_workspace
     - SHOULD verify source epic_id exists using list_epics
     - CONSIDER checking task count with get_tasks if epic is large
@@ -53,7 +53,7 @@ async def duplicate_epic(epic_id: str, new_name: Optional[str] = None) -> dict:
     IMPORTANT:
     - Duplicated tasks start with "todo" status regardless of original status
     - This is intentional to provide a clean slate for the new epic
-    - Task dependencies are not preserved (Linear API limitation)
+    - Task dependencies are not preserved (platform API limitation)
     - Large epics (>50 tasks) may take 10-30 seconds to duplicate
     - Each task is copied individually, so API rate limits may apply
 
@@ -63,8 +63,8 @@ async def duplicate_epic(epic_id: str, new_name: Optional[str] = None) -> dict:
     - Sufficient API quota for creating epic + all tasks
 
     WARNING:
-    - Tool will fail if LINEAR_API_KEY is not set in environment
-    - Tool will fail if Linear API key is invalid or expired
+    - Tool will fail if platform API key is not set in environment
+    - Tool will fail if platform API key is invalid or expired
     - Tool will fail if epic_id doesn't exist in workspace
     - Some tasks may fail to copy if API rate limits are exceeded
     - Very large epics (>100 tasks) may timeout or partially copy
@@ -118,7 +118,7 @@ async def duplicate_epic(epic_id: str, new_name: Optional[str] = None) -> dict:
     Parameters:
 
     epic_id [string] (required) - The unique identifier of the source epic to duplicate.
-        Must be exact epic ID from Linear (e.g., "abc123-def456-789"). Get this using
+        Must be exact epic ID from platform (e.g., "abc123-def456-789"). Get this using
         list_epics. The epic must exist and be accessible in your workspace.
 
     new_name [string] (optional) - Custom name for the duplicated epic. If not provided,
@@ -132,7 +132,7 @@ async def duplicate_epic(epic_id: str, new_name: Optional[str] = None) -> dict:
       - id: Unique ID of the new epic (different from source)
       - name: Name of the new epic
       - description: Epic description (copied from source)
-      - url: Direct Linear URL for the new epic
+      - url: Direct platform URL for the new epic
     - source_epic: Information about the original epic:
       - id: Source epic ID
       - name: Source epic name
@@ -141,6 +141,4 @@ async def duplicate_epic(epic_id: str, new_name: Optional[str] = None) -> dict:
     """
     config = mcp.state.config
 
-    return await duplicate_epic_logic(
-        api_key=config.linear_api_key, epic_id=epic_id, new_name=new_name
-    )
+    return await duplicate_epic_logic(config=config, epic_id=epic_id, new_name=new_name)

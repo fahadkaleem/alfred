@@ -1,7 +1,8 @@
 """Business logic for deleting epics."""
 
 from typing import Dict, Any
-from alfred.adapters.linear_adapter import LinearAdapter
+from alfred.adapters import get_adapter
+from alfred.models.config import Config
 from alfred.adapters.base import (
     AuthError,
     APIConnectionError,
@@ -14,13 +15,13 @@ logger = get_logger("alfred.core.epics.delete")
 
 
 async def delete_epic_logic(
-    api_key: str, epic_id: str, delete_tasks: bool = False
+    config: Config, epic_id: str, delete_tasks: bool = False
 ) -> Dict[str, Any]:
     """
     Delete an epic (project) from Linear, optionally with its tasks.
 
     Args:
-        api_key: Linear API key
+        config: Alfred configuration object
         epic_id: Epic ID to delete
         delete_tasks: Whether to delete all tasks in the epic first
 
@@ -33,16 +34,12 @@ async def delete_epic_logic(
         ValidationError: If epic has tasks but delete_tasks is False
         APIConnectionError: If network issues occur
     """
-    if not api_key:
-        raise AuthError(
-            "LINEAR_API_KEY not configured. Please set it in environment variables or .env file"
-        )
 
     if not epic_id or not epic_id.strip():
         raise ValidationError("Epic ID cannot be empty")
 
     try:
-        adapter = LinearAdapter(api_token=api_key)
+        adapter = get_adapter(config)
 
         # First verify the epic exists
         epics = adapter.get_epics(limit=100)

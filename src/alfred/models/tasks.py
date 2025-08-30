@@ -72,7 +72,7 @@ class WorkspaceConfig(BaseModel):
 
     api_key: str
     workspace_id: Optional[str] = None
-    team_id: Optional[str] = None
+    team_name: Optional[str] = None
 
 
 # Supported Alfred statuses (hardcoded for now, will be dynamic in future)

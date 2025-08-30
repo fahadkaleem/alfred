@@ -1,7 +1,7 @@
 """Business logic for workspace information retrieval."""
 
 from typing import Dict, Any
-from alfred.adapters.linear_adapter import LinearAdapter
+from alfred.adapters import get_adapter
 from alfred.models.workspace import WorkspaceStatusResponse, WorkspaceInfo, TeamInfo
 from alfred.config import current_workspace, get_config
 from alfred.utils import get_logger
@@ -19,7 +19,7 @@ async def get_workspace_info_logic() -> Dict[str, Any]:
     workspace_info = current_workspace()
 
     # Check if workspace is configured
-    if not workspace_info.get("workspace_id") or not workspace_info.get("team_id"):
+    if not workspace_info.get("workspace_id") or not workspace_info.get("team_name"):
         response = WorkspaceStatusResponse(
             status="not_configured",
             message="No workspace configured. Use initialize_workspace to set up.",
@@ -41,7 +41,7 @@ async def get_workspace_info_logic() -> Dict[str, Any]:
         config = get_config()
         try:
             if workspace_info.get("platform") == "linear" and config.linear_api_key:
-                adapter = LinearAdapter(api_token=config.linear_api_key)
+                adapter = get_adapter(config)
                 # Quick check - just see if we can get teams
                 adapter.client.teams.get_all()
                 connection_status = "connected"
@@ -58,8 +58,10 @@ async def get_workspace_info_logic() -> Dict[str, Any]:
             name=workspace_info.get("workspace_id"),  # Would need API call for name
         ),
         team=TeamInfo(
-            id=workspace_info.get("team_id"),
-            name=workspace_info.get("team_id"),  # Would need API call for name
+            id=workspace_info.get(
+                "team_name"
+            ),  # Using team_name as both id and name for now
+            name=workspace_info.get("team_name"),
         ),
         active_epic_id=workspace_info.get("active_epic_id"),
         has_api_key=has_api_key,

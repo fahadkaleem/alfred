@@ -7,25 +7,25 @@ from alfred.core.workspace.teams import list_teams_logic
 @mcp.tool
 async def list_teams() -> dict:
     """
-    List all available teams in the Linear workspace.
+    List all available teams in the configured platform (Linear/Jira) workspace.
 
-    This tool retrieves all teams accessible with the current Linear API key,
+    This tool retrieves all teams accessible with the current API key,
     useful for discovering team IDs needed for workspace initialization.
 
     Usage:
     - Use this tool before initialize_workspace to discover available team IDs
     - Use to verify which teams you have access to
     - Use to get team details like names and keys
-    - MUST have LINEAR_API_KEY configured in environment variables
+    - MUST have API key configured in environment variables for your platform
 
     IMPORTANT:
-    - Requires valid LINEAR_API_KEY in environment
+    - Requires valid API key in environment for your configured platform
     - Returns all teams accessible to the API key
     - No filtering or pagination parameters available
 
     WARNING:
-    - Tool will fail if LINEAR_API_KEY is not set in environment
-    - Tool will fail if Linear API key is invalid or expired
+    - Tool will fail if API key is not set in environment for your platform
+    - Tool will fail if API key is invalid or expired
 
     Returns:
     Dictionary with:
@@ -39,4 +39,4 @@ async def list_teams() -> dict:
     """
     config = mcp.state.config
 
-    return await list_teams_logic(api_key=config.linear_api_key)
+    return await list_teams_logic(config=config)

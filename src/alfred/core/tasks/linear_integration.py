@@ -4,7 +4,8 @@ import asyncio
 import logging
 from typing import List, Optional, Dict, Any
 
-from alfred.adapters.linear_adapter import LinearAdapter
+from alfred.adapters import get_adapter
+from alfred.models.config import Config
 from alfred.core.tasks.models import (
     TaskSuggestion,
     EpicSuggestion,
@@ -19,14 +20,14 @@ logger = logging.getLogger(__name__)
 class LinearTaskCreator:
     """Handles task and epic creation in Linear."""
 
-    def __init__(self, api_key: str, team_id: Optional[str] = None):
+    def __init__(self, config: Config, team_id: Optional[str] = None):
         """Initialize Linear task creator.
 
         Args:
-            api_key: Linear API key
+            config: Alfred configuration object
             team_id: Optional team ID
         """
-        self.adapter = LinearAdapter(api_token=api_key)
+        self.adapter = get_adapter(config)
         self.team_id = team_id
 
     async def ensure_epic_if_needed(

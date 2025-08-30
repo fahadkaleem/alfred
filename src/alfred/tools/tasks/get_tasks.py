@@ -15,15 +15,15 @@ def get_tasks(
     """
     List tasks with optional filters (status, epic) and pagination.
 
-    This tool retrieves tasks from Linear with filtering capabilities and structured
-    pagination support. Tasks are automatically mapped from Linear's data model to
+    This tool retrieves tasks from the configured platform (Linear/Jira) with filtering capabilities and structured
+    pagination support. Tasks are automatically mapped from platform's data model to
     Alfred's standardized task format.
 
     Key features:
     - Supports multiple status filtering with comma-separated values
     - Epic-based task organization and filtering
     - Efficient pagination for large task datasets
-    - Automatic Linear ↔ Alfred status mapping
+    - Automatic platform ↔ Alfred status mapping
     - Structured response format for easy processing
 
     Use this tool when:
@@ -39,9 +39,9 @@ def get_tasks(
 
     Usage Guidance:
 
-    IMPORTANT: This tool automatically maps Linear status names to Alfred's standardized
+    IMPORTANT: This tool automatically maps platform status names to Alfred's standardized
     format. You should always filter by Alfred status names (pending, in_progress, done,
-    cancelled), never by Linear's internal names.
+    cancelled), never by platform's internal names.
 
     CRITICAL: The per_page parameter has a maximum limit of 100 items. For large datasets,
     use pagination rather than requesting all items at once to avoid timeouts.
@@ -59,21 +59,21 @@ def get_tasks(
 
     Performance Considerations:
     - Filtering by epic_id significantly improves response time for large workspaces
-    - Status filtering is performed on the Linear side, not client-side
+    - Status filtering is performed on the platform side, not client-side
     - Pagination cursors are handled automatically - you only need to increment page
 
     Status Mapping:
-    - Linear: backlog/todo → Alfred: pending
-    - Linear: in_progress → Alfred: in_progress
-    - Linear: done → Alfred: done
-    - Linear: canceled → Alfred: cancelled
+    - Platform: backlog/todo → Alfred: pending
+    - Platform: in_progress → Alfred: in_progress
+    - Platform: done → Alfred: done
+    - Platform: canceled → Alfred: cancelled
 
     Args:
         status: Comma-separated list of Alfred task statuses to filter by. Valid values:
             "pending", "in_progress", "done", "cancelled". Example: "pending,in_progress"
             returns tasks in either status. Default: returns all statuses. Case-insensitive
             but lowercase recommended. Invalid status names in the list are silently ignored.
-        epic_id: Filter by specific Linear project/epic ID. Must be a valid epic ID from
+        epic_id: Filter by specific platform project/epic ID. Must be a valid epic ID from
             your workspace. Use list_projects tool to discover available epic IDs.
             Default: returns tasks from all epics. Empty string is treated as no filter.
         page: Page number for pagination, starting at 1. Must be positive integer.
@@ -95,7 +95,7 @@ def get_tasks(
     config = mcp.state.config
 
     return get_tasks_logic(
-        api_key=config.linear_api_key,
+        config=config,
         status=status,
         epic_id=epic_id,
         page=page,

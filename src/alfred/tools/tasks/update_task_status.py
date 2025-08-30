@@ -8,10 +8,10 @@ from alfred.models.tasks import TaskStatus
 @mcp.tool
 def update_task_status(task_id: str, status: str) -> dict:
     """
-    Change a task's status with Alfred to Linear status mapping.
+    Change a task's status with Alfred to platform status mapping.
 
-    This tool updates a task's status in Linear, automatically mapping Alfred status
-    values to the corresponding Linear workflow states. It provides input validation
+    This tool updates a task's status in platform, automatically mapping Alfred status
+    values to the corresponding platform workflow states. It provides input validation
     and detailed error reporting for invalid operations.
 
     Key features:
@@ -43,7 +43,7 @@ def update_task_status(task_id: str, status: str) -> dict:
     - Status transitions should follow logical progression: pending → in_progress → done
     - Moving from "done" back to "in_progress" is allowed for reopening completed work
     - "cancelled" is final - tasks cannot be moved out of cancelled status via this tool
-    - Each status change is immediately persisted to Linear - no undo functionality
+    - Each status change is immediately persisted to platform - no undo functionality
 
     Status Mapping Details:
     - pending → Linear "Backlog" (task is ready to work on)
@@ -60,10 +60,10 @@ def update_task_status(task_id: str, status: str) -> dict:
     Error Handling:
     - Invalid status: Returns detailed error with valid status list
     - Task not found: Returns error with the attempted task_id for debugging
-    - Linear API errors: Returns error with Linear's specific error message
+    - platform API errors: Returns error with Linear's specific error message
 
     Args:
-        task_id: Linear task/issue ID to update. Must be a valid existing task ID in your
+        task_id: platform task/issue ID to update. Must be a valid existing task ID in your
             workspace. Format examples: "AUTH-123", "PROJ-456", "LOGIN-789". Task IDs are
             case-sensitive and must match exactly. Use get_tasks or list_projects to discover
             valid task IDs if unsure.
@@ -93,6 +93,4 @@ def update_task_status(task_id: str, status: str) -> dict:
 
     config = mcp.state.config
 
-    return update_task_status_logic(
-        api_key=config.linear_api_key, task_id=task_id, status=status
-    )
+    return update_task_status_logic(config=config, task_id=task_id, status=status)

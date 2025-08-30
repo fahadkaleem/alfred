@@ -13,12 +13,12 @@ def remove_subtask(
     """
     Delete a subtask or convert it to a standalone task.
 
-    This tool deletes subtasks from Linear or converts them to standalone tasks.
+    This tool deletes subtasks from platform or converts them to standalone tasks.
     Updates parent task's subtask count, handles subtask not found gracefully,
     does not affect sibling subtasks, and returns confirmation of deletion.
 
     Key features:
-    - Deletes Linear sub-issues or converts them to regular issues
+    - Deletes platform sub-issues or converts them to regular issues
     - Option to convert subtask to standalone task instead of deletion
     - Automatically removes parent relationship when converting
     - Updates parent task relationships appropriately
@@ -37,14 +37,14 @@ def remove_subtask(
     - Don't use for changing subtask status - use update_task_status
 
     Args:
-        subtask_id (str): Linear sub-issue ID to delete or convert. Must be a valid
-            Linear sub-issue identifier. Sub-issues are regular Linear issues
+        subtask_id (str): platform sub-issue ID to delete or convert. Must be a valid
+            platform sub-issue identifier. Sub-issues are regular platform issues
             with a parent relationship. Format examples: "AUTH-124", "PROJ-457",
             "LOGIN-790". Case-sensitive and must match exactly.
         convert_to_task (bool, optional): Whether to convert subtask to standalone task instead
             of deleting. Default: false (as boolean, not string). When true, removes
             parent relationship making it a regular task. When false, permanently
-            deletes the subtask from Linear.
+            deletes the subtask from platform.
             IMPORTANT: Pass as boolean value (true/false), NOT as string ("true"/"false").
 
     Returns:
@@ -60,7 +60,7 @@ def remove_subtask(
     config = mcp.state.config
 
     return remove_subtask_logic(
-        api_key=config.linear_api_key,
+        config=config,
         subtask_id=subtask_id,
         convert_to_task=convert_to_task,
     )

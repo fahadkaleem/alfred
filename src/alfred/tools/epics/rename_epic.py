@@ -9,12 +9,12 @@ async def rename_epic(epic_id: str, new_name: str) -> dict:
     """
     Rename an existing epic (project) to better reflect its purpose or scope.
 
-    This tool updates the name of an existing epic/project in your Linear workspace,
+    This tool updates the name of an existing epic/project in your platform (Linear/Jira) workspace,
     allowing you to keep epic names current as project scope evolves or to fix
     naming issues.
 
     Key features:
-    - Updates epic name immediately in Linear
+    - Updates epic name immediately in platform
     - Preserves epic ID and all associated tasks
     - Returns both old and new names for confirmation
     - Change is instantly visible to all team members
@@ -36,7 +36,7 @@ async def rename_epic(epic_id: str, new_name: str) -> dict:
     Usage:
 
     Before using this tool:
-    - MUST have LINEAR_API_KEY configured in environment variables
+    - MUST have platform API key configured in environment variables
     - MUST have workspace initialized using initialize_workspace
     - SHOULD use list_epics to verify epic_id and current name
     - CONSIDER checking for name conflicts with existing epics
@@ -55,8 +55,8 @@ async def rename_epic(epic_id: str, new_name: str) -> dict:
     - URL to the epic remains the same (ID-based)
 
     WARNING:
-    - Tool will fail if LINEAR_API_KEY is not set in environment
-    - Tool will fail if Linear API key is invalid or expired
+    - Tool will fail if platform API key is not set in environment
+    - Tool will fail if platform API key is invalid or expired
     - Tool will fail if epic_id doesn't exist in workspace
     - Tool may fail if new name already exists (workspace dependent)
     - Tool will fail if new name exceeds character limit (255)
@@ -109,7 +109,7 @@ async def rename_epic(epic_id: str, new_name: str) -> dict:
     Parameters:
 
     epic_id [string] (required) - The unique identifier of the epic to rename. Must be
-        the exact epic ID from Linear (e.g., "abc123-def456-789"). Get this using
+        the exact epic ID from platform (e.g., "abc123-def456-789"). Get this using
         list_epics. Case-sensitive and must exist in your workspace.
 
     new_name [string] (required) - The new name for the epic. Should be descriptive,
@@ -123,13 +123,11 @@ async def rename_epic(epic_id: str, new_name: str) -> dict:
         - id: Epic ID (unchanged)
         - name: New epic name as set
         - description: Epic description (unchanged)
-        - url: Linear URL for the epic (unchanged)
+        - url: Platform URL for the epic (unchanged)
         - updated_at: Timestamp of the rename operation
     - message: Confirmation of successful rename
     - old_name: Previous epic name (for audit trail)
     """
     config = mcp.state.config
 
-    return await rename_epic_logic(
-        api_key=config.linear_api_key, epic_id=epic_id, new_name=new_name
-    )
+    return await rename_epic_logic(config=config, epic_id=epic_id, new_name=new_name)

@@ -1,6 +1,6 @@
 """MCP tool wrapper for remove_task."""
 
-from typing import Optional, List
+from typing import List
 from alfred.mcp import mcp
 from alfred.core.tasks.remove import remove_task_logic
 
@@ -8,18 +8,18 @@ from alfred.core.tasks.remove import remove_task_logic
 @mcp.tool
 def remove_task(
     task_ids: List[str],
-    cascade_delete: Optional[bool] = False,
+    cascade_delete: bool = False,
 ) -> dict:
     """
-    Delete tasks from Linear with optional cascade deletion of subtasks.
+    Delete tasks from platform with optional cascade deletion of subtasks.
 
-    This tool deletes tasks from Linear via GraphQL. If cascade_delete=true,
+    This tool deletes tasks from platform via GraphQL. If cascade_delete=true,
     deletes all subtasks. If cascade_delete=false and task has subtasks,
     returns error. Confirms deletion before executing and handles task not
     found gracefully.
 
     Key features:
-    - Deletes tasks via Linear GraphQL API with confirmation
+    - Deletes tasks via platform GraphQL API with confirmation
     - Optional cascade deletion of all subtasks under parent
     - Safety check prevents accidental deletion of tasks with subtasks
     - Batch deletion support for multiple tasks simultaneously
@@ -38,15 +38,14 @@ def remove_task(
     - Don't use for status changes - use update_task_status instead
 
     Args:
-        task_ids (List[str]): List of Linear task/issue IDs to delete. Each must be a
+        task_ids (List[str]): List of platform task/issue IDs to delete. Each must be a
             valid existing task ID in your workspace. Format examples:
             ["AUTH-123", "PROJ-456", "LOGIN-789"]. Task IDs are case-sensitive
             and must match exactly. Invalid task IDs will be reported in results.
-        cascade_delete (bool, optional): Whether to force deletion of task with subtasks.
-            Default: false (as boolean, not string). When false, deletion fails if task has subtasks
+        cascade_delete (bool): Whether to force deletion of task with subtasks.
+            Default: false. When false, deletion fails if task has subtasks
             (safety mechanism). When true, deletes task and ALL subtasks without
             further confirmation. Use with extreme caution.
-            IMPORTANT: Pass as boolean value (true/false), NOT as string ("true"/"false").
 
     Returns:
         Dictionary with deletion results including count of removed tasks,
@@ -61,7 +60,7 @@ def remove_task(
     config = mcp.state.config
 
     return remove_task_logic(
-        api_key=config.linear_api_key,
+        config=config,
         task_ids=task_ids,
         cascade_delete=cascade_delete,
     )

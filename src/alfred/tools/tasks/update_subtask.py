@@ -35,11 +35,11 @@ async def update_subtask(
     - Use get_task to check current subtask state first
     - This only appends content - use update_task for full subtask updates
     - Don't use for changing subtask status - use update_task_status
-    - Subtask ID must be a valid Linear sub-issue ID
+    - Subtask ID must be a valid platform sub-issue ID
 
     Args:
-        subtask_id: Linear sub-issue ID to update. Must be a valid Linear sub-issue
-            identifier. Sub-issues in Linear are regular issues with a parent relationship.
+        subtask_id: platform sub-issue ID to update. Must be a valid platform sub-issue
+            identifier. Sub-issues in platform are regular issues with a parent relationship.
             Format examples: "AUTH-124", "PROJ-457", "LOGIN-790". Case-sensitive and
             must match exactly.
         prompt: Information to add to the subtask. Should describe what information
@@ -57,7 +57,7 @@ async def update_subtask(
     config = mcp.state.config
 
     return await update_subtask_logic(
-        api_key=config.linear_api_key,
+        config=config,
         subtask_id=subtask_id,
         prompt=prompt,
         research=research,

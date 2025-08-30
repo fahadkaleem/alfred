@@ -34,7 +34,7 @@ class Config(BaseModel):
 
     # Workspace Configuration
     workspace_id: Optional[str] = None
-    team_id: Optional[str] = None
+    team_name: Optional[str] = None  # Changed from team_id to team_name for better UX
     active_epic_id: Optional[str] = None
 
     # Platform Selection
@@ -79,7 +79,7 @@ class Config(BaseModel):
             "example": {
                 "platform": "linear",
                 "workspace_id": "my-workspace",
-                "team_id": "team-123",
+                "team_name": "Engineering",
                 "linear_api_key": "lin_api_xxx",
                 "anthropic_api_key": "sk-ant-xxx",
             }

@@ -10,13 +10,13 @@ def unlink_tasks(
     task_id_1: str, task_id_2: str, relation_type: Optional[str] = None
 ) -> dict:
     """
-    Remove a relationship between two tasks in Linear.
+    Remove a relationship between two tasks in platform.
 
     This tool removes existing task relationships, such as blocking dependencies
     or other types of links between tasks.
 
     Key features:
-    - Removes Linear issue relations between tasks
+    - Removes platform issue relations between tasks
     - Searches both forward and inverse relationships
     - Optional filtering by relationship type
     - Handles bidirectional relationship removal
@@ -35,8 +35,8 @@ def unlink_tasks(
     - Safely handles non-existent relationships
 
     Args:
-        task_id_1: Linear issue ID of the first task in the relationship
-        task_id_2: Linear issue ID of the second task in the relationship
+        task_id_1: platform issue ID of the first task in the relationship
+        task_id_2: platform issue ID of the second task in the relationship
         relation_type: Optional filter for specific relation type (blocks, relates, duplicates)
 
     Returns:
@@ -45,7 +45,7 @@ def unlink_tasks(
     config = mcp.state.config
 
     return unlink_tasks_logic(
-        api_key=config.linear_api_key,
+        config=config,
         task_id_1=task_id_1,
         task_id_2=task_id_2,
         relation_type=relation_type,

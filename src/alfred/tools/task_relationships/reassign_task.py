@@ -7,16 +7,16 @@ from alfred.core.task_relationships.reassign_task import reassign_task_logic
 @mcp.tool
 def reassign_task(task_id: str, target_epic_id: str) -> dict:
     """
-    Move a task from one epic to another in Linear.
+    Move a task from one epic to another in platform.
 
-    This tool reassigns tasks between epics (projects) in Linear, allowing for
+    This tool reassigns tasks between epics (projects) in platform, allowing for
     task organization and project restructuring while preserving task relationships
     and metadata.
 
     Key features:
-    - Moves tasks between Linear projects/epics
+    - Moves tasks between platform projects/epics
     - Preserves task relationships and subtasks
-    - Updates project assignment in Linear
+    - Updates project assignment in platform
     - Returns updated task information with new epic
     - Validates both task and target epic exist
 
@@ -33,8 +33,8 @@ def reassign_task(task_id: str, target_epic_id: str) -> dict:
     - Maintains task history and metadata
 
     Args:
-        task_id: Linear issue ID of the task to move
-        target_epic_id: Linear project/epic ID where task should be moved
+        task_id: platform issue ID of the task to move
+        target_epic_id: platform project/epic ID where task should be moved
 
     Returns:
         Dictionary with success status, message, and updated task details
@@ -42,7 +42,7 @@ def reassign_task(task_id: str, target_epic_id: str) -> dict:
     config = mcp.state.config
 
     return reassign_task_logic(
-        api_key=config.linear_api_key,
+        config=config,
         task_id=task_id,
         target_epic_id=target_epic_id,
     )

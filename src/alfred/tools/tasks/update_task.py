@@ -40,7 +40,7 @@ async def update_task(
     - Use append=True to add info without overwriting existing content
 
     Args:
-        task_id (str): Linear task/issue ID to update. Must be a valid existing task ID in your
+        task_id (str): platform task/issue ID to update. Must be a valid existing task ID in your
             workspace. Format examples: "AUTH-123", "PROJ-456", "LOGIN-789". Task IDs are
             case-sensitive and must match exactly.
         prompt (str): Description of changes to make or new context to incorporate. Should be
@@ -66,7 +66,7 @@ async def update_task(
     config = mcp.state.config
 
     return await update_task_logic(
-        api_key=config.linear_api_key,
+        config=config,
         task_id=task_id,
         prompt=prompt,
         research=research,

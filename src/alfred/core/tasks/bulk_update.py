@@ -2,7 +2,8 @@
 
 import logging
 from typing import Dict, Any, List
-from alfred.adapters.linear_adapter import LinearAdapter
+from alfred.adapters import get_adapter
+from alfred.models.config import Config
 from alfred.models.tasks import to_alfred_task
 from alfred.ai_services import AIService
 
@@ -10,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 async def bulk_update_tasks_logic(
-    api_key: str,
+    config: Config,
     task_ids: List[str],
     prompt: str,
     research: bool = False,
@@ -19,7 +20,7 @@ async def bulk_update_tasks_logic(
     Update multiple tasks with AI-generated updates based on context.
 
     Args:
-        api_key: Linear API key
+        config: Alfred configuration object
         task_ids: List of task IDs to update
         prompt: Description of changes to apply to all tasks
         research: Whether to use research mode for enhanced updates
@@ -27,7 +28,7 @@ async def bulk_update_tasks_logic(
     Returns:
         Dictionary with update summary and results
     """
-    adapter = LinearAdapter(api_token=api_key)
+    adapter = get_adapter(config)
 
     # Get current tasks
     tasks = []
