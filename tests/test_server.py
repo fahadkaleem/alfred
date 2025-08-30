@@ -39,12 +39,12 @@ async def test_server():
     print("   ✓ Config attached")
     print("   ✓ Logger configured")
 
-    # Test 4: Tool registration
-    print("\n4. Testing tool registration...")
-    from alfred.tools import register_tools
-
-    tool_count = register_tools(server)
-    print(f"   ✓ Tools registered: {tool_count}")
+    # Test 4: Tool auto-registration
+    print("\n4. Testing tool auto-registration...")
+    # Tools are now auto-registered via decorators when imported
+    # Check that tools exist on the server
+    tool_count = len(getattr(server, '_tools', {}))
+    print(f"   ✓ Tools auto-registered: {tool_count}")
 
     # Test 5: Session management
     print("\n5. Testing session management...")

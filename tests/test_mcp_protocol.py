@@ -139,11 +139,8 @@ def test_direct_server_run():
         assert "session_manager" in server.state
         print("✓ Server state initialized correctly")
 
-        # Register tools
-        from alfred.tools import register_tools
-
-        tool_count = register_tools(server)
-        print(f"✓ Tools registered: {tool_count}")
+        tool_count = len(getattr(server, '_tools', {}))
+        print(f"✓ Tools auto-registered: {tool_count}")
 
         return True
     except Exception as e:

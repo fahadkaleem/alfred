@@ -1,6 +1,6 @@
 {
   "mcpServers": {
-    "alfred": {
+    "alfred-task-manager": {
       "command": "uv",
       "args": [
         "--directory",
@@ -17,9 +17,9 @@
         "ALFRED_WORKSPACE": "/Users/mohammedfahadkaleem/Documents/Workspace/alfred-task-manager",
         
         "ANTHROPIC_API_KEY": "your_anthropic_api_key_here",
-        "ALFRED_LINEAR_API_KEY": "your_linear_api_key_here",
-        "ALFRED_JIRA_API_KEY": "your_jira_api_key_here",
-        "ALFRED_JIRA_URL": "https://your-domain.atlassian.net"
+        "LINEAR_API_KEY": "your_linear_api_key_here",
+        "JIRA_API_KEY": "your_jira_api_key_here",
+        "JIRA_URL": "https://your-domain.atlassian.net"
       }
     }
   }
