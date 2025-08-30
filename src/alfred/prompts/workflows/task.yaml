@@ -1,0 +1,226 @@
+# Complete workflow definition with persona references
+workflow:
+  version: "2.0"
+  id: task
+  name: "Task Execution Workflow"
+  goal: |
+    Execute a local task from start to finish through all development phases,
+    ensuring comprehensive planning, quality implementation, and proper testing.
+  
+  # Configuration
+  create_task: false
+  
+  defaults:
+    save_context: true
+    auto_assign: true
+  
+  # All phases defined inline with persona references
+  phases:
+    - id: claim
+      name: "Claim Task"
+      goal: |
+        Claim ownership of the task, set up your development environment,
+        and prepare to begin work.
+      
+      persona_ref: "senior_developer"  # Reference to separate file
+      
+      steps:
+        - name: "Update task status"
+          description: "Mark task as in-progress"
+          instruction: "task_management/update"
+          
+        - name: "Create feature branch"
+          description: "Set up git branch for work"
+          instruction: "development/create-branch"
+          
+        - name: "Review task requirements"
+          description: "Understand what needs to be done"
+          instruction: "common/review-requirements"
+          
+        - name: "Save claim context"
+          description: "Document task ownership and setup"
+          instruction: "common/save-context"
+    
+    - id: plan
+      name: "Planning"
+      goal: |
+        Extract comprehensive implementation context from local tasks. 
+        Create a Plan Artifact so detailed that developers never need to explore the codebase themselves.
+      
+      persona_ref: "technical_planner"  # Reference
+      
+      context_instruction: "common/save-context"
+      available_subagents:
+        - "codebase-analyzer"
+        - "code-reviewer"
+      
+      steps:
+        - name: "Load previous context"
+          description: "Find all existing context and similar implementations"
+          
+        - name: "Check existing plan"
+          description: "Look for any existing plans in comments"
+          instruction: "planning/check-existing-plan"
+          
+        - name: "Read and understand context"
+          description: "Extract requirements from local task"
+          instruction: "planning/understand-context"
+          
+        - name: "Analyze codebase"
+          description: "Extract comprehensive implementation context"
+          instruction: "planning/analyze-codebase"
+          
+        - name: "Validate and reconcile plans"
+          description: "Ensure consistency between plans and requirements"
+          instruction: "planning/validate-reconcile-plans"
+          
+        - name: "Ask clarifying questions"
+          description: "Gather missing information from user"
+          instruction: "planning/conversational-understanding"
+          
+        - name: "Create implementation plan"
+          description: "Collaborate on LOST-style implementation tasks"
+          instruction: "planning/create-implementation-plan"
+          
+        - name: "Create subtasks"
+          description: "Break down work into manageable pieces"
+          instruction: "planning/create-subtasks"
+          
+        - name: "Save Plan Artifact"
+          description: "Save comprehensive planning context"
+          instruction: "planning/save-plan-artifact"
+          
+        - name: "Provide next steps"
+          description: "Guide user to next phase"
+          instruction: "planning/provide-next-steps"
+          
+        - name: "Request review"
+          description: "Ask for plan approval"
+          instruction: "planning/request-review"
+    
+    - id: implement
+      name: "Implementation"
+      goal: |
+        Transform the Plan Artifact into working code following best practices,
+        patterns from the codebase, and the agreed implementation approach.
+      
+      persona_ref: "senior_developer"  # Reference
+      
+      # Dynamic features
+      requires_review: true
+      review_instruction: "review/implementation-review"
+      auto_checkpoint: true
+      checkpoint_instruction: "checkpoints/implementation-complete"
+      
+      available_subagents:
+        - "subtask-developer"
+        - "qa-test-validator"
+        - "code-reviewer"
+      
+      steps:
+        - name: "Load planning context"
+          description: "Review the implementation plan and subtasks"
+        
+        - name: "Set up development environment"
+          description: "Ensure environment is ready for coding"
+          instruction: "development/setup-environment"
+        
+        - name: "Implement subtasks"
+          description: "Work through each subtask systematically"
+          instruction: "development/implement-subtask"
+        
+        - name: "Run tests frequently"
+          description: "Ensure code works as you build"
+          instruction: "development/run-tests"
+        
+        - name: "Document implementation"
+          description: "Add necessary documentation and comments"
+          instruction: "development/document-implementation"
+          
+        - name: "Save implementation context"
+          description: "Document what was built and any decisions made"
+          instruction: "common/save-context"
+    
+    - id: test
+      name: "Testing"
+      goal: |
+        Verify the implementation meets all acceptance criteria through
+        comprehensive testing including unit, integration, and user acceptance tests.
+      
+      persona_ref: "qa_engineer"  # Reference
+      
+      steps:
+        - name: "Review acceptance criteria"
+          description: "Understand what needs to be tested"
+          instruction: "testing/review-acceptance-criteria"
+          
+        - name: "Run existing tests"
+          description: "Execute the test suite"
+          instruction: "testing/run-test-suite"
+          
+        - name: "Test implementation manually"
+          description: "Verify functionality through manual testing"
+          instruction: "testing/manual-testing"
+          
+        - name: "Validate edge cases"
+          description: "Test boundary conditions and error scenarios"
+          instruction: "testing/edge-case-validation"
+          
+        - name: "Document test results"
+          description: "Record what was tested and outcomes"
+          instruction: "testing/document-results"
+          
+        - name: "Save testing context"
+          description: "Save comprehensive test results and findings"
+          instruction: "common/save-context"
+    
+    - id: review
+      name: "Review"
+      goal: |
+        Conduct thorough code review ensuring quality, maintainability,
+        and adherence to team standards before deployment.
+      
+      persona_ref: "senior_developer"  # Reference - must match V1
+      
+      steps:
+        - name: "Self-review implementation"
+          description: "Review your own code first"
+          instruction: "review/self-review"
+          
+        - name: "Check code quality"
+          description: "Run linters and code quality tools"
+          instruction: "review/code-quality"
+          
+        - name: "Verify documentation"
+          description: "Ensure code is well documented"
+          instruction: "review/documentation-check"
+          
+        - name: "Prepare for peer review"
+          description: "Create PR or review package"
+          instruction: "review/prepare-for-review"
+          
+        - name: "Address review feedback"
+          description: "Incorporate feedback from reviewers"
+          instruction: "review/address-feedback"
+          
+        - name: "Save review context"
+          description: "Document review outcomes and changes"
+          instruction: "common/save-context"
+    
+    - id: finalize
+      name: "Finalize"
+      goal: "Complete the task and prepare for deployment"
+      
+      persona_ref: "senior_developer"  # Reference
+      
+      steps:
+        - name: "Clean up code"
+          description: "Remove debug statements and clean up"
+          instruction: "finalize/cleanup"
+        
+        - name: "Update documentation"
+          description: "Ensure documentation is complete"
+          instruction: "finalize/update-docs"
+        
+        - name: "Mark task complete"
+          description: "Update task status and notify team"

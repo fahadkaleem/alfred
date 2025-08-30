@@ -1,0 +1,52 @@
+# Alfred Subagent Registry
+# Maps Alfred workflow needs to Claude Code's native subagent system
+
+subagents:
+  code-reviewer:
+    claude_subagent: "code-reviewer"
+    description: "Code quality, security, and best practices reviewer using Claude Code's specialized reviewer"
+    when_to_use: "After implementation, before merging, during code audits, or for establishing quality standards"
+    best_for: ["code quality review", "security audit", "best practices validation", "performance analysis"]
+    example_prompts:
+      - "Review this implementation for security issues and performance bottlenecks"
+      - "Audit code for security vulnerabilities and code quality"
+      - "Analyze implementation for race conditions and edge cases"
+
+  codebase-analyzer:
+    claude_subagent: "codebase-analyzer"
+    description: "Comprehensive codebase analysis specialist for extracting implementation context and architectural patterns"
+    when_to_use: "During planning phase when you need deep codebase understanding, architectural analysis, or implementation pattern discovery"
+    best_for: ["architecture analysis", "pattern discovery", "integration point mapping", "codebase exploration", "implementation planning"]
+    example_prompts:
+      - "Analyze the authentication system to understand integration points for OAuth2"
+      - "Map the data architecture and service integration patterns for reporting system"
+      - "Perform comprehensive analysis of the codebase structure and patterns"
+
+  subtask-developer:
+    claude_subagent: "subtask-developer"
+    description: "Precise execution specialist for clearly defined subtasks with specific implementation requirements"
+    when_to_use: "During implementation when you have well-defined subtasks with clear acceptance criteria and documented requirements"
+    best_for: ["subtask implementation", "architectural consistency", "pattern following", "precise execution", "requirement fulfillment"]
+    example_prompts:
+      - "Implement the user authentication middleware following the LOST format requirements"
+      - "Build the database connection pooling with specified connection limits and retry logic"
+      - "Create the API endpoint following the documented specification and existing patterns"
+
+  qa-test-validator:
+    claude_subagent: "qa-test-validator"
+    description: "Comprehensive testing validation and execution specialist for ensuring implementation integrity"
+    when_to_use: "After implementation or during testing phases when you need full test suite execution and validation"
+    best_for: ["test execution", "regression testing", "acceptance criteria validation", "test analysis", "quality assurance"]
+    example_prompts:
+      - "Run the full test suite and validate the authentication feature implementation"
+      - "Execute comprehensive testing to check for regressions after the bug fix"
+      - "Validate all acceptance criteria are met before deployment"
+
+# === REGISTRY METADATA ===
+version: "1.0"
+last_updated: "2025-07-25"
+total_subagents: 4
+categories:
+  quality: ["code-reviewer", "qa-test-validator"]
+  analysis: ["codebase-analyzer"]
+  implementation: ["subtask-developer"]
